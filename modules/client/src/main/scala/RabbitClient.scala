@@ -5,6 +5,7 @@ import com.rabbitmq.client.AMQP
 import com.rabbitmq.client.GetResponse
 import com.rabbitmq.client.Envelope
 import com.rabbitmq.client.Consumer
+import com.rabbitmq.client.DefaultConsumer
 
 final class RabbitClient[F[_]] {
   val con: client.Connection = ???
@@ -18,5 +19,6 @@ final class RabbitClient[F[_]] {
   val envelop: Envelope = msg.getEnvelope
 
   val consumer: Consumer = ch.getDefaultConsumer
+  val consumer2: DefaultConsumer = ???
 
 }

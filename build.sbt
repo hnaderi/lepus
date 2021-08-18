@@ -19,7 +19,30 @@ val core = Module
 val client = Module
   .named("client")
   .dependsOn(core)
-  .settings(libraryDependencies ++= rabbit)
+  .settings(
+    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ scodecStream ++ scalaXml
+  )
+
+val protocol = Module
+  .named("protocol")
+
+val protocolGen = Module
+  .named("protocol-gen")
+  .settings(libraryDependencies ++= fs2IO ++ scodecStream ++ scalaXml)
+
+val data = Module
+  .named("data")
+  .dependsOn(core)
+
+val std = Module
+  .named("std")
+  .dependsOn(core)
+  .dependsOn(data)
+
+val dataCirce = Module
+  .named("data-circe")
+  .dependsOn(data)
+  .settings(libraryDependencies ++= circe)
 
 val docs = project
   .in(file("docs-build"))
@@ -36,8 +59,13 @@ val root = (project in file("."))
     version := libVersion
   )
   .aggregate(
+    protocol,
+    protocolGen,
     core,
     client,
+    std,
+    data,
+    dataCirce,
     docs
   )
   .enablePlugins(MicrositesPlugin)

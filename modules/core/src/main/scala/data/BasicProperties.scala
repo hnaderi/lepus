@@ -5,7 +5,7 @@ import java.time.Instant
 final case class BasicProperties(
     contentType: Option[String],
     contentEncoding: Option[String],
-    headers: Map[String, HeaderValue],
+    headers: Map[String, AMQPField],
     deliveryMode: Option[Integer],
     priority: Option[Integer],
     correlationId: Option[String],
