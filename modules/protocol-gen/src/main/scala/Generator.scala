@@ -30,12 +30,18 @@ def generate(out: Path): Pipe[IO, String, Nothing] = lines =>
 val namePattern = "\\W*\\b(\\w)".r
 def idName(str: String): String =
   namePattern.replaceAllIn(str, m => m.group(1).toUpperCase)
+def varName(str: String): String = {
+  val id = idName(str)
+  id.headOption.map(_.toLower).map(id.tail.prepended).getOrElse(id)
+}
 
 def comment(str: String): String = s"/**\n$str\n */"
 
 def gen: IO[Unit] = for {
   protocol <- IO(XML.load("amqp0-9-1.xml"))
-  generation = genClasses(protocol)//genConsts(    protocol  ) genDomains(protocol) merge genClasses(protocol)
+  generation = genClasses(
+    protocol
+  ) //genConsts(    protocol  ) genDomains(protocol) merge genClasses(protocol)
   _ <- generation.compile.drain
 } yield ()
 
