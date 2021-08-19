@@ -12,9 +12,6 @@ lazy val scala3 = "3.0.1"
 ThisBuild / scalaVersion := scala3
 ThisBuild / version := libVersion
 
-val core = Module
-  .named("core")
-  .settings(libraryDependencies ++= cats ++ catsEffect ++ fs2)
 
 val protocol = Module
   .named("protocol")
@@ -22,6 +19,11 @@ val protocol = Module
 val protocolGen = Module
   .named("protocol-gen")
   .settings(libraryDependencies ++= fs2IO ++ scodecStream ++ scalaXml)
+
+val core = Module
+  .named("core")
+  .settings(libraryDependencies ++= cats ++ catsEffect ++ fs2)
+  .dependsOn(protocol)
 
 val data = Module
   .named("data")

@@ -11,6 +11,7 @@ import fs2.io.file.Path
 import lepus.client.codecs.MyCodecs
 import lepus.protocol.frame.*
 import lepus.protocol.ProtocolVersion
+import fs2.Pipe
 
 object DecodeTest extends IOApp {
   val decoder: StreamDecoder[ProtocolVersion | Frame] =
