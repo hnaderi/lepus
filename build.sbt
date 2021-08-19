@@ -16,13 +16,6 @@ val core = Module
   .named("core")
   .settings(libraryDependencies ++= cats ++ catsEffect ++ fs2)
 
-val client = Module
-  .named("client")
-  .dependsOn(core)
-  .settings(
-    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ scodecStream ++ scalaXml
-  )
-
 val protocol = Module
   .named("protocol")
 
@@ -33,6 +26,14 @@ val protocolGen = Module
 val data = Module
   .named("data")
   .dependsOn(core)
+
+val client = Module
+  .named("client")
+  .dependsOn(core)
+  .dependsOn(protocol)
+  .settings(
+    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ scodecStream ++ scalaXml
+  )
 
 val std = Module
   .named("std")
