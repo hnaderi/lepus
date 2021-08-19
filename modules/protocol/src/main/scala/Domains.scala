@@ -7,6 +7,9 @@ trait TaggedOpaqueComp[U, T <: U](using ev: U =:= T) {
   def lift[F[_]](f: F[U]): F[T] = ev.liftCo(f)
 }
 
+opaque type ChannelNumber <: Short = Short
+object ChannelNumber extends TaggedOpaqueComp[Short, ChannelNumber]
+
 opaque type ShortString <: String = String
 object ShortString {
   def apply(str: String): Either[String, ShortString] =
@@ -45,7 +48,7 @@ final case class FieldTable(values: Map[ShortString, FieldData])
 opaque type ClassId <: Short = Short
 object ClassId extends TaggedOpaqueComp[Short, ClassId]
 
-/** Identifier for the consumer, valid within the current channel.
+/** Identifier for the consumer, valid within the current c hannel.
   */
 opaque type ConsumerTag <: ShortString = ShortString
 object ConsumerTag extends TaggedOpaqueComp[ShortString, ConsumerTag]

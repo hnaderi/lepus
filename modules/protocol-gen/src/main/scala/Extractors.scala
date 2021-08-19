@@ -32,16 +32,26 @@ def buildClassModels(protocol: NodeSeq): Seq[Class] =
   )
 
 def buildMethodModels(thisClass: NodeSeq): Seq[Method] =
-  (thisClass \ "method").map(c =>
+  (thisClass \ "method").map { c =>
+    val sync =
+      if (c \@ "synchronous") == "1" then MethodType.Sync else MethodType.ASync
+    val chassis = (c \ "chassis").map(_ \@ "name")
+    val recv = chassis.length match {
+      case 1 if chassis.contains("server") => MethodReceiver.Server
+      case 1 if chassis.contains("client") => MethodReceiver.Client
+      case _                               => MethodReceiver.Both
+    }
+
     Method(
       name = c \@ "name",
       label = c \@ "label",
       id = (c \@ "index").toShort,
-      sync = (c \@ "synchronous") == "1",
+      sync = sync,
+      receiver = recv,
       doc = (c \ "doc").map(_.text).headOption.getOrElse(""),
       fields = buildFieldModels(c).toList
     )
-  )
+  }
 
 def buildFieldModels(thisMethod: NodeSeq): Seq[Field] =
   (thisMethod \ "field").map(c =>

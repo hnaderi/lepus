@@ -20,11 +20,20 @@ final case class Class(
     methods: List[Method]
 )
 
+enum MethodType {
+  case Sync, ASync
+}
+
+enum MethodReceiver {
+  case Server, Client, Both
+}
+
 final case class Method(
     name: String,
     id: Short,
     label: String,
-    sync: Boolean,
+    sync: MethodType,
+    receiver: MethodReceiver,
     doc: String,
     fields: List[Field]
 )
