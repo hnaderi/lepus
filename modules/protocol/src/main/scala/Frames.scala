@@ -1,6 +1,7 @@
 package lepus.protocol.frame
 
 import lepus.protocol.domains.*
+import lepus.protocol.classes.basic.Properties
 
 final case class Frame(channel: ChannelNumber, payload: FramePayload)
 
@@ -9,8 +10,7 @@ enum FramePayload {
   case Header(
       classId: ClassId,
       bodySize: Long,
-      propertyFlags: Array[Byte],
-      properties: Array[Byte]
+      props: Properties
   )
   case Body(payload: Array[Byte])
   case Heartbeat

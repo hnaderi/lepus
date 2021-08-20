@@ -8,7 +8,8 @@ import lepus.protocol.*
 import lepus.protocol.frame.*
 import lepus.protocol.domains.*
 
-object MyCodecs {
+object FrameCodec {
+  import DomainCodecs.*
   val amqpLiteral: Codec[Unit] = constantLenient(65, 77, 81, 80)
   val protocolId: Codec[Unit] = constant(hex"0")
   val protocolVersion: Codec[ProtocolVersion] =
@@ -16,13 +17,8 @@ object MyCodecs {
   val protocol: Codec[ProtocolVersion] =
     (amqpLiteral ~> protocolId ~> protocolVersion).as[ProtocolVersion]
 
-  val channelNumber: Codec[ChannelNumber] =
-    short16.xmap(ChannelNumber(_), identity)
-
   val frameEnd: Codec[Unit] = constant(hex"CE")
 
-  private val classId: Codec[ClassId] = short16.xmap(ClassId(_), identity)
-  private val methodId: Codec[MethodId] = short16.xmap(MethodId(_), identity)
   private val byteArray: Codec[Array[Byte]] =
     bytes.xmap(_.toArray, ByteVector(_))
 
@@ -30,7 +26,7 @@ object MyCodecs {
     (classId :: methodId :: byteArray).as
   private val headerFP: Codec[FramePayload.Header] = (classId :: constant(
     hex"00"
-  ) ~> long(64) :: provide[Array[Byte]](Array.empty) :: byteArray).as
+  ) ~> long(64) :: basicProps).as
 
   private val bodyFP: Codec[FramePayload.Body] = byteArray.as
 

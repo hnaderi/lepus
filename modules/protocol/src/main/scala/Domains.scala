@@ -39,9 +39,11 @@ object Timestamp {
   }
 }
 
+final case class Decimal(scale: Byte, value: Int)
+
 type FieldData =
-  ShortString | LongString | Boolean | Byte | Short | Int | Long | Timestamp |
-    FieldTable
+  ShortString | LongString | Boolean | Byte | Short | Int | Long | Float |
+    Double | Decimal | Timestamp | FieldTable
 
 final case class FieldTable(values: Map[ShortString, FieldData])
 
@@ -142,3 +144,16 @@ opaque type MessageCount = Int
   * issues.
   */
 type ReplyText = ShortString
+
+enum DeliveryMode(value: Byte) {
+  case NonPersistent extends DeliveryMode(1)
+  case Persistent extends DeliveryMode(2)
+}
+
+type Priority = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+object Priority {
+  def apply(b: Int): Either[String, Priority] = b match {
+    case p: Priority => Right(p)
+    case _           => Left("Valid priorities are 0-9")
+  }
+}

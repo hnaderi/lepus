@@ -3,7 +3,7 @@ package lepus.client
 import cats.effect.*
 import fs2.Stream
 import fs2.Stream.*
-import lepus.client.codecs.MyCodecs
+import lepus.client.codecs.FrameCodec
 import lepus.protocol.frame.*
 import lepus.protocol.ProtocolVersion
 import fs2.Pipe
@@ -19,9 +19,9 @@ import fs2.io.net.SocketOption
 type Transport[F[_]] = Pipe[F, Frame, Frame]
 object Transport {
   def decoder[F[_]](using F: MonadError[F, Throwable]) =
-    StreamDecoder.many(MyCodecs.frame).toPipeByte
+    StreamDecoder.many(FrameCodec.frame).toPipeByte
   def encoder[F[_]](using F: MonadError[F, Throwable]) =
-    StreamEncoder.many(MyCodecs.frame).toPipeByte
+    StreamEncoder.many(FrameCodec.frame).toPipeByte
 
   def build[F[_]: Concurrent](
       reads: Stream[F, Byte],
