@@ -13,4 +13,4 @@ def genConsts(protocol: NodeSeq): Stream[IO, Nothing] =
     .map { case (name, value, cls) =>
       s"val ${idName(name)} : Short = $value // $cls"
     }
-    .through(generate(Path("constants.scala")))
+    .through(generate("protocol", Path("constants.scala")))

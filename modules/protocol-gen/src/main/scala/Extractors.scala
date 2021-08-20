@@ -54,11 +54,15 @@ def buildMethodModels(thisClass: NodeSeq): Seq[Method] =
   }
 
 def buildFieldModels(thisMethod: NodeSeq): Seq[Field] =
-  (thisMethod \ "field").map(c =>
+  (thisMethod \ "field").map { c =>
+    val domain = c \@ "domain"
+    val tpe = c \@ "type"
+    val dataType = if domain.isBlank then tpe else domain
     Field(
       name = c \@ "name",
       label = c \@ "label",
       doc = (c \ "doc").map(_.text).headOption.getOrElse(""),
-      dataType = c \@ "domain"
+      dataType = dataType,
+      reserved = c \@ "reserved" == "1"
     )
-  )
+  }

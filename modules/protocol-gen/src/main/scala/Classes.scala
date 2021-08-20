@@ -33,7 +33,10 @@ def requestsBody(cls: Class): Stream[IO, String] =
 def requests(cls: Class): Stream[IO, Nothing] =
   (header(cls) ++ requestsBody(cls))
     .through(
-      generate(Path(s"classes/${cls.name.toLowerCase}/Requests.scala"))
+      generate(
+        "protocol",
+        Path(s"classes/${cls.name.toLowerCase}/Requests.scala")
+      )
     )
 
 def responsesBody(cls: Class): Stream[IO, String] =
@@ -53,7 +56,10 @@ def responsesBody(cls: Class): Stream[IO, String] =
 
 def responses(cls: Class): Stream[IO, Nothing] =
   (header(cls) ++ responsesBody(cls)).through(
-    generate(Path(s"classes/${cls.name.toLowerCase}/Responses.scala"))
+    generate(
+      "protocol",
+      Path(s"classes/${cls.name.toLowerCase}/Responses.scala")
+    )
   )
 
 def classCodeGen: Pipe[IO, Class, Nothing] = _.map { cls =>
@@ -65,7 +71,7 @@ private def methodCodeGen(method: Method): String =
     if method.fields.isEmpty then ""
     else
       "(" + method.fields
-        .filterNot(_.dataType.isBlank)
+        .filterNot(_.reserved)
         .map(fieldCodeGen)
         .mkString(",\n") + ")"
   val caseName = idName(method.name)
@@ -74,7 +80,7 @@ private def methodCodeGen(method: Method): String =
 private def fieldCodeGen(field: Field): String =
   val name = field.name match {
     case "type" => "`type`"
-    case other  => varName(other)
+    case other  => valName(other)
   }
   s"""$name: ${typeFor(field.dataType)}"""
 

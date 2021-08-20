@@ -42,5 +42,6 @@ final case class Field(
     name: String,
     label: String,
     dataType: String,
-    doc: String
+    doc: String,
+    reserved: Boolean
 )
