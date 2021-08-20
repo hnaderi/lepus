@@ -6,7 +6,7 @@ import scala.xml.NodeSeq
 import fs2.Pipe
 import fs2.io.file.Path
 import cats.implicits.*
-import scala.annotation.tailrec
+import Helpers.*
 
 object MethodCodecs {
   private def header(cls: Class) = Stream(
@@ -74,9 +74,9 @@ object MethodCodecs {
       case other       => valName(other)
     }
 
-  def generateMethodCodecs(cls: Class): Stream[IO, Nothing] =
+  private def generateMethodCodecs(cls: Class): Stream[IO, Nothing] =
     allCodecsIn(cls).through(
-      generate("client", Path(s"codecs/${cls.name.toLowerCase}.scala"))
+      file("client", Path(s"codecs/${cls.name.toLowerCase}.scala"))
     )
 
   def generateAll(clss: Seq[Class]): Stream[IO, Nothing] =
