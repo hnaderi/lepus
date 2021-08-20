@@ -30,7 +30,7 @@ object BasicCodecs {
       .withContext("qosOk method")
 
   private val consumeCodec: Codec[Consume] =
-    (queueName :: consumerTag :: noLocal :: noAck :: bool(
+    (short16.unit(0) :: queueName :: consumerTag :: noLocal :: noAck :: bool(
       8
     ) :: noWait :: fieldTable)
       .as[Consume]
@@ -52,7 +52,7 @@ object BasicCodecs {
       .withContext("cancelOk method")
 
   private val publishCodec: Codec[Publish] =
-    (exchangeName :: shortString :: bool(8) :: bool(8))
+    (short16.unit(0) :: exchangeName :: shortString :: bool(8) :: bool(8))
       .as[Publish]
       .withContext("publish method")
 
@@ -67,7 +67,7 @@ object BasicCodecs {
       .withContext("deliver method")
 
   private val getCodec: Codec[Get] =
-    (queueName :: noAck)
+    (short16.unit(0) :: queueName :: noAck)
       .as[Get]
       .withContext("get method")
 
@@ -77,7 +77,7 @@ object BasicCodecs {
       .withContext("getOk method")
 
   private val getEmptyCodec: Codec[GetEmpty.type] =
-    provide(GetEmpty)
+    (emptyShortString) ~> provide(GetEmpty)
       .withContext("getEmpty method")
 
   private val ackCodec: Codec[Ack] =

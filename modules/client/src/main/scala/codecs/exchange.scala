@@ -21,9 +21,9 @@ import scodec.codecs.*
 object ExchangeCodecs {
 
   private val declareCodec: Codec[Declare] =
-    (exchangeName :: shortString :: bool(8) :: bool(8) :: bool(8) :: bool(
+    (short16.unit(0) :: exchangeName :: shortString :: bool(8) :: bool(
       8
-    ) :: noWait :: fieldTable)
+    ) :: bool(8) :: bool(8) :: noWait :: fieldTable)
       .as[Declare]
       .withContext("declare method")
 
@@ -32,7 +32,7 @@ object ExchangeCodecs {
       .withContext("declareOk method")
 
   private val deleteCodec: Codec[Delete] =
-    (exchangeName :: bool(8) :: noWait)
+    (short16.unit(0) :: exchangeName :: bool(8) :: noWait)
       .as[Delete]
       .withContext("delete method")
 
@@ -41,7 +41,9 @@ object ExchangeCodecs {
       .withContext("deleteOk method")
 
   private val bindCodec: Codec[Bind] =
-    (exchangeName :: exchangeName :: shortString :: noWait :: fieldTable)
+    (short16.unit(
+      0
+    ) :: exchangeName :: exchangeName :: shortString :: noWait :: fieldTable)
       .as[Bind]
       .withContext("bind method")
 
@@ -50,7 +52,9 @@ object ExchangeCodecs {
       .withContext("bindOk method")
 
   private val unbindCodec: Codec[Unbind] =
-    (exchangeName :: exchangeName :: shortString :: noWait :: fieldTable)
+    (short16.unit(
+      0
+    ) :: exchangeName :: exchangeName :: shortString :: noWait :: fieldTable)
       .as[Unbind]
       .withContext("unbind method")
 

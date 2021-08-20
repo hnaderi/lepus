@@ -22,8 +22,7 @@ object FrameCodec {
   private val byteArray: Codec[Array[Byte]] =
     bytes.xmap(_.toArray, ByteVector(_))
 
-  private val methodFP: Codec[FramePayload.Method] =
-    (classId :: methodId :: byteArray).as
+  private val methodFP: Codec[FramePayload.Method] = (MethodCodec.all).as
   private val headerFP: Codec[FramePayload.Header] = (classId :: constant(
     hex"00"
   ) ~> long(64) :: basicProps).as
@@ -33,7 +32,7 @@ object FrameCodec {
   private val heartbeat: Codec[FramePayload.Heartbeat.type] =
     codecs.provide(FramePayload.Heartbeat)
 
-  val frame: Codec[Frame] = discriminated
+  def frame: Codec[Frame] = discriminated
     .by(uint8)
     .typecase(1, channelNumber :: sized(methodFP))
     .typecase(2, channelNumber :: sized(headerFP))

@@ -21,11 +21,11 @@ import scodec.codecs.*
 object ChannelCodecs {
 
   private val openCodec: Codec[Open.type] =
-    provide(Open)
+    (emptyShortString) ~> provide(Open)
       .withContext("open method")
 
   private val openOkCodec: Codec[OpenOk.type] =
-    provide(OpenOk)
+    (emptyLongString) ~> provide(OpenOk)
       .withContext("openOk method")
 
   private val flowCodec: Codec[Flow] =

@@ -11,6 +11,7 @@ import scodec.Attempt
 import scodec.Err
 import lepus.protocol.classes.basic
 import lepus.protocol.constants.ReplyCode
+import cats.instances.lazyList
 
 extension [T](self: Either[String, T]) {
   def asAttempt: Attempt[T] = self match {
@@ -31,43 +32,44 @@ object DomainCodecs {
   lazy val deliveryTag: Codec[DeliveryTag] =
     long(64).xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
-    variableSizeBytes(int8, ascii, 0).exmap(ShortString(_).asAttempt, success)
-  def emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
+    variableSizeBytes(int8, ascii).exmap(ShortString(_).asAttempt, success)
+  lazy val emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
 
   lazy val longString: Codec[LongString] =
-    variableSizeBytes(int32, ascii, 0).exmap(LongString(_).asAttempt, success)
-  def emptyLongString: Codec[Unit] = longString.unit(LongString.empty)
+    variableSizeBytes(int32, ascii).exmap(LongString(_).asAttempt, success)
+  lazy val emptyLongString: Codec[Unit] = longString.unit(LongString.empty)
 
   lazy val timestamp: Codec[Timestamp] = long(64).xmap(Timestamp(_), identity)
 
   lazy val decimal: Codec[Decimal] = (byte :: int32).as
 
-  lazy val fieldData: Codec[FieldData] =
+  lazy val fieldData: Codec[FieldData] = lazily {
     discriminated
-      .by(ascii)
+      .by(fixedSizeBytes(1, ascii))
       .typecase("t", bool(8))
       .typecase("b", byte)
       .typecase("B", byte)
-      .typecase("U", short16)
+      .typecase("s", short16)
       .typecase("u", short16)
       .typecase("I", int32)
       .typecase("i", int32)
-      .typecase("L", long(64))
+      .typecase("L", long(64)) //FIXME when encoding?
       .typecase("l", long(64))
       .typecase("f", float)
       .typecase("d", double)
       .typecase("D", decimal)
-      .typecase("s", shortString)
+      // .typecase("s", shortString)
       .typecase("S", longString)
       .typecase("T", timestamp)
       .typecase("F", fieldTable)
       .withContext("Field Table")
       .as
+  }
 
   private lazy val fieldValuePair = shortString :: fieldData
 
   lazy val fieldTable: Codec[FieldTable] = codecs
-    .listOfN(int32, fieldValuePair)
+    .variableSizeBytes(int32, list(fieldValuePair))
     .xmap(_.toMap, _.toList)
     .xmap(FieldTable(_), _.values)
 
@@ -83,7 +85,7 @@ object DomainCodecs {
     provide(DeliveryMode.NonPersistent) <~ ignore(8)
 
   lazy val basicProps: Codec[basic.Properties] =
-    (listOfN(provide(15), bool) <~ constant(
+    (fixedSizeBits(15, list(bool)) <~ constant(
       BitVector.bit(false)
     )) // 15 flag bits followed by an always false continuation flag
       .flatZip { flags =>
@@ -129,5 +131,5 @@ object DomainCodecs {
   val redelivered: Codec[Redelivered] = bool
   val messageCount: Codec[MessageCount] = int16
   val replyText: Codec[ReplyText] = shortString
-  val replyCode: Codec[ReplyCode] = ???
+  val replyCode: Codec[ReplyCode] = provide(ReplyCode.AccessRefused)
 }
