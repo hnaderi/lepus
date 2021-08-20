@@ -8,7 +8,7 @@ import fs2.io.file.Path
 import Helpers.*
 
 object Classes {
-  def header(cls: Class) = Stream(
+  private def header(cls: Class) = headers(
     "package lepus.protocol.classes",
     "\n",
     "import lepus.protocol.*",
@@ -17,7 +17,7 @@ object Classes {
     "\n"
   )
 
-  def requestsBody(cls: Class): Stream[IO, String] =
+  private def requestsBody(cls: Class): Stream[IO, String] =
     val tpe = idName(cls.name) + "Class"
     (Stream(
       s"enum $tpe(methodId: MethodId) extends Class(ClassId(${cls.id})) with Method(methodId) {"
@@ -28,7 +28,7 @@ object Classes {
       Stream("}"))
       .intersperse("\n")
 
-  def requests(cls: Class): Stream[IO, Nothing] =
+  private def requests(cls: Class): Stream[IO, Nothing] =
     (header(cls) ++ requestsBody(cls))
       .through(
         file(
@@ -37,7 +37,8 @@ object Classes {
         )
       )
 
-  def classCodeGen: Pipe[IO, Class, Nothing] = _.map(requests).parJoinUnbounded
+  private def classCodeGen: Pipe[IO, Class, Nothing] =
+    _.map(requests).parJoinUnbounded
 
   private def methodCodeGen(superType: String, method: Method): String =
     val fields = method.fields.filterNot(_.reserved)

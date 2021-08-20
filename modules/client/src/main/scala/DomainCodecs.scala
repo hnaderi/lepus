@@ -32,9 +32,11 @@ object DomainCodecs {
     long(64).xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
     variableSizeBytes(int8, ascii, 0).exmap(ShortString(_).asAttempt, success)
+  def emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
 
   lazy val longString: Codec[LongString] =
     variableSizeBytes(int32, ascii, 0).exmap(LongString(_).asAttempt, success)
+  def emptyLongString: Codec[Unit] = longString.unit(LongString.empty)
 
   lazy val timestamp: Codec[Timestamp] = long(64).xmap(Timestamp(_), identity)
 

@@ -9,7 +9,7 @@ import cats.implicits.*
 import Helpers.*
 
 object MethodCodecs {
-  private def header(cls: Class) = Stream(
+  private def header(cls: Class) = headers(
     "package lepus.client.codecs",
     "\n",
     "import lepus.protocol.*",
@@ -23,18 +23,14 @@ object MethodCodecs {
     "\n"
   )
 
-  private def obj(cls: Class)(s: Stream[IO, String]) =
-    (Stream(s"object ${idName(cls.name)}Codecs {") ++ s ++ Stream("}"))
-      .intersperse("\n")
-
-  private def allCodecsIn(cls: Class): Stream[IO, String] =
-    header(cls) ++ obj(cls) {
+  private def allCodecsIn(cls: Class): Lines =
+    header(cls) ++ obj(cls.name + "Codecs") {
       Stream
         .emits(cls.methods)
         .map(codecFor) ++ discriminated(cls)
     }
 
-  private def discriminated(cls: Class): Stream[IO, String] =
+  private def discriminated(cls: Class): Lines =
     Stream(
       s"val all : Codec[${idName(cls.name)}Class] =",
       s"discriminated[${idName(cls.name)}Class].by(methodId)"
@@ -47,31 +43,40 @@ object MethodCodecs {
   private def codecFor(method: Method): String =
     val tpe = idName(method.name)
     val name = valName(method.name)
-    val fields = method.fields.filterNot(_.reserved)
-    val codec = fields match {
-      case Nil => s"provide($tpe)"
-      case nonEmpty =>
-        val codec = nonEmpty.map(codecFor).mkString(" :: ")
-        s"($codec).as[$tpe]"
-    }
+    val allFields = method.fields
+    val avFields = allFields.filterNot(_.reserved)
     val cType =
-      idName(method.name) + (if fields.isEmpty then ".type" else "")
+      idName(method.name) + (if avFields.isEmpty then ".type" else "")
+
+    val codec =
+      if allFields.isEmpty then s"provide($tpe)"
+      else if avFields.isEmpty then codecsFor(allFields) + s" ~> provide($tpe)"
+      else codecsFor(allFields) + s".as[$cType]"
+
     s"""private val ${name}Codec : Codec[$cType] =
            $codec
              .withContext("$name method")"""
 
+  private def codecsFor(fields: Seq[Field]): String =
+    val codec = fields.map(codecFor).mkString(" :: ")
+    s"($codec)"
+
   private def codecFor(field: Field): String =
     field.dataType match {
-      case "bit"       => "bool(8)"
-      case "octet"     => "byte"
-      case "short"     => "short16"
-      case "long"      => "int32"
-      case "longlong"  => "long(64)"
-      case "shortstr"  => "shortString"
-      case "longstr"   => "longString"
-      case "timestamp" => "timestamp"
-      case "table"     => "fieldTable"
-      case other       => valName(other)
+      case "bit" if field.reserved      => "bool(8).unit(false)"
+      case "bit"                        => "bool(8)"
+      case "octet"                      => "byte"
+      case "short" if field.reserved    => "short16.unit(0)"
+      case "short"                      => "short16"
+      case "long"                       => "int32"
+      case "longlong"                   => "long(64)"
+      case "shortstr" if field.reserved => "emptyShortString"
+      case "shortstr"                   => "shortString"
+      case "longstr" if field.reserved  => "emptyLongString"
+      case "longstr"                    => "longString"
+      case "timestamp"                  => "timestamp"
+      case "table"                      => "fieldTable"
+      case other                        => valName(other)
     }
 
   private def generateMethodCodecs(cls: Class): Stream[IO, Nothing] =
@@ -79,6 +84,6 @@ object MethodCodecs {
       file("client", Path(s"codecs/${cls.name.toLowerCase}.scala"))
     )
 
-  def generateAll(clss: Seq[Class]): Stream[IO, Nothing] =
+  def generate(clss: Seq[Class]): Stream[IO, Nothing] =
     Stream.emits(clss).map(generateMethodCodecs).parJoinUnbounded
 }

@@ -37,4 +37,10 @@ object Helpers {
   }
 
   def comment(str: String): String = s"/**\n$str\n */"
+
+  def obj(name: String)(lines: Lines): Lines =
+    (Stream(s"object ${idName(name)} {") ++ lines ++ Stream("}"))
+      .intersperse("\n")
+
+  def headers(hs: String*): Lines = Stream.emits(hs)
 }

@@ -12,6 +12,7 @@ object ChannelNumber extends TaggedOpaqueComp[Short, ChannelNumber]
 
 opaque type ShortString <: String = String
 object ShortString {
+  def empty: ShortString = ""
   def apply(str: String): Either[String, ShortString] =
     Either.cond(
       str.length <= 256,
@@ -23,6 +24,7 @@ object ShortString {
 opaque type LongString <: String = String
 private val LongStringSize: Long = BigDecimal(2).pow(32).toLongExact
 object LongString {
+  def empty: LongString = ""
   def apply(str: String): Either[String, LongString] =
     Either.cond(
       str.length <= LongStringSize,
