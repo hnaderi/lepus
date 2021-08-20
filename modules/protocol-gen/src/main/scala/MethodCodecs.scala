@@ -10,11 +10,12 @@ import scala.annotation.tailrec
 
 object MethodCodecs {
   private def header(cls: Class) = Stream(
-    s"package lepus.client.codecs.${cls.name.toLowerCase}",
+    "package lepus.client.codecs",
     "\n",
-    "import lepus.protocol.Method",
+    "import lepus.protocol.*",
     "import lepus.protocol.domains.*",
-    "import lepus.protocol.classes.*",
+    s"import lepus.protocol.classes.*",
+    s"import lepus.protocol.classes.${idName(cls.name)}Class.*",
     "import lepus.protocol.constants.*",
     "import lepus.client.codecs.DomainCodecs.*",
     "import scodec.{Codec, Encoder, Decoder}",
@@ -22,46 +23,48 @@ object MethodCodecs {
     "\n"
   )
 
+  private def obj(cls: Class)(s: Stream[IO, String]) =
+    (Stream(s"object ${idName(cls.name)}Codecs {") ++ s ++ Stream("}"))
+      .intersperse("\n")
+
   private def allCodecsIn(cls: Class): Stream[IO, String] =
-    header(cls) ++
-      Stream.emits(cls.methods).map(codecFor)
+    header(cls) ++ obj(cls) {
+      Stream
+        .emits(cls.methods)
+        .map(codecFor) ++ discriminated(cls)
+    }
 
-  private def op(f1: Field, f2: Field) =
-    if f1.reserved then " ~> "
-    else if f2.reserved then " ~> "
-    else " :: "
-
-  private def op(f1: Field) =
-    if f1.reserved then " ~> "
-    else " :: "
-
-  extension (f1: Field) {
-    def appendTo(str: String): String = str + op(f1) + codecFor(f1)
-  }
-
-  def cc2(
-      method: Method
-  ): String =
-    val tpe = idName(method.name)
-    method.fields match {
-    case Nil    => s"provide($tpe)"
-    case nonEmpty =>
-      val codec = nonEmpty.map(codecFor).mkString(" :: ")
-      s"($codec).as[$tpe]"
-  }
+  private def discriminated(cls: Class): Stream[IO, String] =
+    Stream(
+      s"val all : Codec[${idName(cls.name)}Class] =",
+      s"discriminated[${idName(cls.name)}Class].by(methodId)"
+    ) ++ Stream
+      .emits(cls.methods)
+      .map(m =>
+        s".typecase(MethodId(${m.id}), ${valName(m.name)}Codec)"
+      ) ++ Stream(s""".withContext("${cls.name} methods")""")
 
   private def codecFor(method: Method): String =
+    val tpe = idName(method.name)
     val name = valName(method.name)
-    val cType = idName(method.name)
-    val fieldCodecs = method.fields.map(codecFor).zip(method.fields).toList
-    val codec = cc2(method)
-    s"""val ${name}Codec : Codec[$cType] = $codec.withContext("$name method")"""
+    val fields = method.fields.filterNot(_.reserved)
+    val codec = fields match {
+      case Nil => s"provide($tpe)"
+      case nonEmpty =>
+        val codec = nonEmpty.map(codecFor).mkString(" :: ")
+        s"($codec).as[$tpe]"
+    }
+    val cType =
+      idName(method.name) + (if fields.isEmpty then ".type" else "")
+    s"""private val ${name}Codec : Codec[$cType] =
+           $codec
+             .withContext("$name method")"""
 
   private def codecFor(field: Field): String =
     field.dataType match {
-      case "bit"       => "bool"
-      case "octet"     => "int8"
-      case "short"     => "int16"
+      case "bit"       => "bool(8)"
+      case "octet"     => "byte"
+      case "short"     => "short16"
       case "long"      => "int32"
       case "longlong"  => "long(64)"
       case "shortstr"  => "shortString"

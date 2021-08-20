@@ -10,6 +10,7 @@ import lepus.protocol.domains.*
 import scodec.Attempt
 import scodec.Err
 import lepus.protocol.classes.basic
+import lepus.protocol.constants.ReplyCode
 
 extension [T](self: Either[String, T]) {
   def asAttempt: Attempt[T] = self match {
@@ -27,6 +28,8 @@ object DomainCodecs {
   lazy val methodId: Codec[MethodId] = short16.xmap(MethodId(_), identity)
   lazy val consumerTag: Codec[ConsumerTag] =
     shortString.xmap(ConsumerTag(_), identity)
+  lazy val deliveryTag: Codec[DeliveryTag] =
+    long(64).xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
     variableSizeBytes(int8, ascii, 0).exmap(ShortString(_).asAttempt, success)
 
@@ -110,4 +113,19 @@ object DomainCodecs {
       .toList
       .appended(false) // So far we have 14 flags total, so add an empty flag
       .appended(false) // We have no continuation
+
+  val exchangeName: Codec[ExchangeName] =
+    shortString.exmap(ExchangeName(_).asAttempt, success)
+  val queueName: Codec[QueueName] =
+    shortString.exmap(QueueName(_).asAttempt, success)
+  val path: Codec[Path] = shortString.exmap(Path(_).asAttempt, success)
+
+  val noAck: Codec[NoAck] = bool
+  val noLocal: Codec[NoLocal] = bool
+  val noWait: Codec[NoWait] = bool
+  val peerProperties: Codec[PeerProperties] = fieldTable
+  val redelivered: Codec[Redelivered] = bool
+  val messageCount: Codec[MessageCount] = int16
+  val replyText: Codec[ReplyText] = shortString
+  val replyCode: Codec[ReplyCode] = ???
 }

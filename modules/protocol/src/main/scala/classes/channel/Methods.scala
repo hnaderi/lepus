@@ -7,28 +7,37 @@
 =================================================================================
  */
 
-package lepus.protocol.classes.channel
+package lepus.protocol.classes
 
-import lepus.protocol.Method
+import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum Responses(classId: ClassId, methodId: MethodId)
-    extends Method(classId, methodId) {
+enum ChannelClass(methodId: MethodId)
+    extends Class(ClassId(20))
+    with Method(methodId) {
 
-  case OpenOk() extends Responses(ClassId(20), MethodId(11))
+  case Open extends ChannelClass(MethodId(10)) with Response
 
-  case Flow(active: Boolean) extends Responses(ClassId(20), MethodId(20))
+  case OpenOk extends ChannelClass(MethodId(11)) with Request
 
-  case FlowOk(active: Boolean) extends Responses(ClassId(20), MethodId(21))
+  case Flow(active: Boolean)
+      extends ChannelClass(MethodId(20))
+      with Response
+      with Request
+
+  case FlowOk(active: Boolean)
+      extends ChannelClass(MethodId(21))
+      with Response
+      with Request
 
   case Close(
       replyCode: ReplyCode,
       replyText: ReplyText,
       classId: ClassId,
       methodId: MethodId
-  ) extends Responses(ClassId(20), MethodId(40))
+  ) extends ChannelClass(MethodId(40)) with Response with Request
 
-  case CloseOk extends Responses(ClassId(20), MethodId(41))
+  case CloseOk extends ChannelClass(MethodId(41)) with Response with Request
 
 }

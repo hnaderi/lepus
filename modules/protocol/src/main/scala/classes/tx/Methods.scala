@@ -7,17 +7,26 @@
 =================================================================================
  */
 
-package lepus.protocol.classes.exchange
+package lepus.protocol.classes
 
-import lepus.protocol.Method
+import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum Responses(classId: ClassId, methodId: MethodId)
-    extends Method(classId, methodId) {
+enum TxClass(methodId: MethodId)
+    extends Class(ClassId(90))
+    with Method(methodId) {
 
-  case DeclareOk extends Responses(ClassId(40), MethodId(11))
+  case Select extends TxClass(MethodId(10)) with Response
 
-  case DeleteOk extends Responses(ClassId(40), MethodId(21))
+  case SelectOk extends TxClass(MethodId(11)) with Request
+
+  case Commit extends TxClass(MethodId(20)) with Response
+
+  case CommitOk extends TxClass(MethodId(21)) with Request
+
+  case Rollback extends TxClass(MethodId(30)) with Response
+
+  case RollbackOk extends TxClass(MethodId(31)) with Request
 
 }

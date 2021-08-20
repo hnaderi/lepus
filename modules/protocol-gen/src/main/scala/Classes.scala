@@ -7,26 +7,22 @@ import fs2.Pipe
 import fs2.io.file.Path
 
 def header(cls: Class) = Stream(
-  "package lepus.protocol.classes." + cls.name.toLowerCase,
+  "package lepus.protocol.classes",
   "\n",
-  "import lepus.protocol.Method",
+  "import lepus.protocol.*",
   "import lepus.protocol.domains.*",
   "import lepus.protocol.constants.*",
   "\n"
 )
 
 def requestsBody(cls: Class): Stream[IO, String] =
+  val tpe = idName(cls.name) + "Class"
   (Stream(
-    s"enum Requests(classId: ClassId, methodId: MethodId) extends Method(classId, methodId) {"
+    s"enum $tpe(methodId: MethodId) extends Class(ClassId(${cls.id})) with Method(methodId) {"
   ) ++
     Stream
       .emits(cls.methods)
-      .filter(_.receiver != MethodReceiver.Client)
-      .map(m =>
-        methodCodeGen(
-          m
-        ) + s" extends Requests(ClassId(${cls.id}), MethodId(${m.id}))"
-      ) ++
+      .map(methodCodeGen(tpe, _)) ++
     Stream("}"))
     .intersperse("\n")
 
@@ -35,47 +31,27 @@ def requests(cls: Class): Stream[IO, Nothing] =
     .through(
       generate(
         "protocol",
-        Path(s"classes/${cls.name.toLowerCase}/Requests.scala")
+        Path(s"classes/${cls.name.toLowerCase}/Methods.scala")
       )
     )
 
-def responsesBody(cls: Class): Stream[IO, String] =
-  (Stream(
-    s"enum Responses(classId: ClassId, methodId: MethodId) extends Method(classId, methodId) {"
-  ) ++
-    Stream
-      .emits(cls.methods)
-      .filter(_.receiver != MethodReceiver.Server)
-      .map(m =>
-        methodCodeGen(
-          m
-        ) + s" extends Responses(ClassId(${cls.id}), MethodId(${m.id}))"
-      ) ++
-    Stream("}"))
-    .intersperse("\n")
+def classCodeGen: Pipe[IO, Class, Nothing] = _.map(requests).parJoinUnbounded
 
-def responses(cls: Class): Stream[IO, Nothing] =
-  (header(cls) ++ responsesBody(cls)).through(
-    generate(
-      "protocol",
-      Path(s"classes/${cls.name.toLowerCase}/Responses.scala")
-    )
-  )
-
-def classCodeGen: Pipe[IO, Class, Nothing] = _.map { cls =>
-  requests(cls) merge responses(cls)
-}.parJoinUnbounded
-
-private def methodCodeGen(method: Method): String =
-  val fields =
-    if method.fields.isEmpty then ""
-    else
-      "(" + method.fields
-        .filterNot(_.reserved)
-        .map(fieldCodeGen)
-        .mkString(",\n") + ")"
+private def methodCodeGen(superType: String, method: Method): String =
+  val fields = method.fields.filterNot(_.reserved)
+  val fieldsStr =
+    if fields.isEmpty then ""
+    else "(" + fields.map(fieldCodeGen).mkString(",\n") + ")"
   val caseName = idName(method.name)
-  s"""  case $caseName$fields"""
+  s"""  case $caseName$fieldsStr extends $superType(MethodId(${method.id})) ${sideFor(
+    method
+  )} """
+
+private def sideFor(method: Method): String = method.receiver match {
+  case MethodReceiver.Server => "with Response"
+  case MethodReceiver.Client => "with Request"
+  case MethodReceiver.Both   => "with Response with Request"
+}
 
 private def fieldCodeGen(field: Field): String =
   val name = field.name match {

@@ -7,19 +7,18 @@
 =================================================================================
  */
 
-package lepus.protocol.classes.tx
+package lepus.protocol.classes
 
-import lepus.protocol.Method
+import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum Responses(classId: ClassId, methodId: MethodId)
-    extends Method(classId, methodId) {
+enum ConfirmClass(methodId: MethodId)
+    extends Class(ClassId(85))
+    with Method(methodId) {
 
-  case SelectOk extends Responses(ClassId(90), MethodId(11))
+  case Select(nowait: NoWait) extends ConfirmClass(MethodId(10)) with Response
 
-  case CommitOk extends Responses(ClassId(90), MethodId(21))
-
-  case RollbackOk extends Responses(ClassId(90), MethodId(31))
+  case SelectOk extends ConfirmClass(MethodId(11)) with Request
 
 }

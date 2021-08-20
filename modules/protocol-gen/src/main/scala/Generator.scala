@@ -42,8 +42,8 @@ def comment(str: String): String = s"/**\n$str\n */"
 def gen: IO[Unit] = for {
   protocol <- IO(XML.load("amqp0-9-1.extended.xml"))
   classes = buildClassModels(protocol)
-  generation = MethodCodecs.generateAll(classes)
-  //genClasses(protocol)
+  generation = MethodCodecs.generateAll(classes) merge genClasses(protocol)
+  // generation = genClasses(protocol)
   //genConsts(    protocol  ) genDomains(protocol) merge genClasses(protocol)
   _ <- generation.compile.drain
 } yield ()

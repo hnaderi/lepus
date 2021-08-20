@@ -89,22 +89,22 @@ object MethodId extends TaggedOpaqueComp[Short, MethodId]
   * Messages can get lost if a client dies before they are delivered to the
   * application.
   */
-opaque type NoAck <: Boolean = Boolean
+type NoAck = Boolean
 
 /** If the no-local field is set the server will not send messages to the
   * connection that published them.
   */
-opaque type NoLocal <: String = String
+type NoLocal = Boolean
 
 /** If set, the server will not respond to the method. The client should not
   * wait for a reply method. If the server could not complete the method it will
   * raise a channel or connection exception.
   */
-opaque type NoWait <: String = String
+type NoWait = Boolean
 
 /** Unconstrained.
   */
-opaque type Path <: String = String
+opaque type Path <: ShortString = String
 object Path {
   def apply(str: String): Either[String, Path] =
     Either.cond(str.length <= 127, str, "Maximum length is 127 characters!")
@@ -138,7 +138,7 @@ type Redelivered = Boolean
   * if the channel on which they were published is transacted, that are not
   * waiting acknowledgement.
   */
-opaque type MessageCount = Int
+type MessageCount = Int
 
 /** The localised reply text. This text can be logged as an aid to resolving
   * issues.
