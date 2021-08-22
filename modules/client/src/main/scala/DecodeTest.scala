@@ -14,15 +14,17 @@ import lepus.protocol.ProtocolVersion
 import fs2.Pipe
 
 object DecodeTest extends IOApp {
-  val decoder: StreamDecoder[ProtocolVersion | Frame] =
-    // StreamDecoder.once(FrameCodec.protocol) ++
+  val client: StreamDecoder[ProtocolVersion | Frame] =
+    StreamDecoder.once(FrameCodec.protocol) ++
       StreamDecoder.many(FrameCodec.frame)
 
-  // val input = Paths.get("client.bin")
+  val server: StreamDecoder[Frame] =
+    StreamDecoder.many(FrameCodec.frame)
+
   val app: Stream[IO, Unit] =
     Files[IO]
-      .readAll(Path("server.bin"))
-      .through(decoder.toPipeByte)
+      .readAll(Path("client.bin"))
+      .through(client.toPipeByte)
       .evalMap(s => IO(println(s)))
 
   def run(args: List[String]): IO[ExitCode] =

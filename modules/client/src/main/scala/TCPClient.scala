@@ -17,6 +17,7 @@ import java.nio.file.OpenOption
 import java.nio.file.StandardOpenOption
 import fs2.io.file.WriteCursor
 import fs2.io.file.Flags
+import lepus.client.DecodeTest
 
 def connect[F[_]: Temporal: Network: Console](
     address: SocketAddress[Host]
@@ -60,6 +61,28 @@ def proxy[F[_]: Files: Console: Network: Temporal](
     )
   } yield ()
 
+def inspector[F[_]: Files: Console: Network: Temporal](
+    destination: SocketAddress[Host]
+) =
+  for {
+    client <- Network[F].server(port = Some(port"5555")).head
+    _ <- eval(Console[F].println("Client connected."))
+    socket <- connect(destination)
+    clientFile = DecodeTest.client.toPipeByte.andThen(
+      _.evalMap(f => Console[F].println(f))
+    )
+    serverFile = DecodeTest.server.toPipeByte.andThen(
+      _.evalMap(f => Console[F].println(f))
+    )
+    _ <- eval(Console[F].println("Proxy established."))
+    send = client.reads.broadcastThrough(socket.writes, clientFile)
+    recv = socket.reads.broadcastThrough(client.writes, serverFile)
+
+    _ <- (send concurrently recv).onFinalize(
+      Console[F].println("Proxy disconnected.")
+    )
+  } yield ()
+
 def echoServer[F[_]: Concurrent: Network]: Stream[F, Unit] =
   Network[F]
     .server(port = Some(port"5555"))
@@ -85,5 +108,11 @@ object Server extends IOApp {
 object Proxy extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
     proxy[IO](SocketAddress(host"localhost", port"5672")).compile.drain
+      .as(ExitCode.Success)
+}
+
+object Inspector extends IOApp {
+  def run(args: List[String]): IO[ExitCode] =
+    inspector[IO](SocketAddress(host"localhost", port"5672")).compile.drain
       .as(ExitCode.Success)
 }

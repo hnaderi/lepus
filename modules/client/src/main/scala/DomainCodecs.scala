@@ -118,18 +118,19 @@ object DomainCodecs {
       .appended(false) // So far we have 14 flags total, so add an empty flag
       .appended(false) // We have no continuation
 
-  val exchangeName: Codec[ExchangeName] =
+  lazy val exchangeName: Codec[ExchangeName] =
     shortString.exmap(ExchangeName(_).asAttempt, success)
-  val queueName: Codec[QueueName] =
+  lazy val queueName: Codec[QueueName] =
     shortString.exmap(QueueName(_).asAttempt, success)
-  val path: Codec[Path] = shortString.exmap(Path(_).asAttempt, success)
+  lazy val path: Codec[Path] = shortString.exmap(Path(_).asAttempt, success)
 
-  val noAck: Codec[NoAck] = bool
-  val noLocal: Codec[NoLocal] = bool
-  val noWait: Codec[NoWait] = bool
-  val peerProperties: Codec[PeerProperties] = fieldTable
-  val redelivered: Codec[Redelivered] = bool
-  val messageCount: Codec[MessageCount] = int16
-  val replyText: Codec[ReplyText] = shortString
-  val replyCode: Codec[ReplyCode] = provide(ReplyCode.AccessRefused)
+  lazy val noAck: Codec[NoAck] = bool(8)
+  lazy val noLocal: Codec[NoLocal] = bool(8)
+  lazy val noWait: Codec[NoWait] = bool(8)
+  lazy val peerProperties: Codec[PeerProperties] = fieldTable
+  lazy val redelivered: Codec[Redelivered] = bool(8)
+  lazy val messageCount: Codec[MessageCount] = int16
+  lazy val replyText: Codec[ReplyText] = shortString
+  lazy val replyCode: Codec[ReplyCode] =
+    ignore(16) ~> provide(ReplyCode.AccessRefused)
 }

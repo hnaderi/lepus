@@ -10,30 +10,29 @@ import lepus.protocol.domains.*
 
 object FrameCodec {
   import DomainCodecs.*
-  val amqpLiteral: Codec[Unit] = constantLenient(65, 77, 81, 80)
-  val protocolId: Codec[Unit] = constant(hex"0")
-  val protocolVersion: Codec[ProtocolVersion] =
-    (uint8 :: uint8 :: uint8).as[ProtocolVersion]
-  val protocol: Codec[ProtocolVersion] =
+  lazy val amqpLiteral: Codec[Unit] = constantLenient(65, 77, 81, 80)
+  lazy val protocolId: Codec[Unit] = constant(hex"0")
+  lazy val protocolVersion: Codec[ProtocolVersion] =
+    (int8 :: int8 :: int8).as[ProtocolVersion]
+  lazy val protocol: Codec[ProtocolVersion] =
     (amqpLiteral ~> protocolId ~> protocolVersion).as[ProtocolVersion]
 
-  val frameEnd: Codec[Unit] = constant(hex"CE")
+  lazy val frameEnd: Codec[Unit] = constant(hex"CE")
 
-  private val byteArray: Codec[Array[Byte]] =
+  private lazy val byteArray: Codec[Array[Byte]] =
     bytes.xmap(_.toArray, ByteVector(_))
 
-  private val methodFP: Codec[FramePayload.Method] = (MethodCodec.all).as
-  private val headerFP: Codec[FramePayload.Header] = (classId :: constant(
-    hex"00"
-  ) ~> long(64) :: basicProps).as
+  private lazy val methodFP: Codec[FramePayload.Method] = (MethodCodec.all).as
+  private lazy val headerFP: Codec[FramePayload.Header] =
+    (classId :: constant(hex"00") ~> long(64) :: basicProps).as
 
-  private val bodyFP: Codec[FramePayload.Body] = byteArray.as
+  private lazy val bodyFP: Codec[FramePayload.Body] = byteArray.as
 
-  private val heartbeat: Codec[FramePayload.Heartbeat.type] =
+  private lazy val heartbeat: Codec[FramePayload.Heartbeat.type] =
     codecs.provide(FramePayload.Heartbeat)
 
-  def frame: Codec[Frame] = discriminated
-    .by(uint8)
+  lazy val frame: Codec[Frame] = discriminated
+    .by(int8)
     .typecase(1, channelNumber :: sized(methodFP))
     .typecase(2, channelNumber :: sized(headerFP))
     .typecase(3, channelNumber :: sized(bodyFP))
@@ -42,5 +41,5 @@ object FrameCodec {
     .as[Frame] <~ frameEnd
 
   private def sized[T](payload: Codec[T]): Codec[T] =
-    variableSizeBytes(int(32), payload, 0)
+    variableSizeBytes(int(32), payload)
 }
