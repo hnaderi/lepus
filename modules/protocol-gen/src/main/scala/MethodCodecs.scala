@@ -63,8 +63,8 @@ object MethodCodecs {
 
   private def codecFor(field: Field): String =
     field.dataType match {
-      case "bit" if field.reserved      => "bool(8).unit(false)"
-      case "bit"                        => "bool(8)"
+      case "bit" if field.reserved      => "bool.unit(false)"
+      case "bit"                        => "bool"
       case "octet"                      => "byte"
       case "short" if field.reserved    => "short16.unit(0)"
       case "short"                      => "short16"

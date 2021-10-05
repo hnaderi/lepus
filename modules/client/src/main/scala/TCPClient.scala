@@ -1,23 +1,38 @@
-import fs2.{Chunk, Stream, text}
-import fs2.io.net.Network
+import cats.Applicative
+import cats.Monad
+import cats.MonadError
 import cats.effect.MonadCancelThrow
+import cats.effect.*
 import cats.effect.std.Console
 import cats.syntax.all._
 import com.comcast.ip4s._
-import cats.effect.*
-import scala.concurrent.duration._
-import fs2.io.net.Socket
-import java.net.ConnectException
+import fs2.Chunk
+import fs2.Pull
+import fs2.Stream
 import fs2.Stream.*
-import fs2.io.file.Files
-import fs2.io.file.Path
 import fs2.io.file.FileHandle
-import java.nio.file.Paths
-import java.nio.file.OpenOption
-import java.nio.file.StandardOpenOption
-import fs2.io.file.WriteCursor
+import fs2.io.file.Files
 import fs2.io.file.Flags
+import fs2.io.file.Path
+import fs2.io.file.WriteCursor
+import fs2.io.net.Network
+import fs2.io.net.Socket
+import fs2.text
 import lepus.client.DecodeTest
+import lepus.client.codecs.FrameCodec
+import lepus.protocol.ProtocolVersion
+import lepus.protocol.frame.Frame
+import scodec.Attempt
+import scodec.Encoder
+import scodec.Err
+import scodec.stream.CodecError
+
+import java.net.ConnectException
+import java.nio.file.OpenOption
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
+import scala.concurrent.duration._
+import scodec.stream.StreamEncoder
 
 def connect[F[_]: Temporal: Network: Console](
     address: SocketAddress[Host]
@@ -61,6 +76,13 @@ def proxy[F[_]: Files: Console: Network: Temporal](
     )
   } yield ()
 
+extension [T](self: Attempt[T]) {
+  def orRaise[F[_]](f: Err => Throwable)(using
+      F: MonadError[F, Throwable]
+  ): F[T] = self.fold(err => F.raiseError(f(err)), F.pure)
+}
+
+import scala.{Console => SCon}
 def inspector[F[_]: Files: Console: Network: Temporal](
     destination: SocketAddress[Host]
 ) =
@@ -69,17 +91,31 @@ def inspector[F[_]: Files: Console: Network: Temporal](
     _ <- eval(Console[F].println("Client connected."))
     socket <- connect(destination)
     clientFile = DecodeTest.client.toPipeByte.andThen(
-      _.evalMap(f => Console[F].println(f))
+      _.evalTap(f => Console[F].println(s"${SCon.GREEN}<-- $f${SCon.RESET}"))
     )
     serverFile = DecodeTest.server.toPipeByte.andThen(
-      _.evalMap(f => Console[F].println(f))
+      _.evalTap(f => Console[F].println(s"${SCon.CYAN}--> $f${SCon.RESET}"))
     )
     _ <- eval(Console[F].println("Proxy established."))
-    send = client.reads.broadcastThrough(socket.writes, clientFile)
-    recv = socket.reads.broadcastThrough(client.writes, serverFile)
+    // send = client.reads.broadcastThrough(socket.writes, clientFile)
+    // recv = socket.reads.broadcastThrough(client.writes, serverFile)
 
-    _ <- (send concurrently recv).onFinalize(
-      Console[F].println("Proxy disconnected.")
+    send = client.reads.broadcastThrough(socket.writes, clientFile)
+    // .through(clientFile)
+    // .flatMap {
+    //   case p: ProtocolVersion => DecodeTest.protocolEncoder.encode[F](emit(p))
+    //   case f: Frame           => DecodeTest.frameEncoder.encode[F](emit(f))
+    // }
+    // .through(StreamEncoder.many(scodec.codecs.bits).toPipeByte)
+    // .through(socket.writes)
+
+    recv = socket.reads.broadcastThrough(client.writes, serverFile)
+    // .through(serverFile)
+    // .through(DecodeTest.frameEncoder.toPipeByte)
+    // .through(client.writes)
+
+    _ <- (send concurrently recv).onFinalizeCase(e =>
+      Console[F].println(s"Proxy disconnected. $e")
     )
   } yield ()
 

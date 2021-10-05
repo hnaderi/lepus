@@ -147,7 +147,7 @@ type MessageCount = Int
   */
 type ReplyText = ShortString
 
-enum DeliveryMode(value: Byte) {
+enum DeliveryMode(val value: Byte) {
   case NonPersistent extends DeliveryMode(1)
   case Persistent extends DeliveryMode(2)
 }

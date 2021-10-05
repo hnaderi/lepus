@@ -30,7 +30,7 @@ object DomainCodecs {
   lazy val consumerTag: Codec[ConsumerTag] =
     shortString.xmap(ConsumerTag(_), identity)
   lazy val deliveryTag: Codec[DeliveryTag] =
-    long(64).xmap(DeliveryTag(_), identity)
+    long(32).xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
     variableSizeBytes(int8, ascii).exmap(ShortString(_).asAttempt, success)
   lazy val emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
@@ -77,17 +77,21 @@ object DomainCodecs {
     int8.exmap(Priority(_).asAttempt, success)
 
   lazy val deliveryMode: Codec[DeliveryMode] =
-    // mappedEnum(
-    //   int8,
-    //   DeliveryMode.NonPersistent -> 1,
-    //   DeliveryMode.Persistent -> 2
-    // ).withContext("Delivery mode")
-    provide(DeliveryMode.NonPersistent) <~ ignore(8)
+    int8
+      .xmap(
+        i =>
+          if i != 2 then DeliveryMode.NonPersistent
+          else DeliveryMode.Persistent,
+        _.value
+      )
+      .withContext("Delivery mode")
+
+  val flags: Codec[List[Boolean]] =
+    fixedSizeBits(15, list(bool)) <~ constant(BitVector.zero)
+  // 15 flag bits followed by an always false continuation flag
 
   lazy val basicProps: Codec[basic.Properties] =
-    (fixedSizeBits(15, list(bool)) <~ constant(
-      BitVector.bit(false)
-    )) // 15 flag bits followed by an always false continuation flag
+    flags
       .flatZip { flags =>
         (
           conditional(flags(0), shortString) ::
@@ -116,7 +120,6 @@ object DomainCodecs {
       .map(_.asInstanceOf[Option[?]].isDefined)
       .toList
       .appended(false) // So far we have 14 flags total, so add an empty flag
-      .appended(false) // We have no continuation
 
   lazy val exchangeName: Codec[ExchangeName] =
     shortString.exmap(ExchangeName(_).asAttempt, success)
@@ -124,11 +127,11 @@ object DomainCodecs {
     shortString.exmap(QueueName(_).asAttempt, success)
   lazy val path: Codec[Path] = shortString.exmap(Path(_).asAttempt, success)
 
-  lazy val noAck: Codec[NoAck] = bool(8)
-  lazy val noLocal: Codec[NoLocal] = bool(8)
-  lazy val noWait: Codec[NoWait] = bool(8)
+  lazy val noAck: Codec[NoAck] = bool
+  lazy val noLocal: Codec[NoLocal] = bool
+  lazy val noWait: Codec[NoWait] = bool(4) //HACK?
   lazy val peerProperties: Codec[PeerProperties] = fieldTable
-  lazy val redelivered: Codec[Redelivered] = bool(8)
+  lazy val redelivered: Codec[Redelivered] = bool
   lazy val messageCount: Codec[MessageCount] = int16
   lazy val replyText: Codec[ReplyText] = shortString
   lazy val replyCode: Codec[ReplyCode] =

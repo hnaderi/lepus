@@ -4,24 +4,24 @@ import fs2.Stream
 import cats.effect.Resource
 
 trait BasicOperations[F[_]] {
-  def basicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean): F[Unit]
-  def basicQos(prefetchCount: Int, global: Boolean): F[Unit]
-  def basicQos(prefetchCount: Int): F[Unit]
+  def qos(prefetchSize: Int, prefetchCount: Int, global: Boolean): F[Unit]
+  def qos(prefetchCount: Int, global: Boolean): F[Unit]
+  def qos(prefetchCount: Int): F[Unit]
 
-  def basicPublish(
+  def publish(
       exchange: ExchangeName,
       routingKey: RoutingKey,
       properties: BasicProperties,
       body: Array[Byte]
   ): F[Unit]
-  def basicPublish(
+  def publish(
       exchange: ExchangeName,
       routingKey: RoutingKey,
       mandatory: Boolean,
       properties: BasicProperties,
       body: Array[Byte]
   ): F[Unit]
-  def basicPublish(
+  def publish(
       exchange: ExchangeName,
       routingKey: RoutingKey,
       mandatory: Boolean,
@@ -30,13 +30,13 @@ trait BasicOperations[F[_]] {
       body: Array[Byte]
   ): F[Unit]
 
-  def basicAck(tag: DeliveryTag, multiple: Boolean): F[Unit]
-  def basicNack(tag: DeliveryTag, multiple: Boolean): F[Unit]
-  def basicReject(tag: DeliveryTag, multiple: Boolean): F[Unit]
+  def ack(tag: DeliveryTag, multiple: Boolean): F[Unit]
+  def nack(tag: DeliveryTag, multiple: Boolean): F[Unit]
+  def reject(tag: DeliveryTag, multiple: Boolean): F[Unit]
 
-  def basicConsumeAutoAck(name: QueueName): Resource[F, Consumer[F]]
-  def basicConsumeAck(name: QueueName): Resource[F, Consumer[F]]
+  def consumeAutoAck(name: QueueName): Resource[F, Consumer[F]]
+  def consumeAck(name: QueueName): Resource[F, Consumer[F]]
   //A lot more basic consumes!
 
-  def basicRecover(requeue: Boolean): F[Unit]
+  def recover(requeue: Boolean): F[Unit]
 }

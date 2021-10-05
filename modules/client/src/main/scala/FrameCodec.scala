@@ -24,7 +24,7 @@ object FrameCodec {
 
   private lazy val methodFP: Codec[FramePayload.Method] = (MethodCodec.all).as
   private lazy val headerFP: Codec[FramePayload.Header] =
-    (classId :: constant(hex"00") ~> long(64) :: basicProps).as
+    (classId :: short16.unit(0) ~> long(64) :: basicProps).as
 
   private lazy val bodyFP: Codec[FramePayload.Body] = byteArray.as
 
