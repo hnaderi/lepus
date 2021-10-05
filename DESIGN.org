@@ -1,0 +1,26 @@
+
+
+----+------------------------------------+----------+-----------------+
+          Channel  ==>  Connection  <==>   Framing <==>  Transmission |
+----+------------------------------------+----------+-----------------+
+* Architecture
+this is a layered architecture
+** Layers
+*** Transmission
+layer: closed
+type: Frame => Frame
+
+*** Framing
+layer: open
+**** Send
+type: AMQP Message => Frame
+**** Receive
+type: Frame => AMQP Message
+
+*** Connection
+layer: closed
+State machine managing connection and communicates through Framing
+
+*** Channel
+layer: closed
+TF APIs for using Connection

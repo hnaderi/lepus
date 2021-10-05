@@ -1,0 +1,5 @@
+#+TITLE: ADR
+* Types
+** Primitives
+We treat unsigned types like signed ones and thus we have a single type for both of them.
+Also, encoding always encodes as signed types, but decoding decodes both signed and unsigned ones to a signed type.
