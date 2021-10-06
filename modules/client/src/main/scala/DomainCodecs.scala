@@ -129,9 +129,9 @@ object DomainCodecs {
 
   lazy val noAck: Codec[NoAck] = bool
   lazy val noLocal: Codec[NoLocal] = bool
-  lazy val noWait: Codec[NoWait] = bool(4) //HACK?
-  lazy val peerProperties: Codec[PeerProperties] = fieldTable
+  lazy val noWait: Codec[NoWait] = bool
   lazy val redelivered: Codec[Redelivered] = bool
+  lazy val peerProperties: Codec[PeerProperties] = fieldTable
   lazy val messageCount: Codec[MessageCount] = int16
   lazy val replyText: Codec[ReplyText] = shortString
   lazy val replyCode: Codec[ReplyCode] =

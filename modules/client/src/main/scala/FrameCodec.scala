@@ -10,9 +10,9 @@ import lepus.protocol.domains.*
 
 object FrameCodec {
   import DomainCodecs.*
-  lazy val amqpLiteral: Codec[Unit] = constantLenient(65, 77, 81, 80)
-  lazy val protocolId: Codec[Unit] = constant(hex"0")
-  lazy val protocolVersion: Codec[ProtocolVersion] =
+  private lazy val amqpLiteral: Codec[Unit] = constant('A', 'M', 'Q', 'P')
+  private lazy val protocolId: Codec[Unit] = byte.unit(0)
+  private lazy val protocolVersion: Codec[ProtocolVersion] =
     (int8 :: int8 :: int8).as[ProtocolVersion]
   lazy val protocol: Codec[ProtocolVersion] =
     (amqpLiteral ~> protocolId ~> protocolVersion).as[ProtocolVersion]
