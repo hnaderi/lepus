@@ -1,8 +1,6 @@
 package lepus.data
 
-import lepus.core.*
-
 final case class TopicDefinition[T](
-    exchange: ExchangeName,
+    exchange: String,
     codec: MessageCodec[T]
 )
