@@ -1,11 +1,14 @@
 package lepus.protocol.gen
 
-import fs2.Stream
 import cats.effect.IO
-import scala.xml.NodeSeq
-import fs2.Pipe
-import fs2.io.file.Path
 import cats.implicits.*
+import fs2.Pipe
+import fs2.Stream
+import fs2.io.file.Path
+
+import scala.annotation.tailrec
+import scala.xml.NodeSeq
+
 import Helpers.*
 
 object MethodCodecs {
@@ -57,9 +60,39 @@ object MethodCodecs {
            $codec
              .withContext("$name method")"""
 
-  private def codecsFor(fields: Seq[Field]): String =
-    val codec = fields.map(codecFor).mkString(" :: ")
-    s"($codec)"
+  private final case class FoldState(
+      code: String = "",
+      aligning: Boolean = false
+  )
+
+  private val bitTypes =
+    List("bit", "no-wait", "no-local", "no-ack", "redelivered")
+  private def isBit(f: Field) = bitTypes.contains(f.dataType)
+
+  //Generates codec for method data model,
+  //Considering bits packing
+  private def codecsFor(fields: Seq[Field]): String = {
+    val bitFields = fields.takeWhile(isBit)
+    if !bitFields.isEmpty then
+      val otherFields = fields.dropWhile(isBit)
+      val op = if bitFields.size == 1 then "::" else ":+"
+      val bitsSection = bitFields.map(codecFor).mkString(" :: ")
+      val aligned = s"byteAligned($bitsSection)"
+      if otherFields.isEmpty then s"($aligned)"
+      else s"($aligned $op ${codecsFor(otherFields)})"
+    else
+      val fs = fields.takeWhile(!isBit(_))
+      val otherFields = fields.dropWhile(!isBit(_))
+      val section = fs.map(codecFor).mkString(" :: ")
+      if otherFields.isEmpty then s"($section)"
+      else if otherFields.size == 1 || fs.size == 1 then
+        s"($section :: ${codecsFor(otherFields)})"
+      else s"(($section) ++ ${codecsFor(otherFields)})"
+  }
+
+  private def bitCodecsFor(bitFields: Seq[Field]): String =
+    val codec = bitFields.map(codecFor).mkString(" :: ")
+    s"byteAligned($codec)"
 
   private def codecFor(field: Field): String =
     field.dataType match {

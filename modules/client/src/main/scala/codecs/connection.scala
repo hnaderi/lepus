@@ -51,7 +51,7 @@ object ConnectionCodecs {
       .withContext("tuneOk method")
 
   private val openCodec: Codec[Open] =
-    (path :: emptyShortString :: bool(8).unit(false))
+    (path :: emptyShortString :: (byteAligned(bool.unit(false))))
       .as[Open]
       .withContext("open method")
 

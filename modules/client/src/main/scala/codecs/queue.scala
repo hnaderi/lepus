@@ -21,9 +21,9 @@ import scodec.codecs.*
 object QueueCodecs {
 
   private val declareCodec: Codec[Declare] =
-    (short16.unit(
-      0
-    ) :: queueName :: bool :: bool :: bool :: bool :: noWait :: fieldTable)
+    ((short16.unit(0) :: queueName) ++ (byteAligned(
+      bool :: bool :: bool :: bool :: noWait
+    ) :+ (fieldTable)))
       .as[Declare]
       .withContext("declare method")
 
@@ -33,9 +33,11 @@ object QueueCodecs {
       .withContext("declareOk method")
 
   private val bindCodec: Codec[Bind] =
-    (short16.unit(
+    ((short16.unit(
       0
-    ) :: queueName :: exchangeName :: shortString :: noWait :: fieldTable)
+    ) :: queueName :: exchangeName :: shortString) ++ (byteAligned(
+      noWait
+    ) :: (fieldTable)))
       .as[Bind]
       .withContext("bind method")
 
@@ -53,7 +55,7 @@ object QueueCodecs {
       .withContext("unbindOk method")
 
   private val purgeCodec: Codec[Purge] =
-    (short16.unit(0) :: queueName :: noWait)
+    (short16.unit(0) :: queueName :: (byteAligned(noWait)))
       .as[Purge]
       .withContext("purge method")
 
@@ -63,7 +65,7 @@ object QueueCodecs {
       .withContext("purgeOk method")
 
   private val deleteCodec: Codec[Delete] =
-    (short16.unit(0) :: queueName :: bool :: bool :: noWait)
+    ((short16.unit(0) :: queueName) ++ (byteAligned(bool :: bool :: noWait)))
       .as[Delete]
       .withContext("delete method")
 

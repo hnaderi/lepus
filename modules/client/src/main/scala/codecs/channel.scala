@@ -29,12 +29,12 @@ object ChannelCodecs {
       .withContext("openOk method")
 
   private val flowCodec: Codec[Flow] =
-    (bool)
+    (byteAligned(bool))
       .as[Flow]
       .withContext("flow method")
 
   private val flowOkCodec: Codec[FlowOk] =
-    (bool)
+    (byteAligned(bool))
       .as[FlowOk]
       .withContext("flowOk method")
 
