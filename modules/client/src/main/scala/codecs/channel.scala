@@ -50,12 +50,16 @@ object ChannelCodecs {
   val all: Codec[ChannelClass] =
     discriminated[ChannelClass]
       .by(methodId)
-      .typecase(MethodId(10), openCodec)
-      .typecase(MethodId(11), openOkCodec)
-      .typecase(MethodId(20), flowCodec)
-      .typecase(MethodId(21), flowOkCodec)
-      .typecase(MethodId(40), closeCodec)
-      .typecase(MethodId(41), closeOkCodec)
+      .subcaseP[Open.type](MethodId(10)) { case m: Open.type => m }(openCodec)
+      .subcaseP[OpenOk.type](MethodId(11)) { case m: OpenOk.type => m }(
+        openOkCodec
+      )
+      .subcaseP[Flow](MethodId(20)) { case m: Flow => m }(flowCodec)
+      .subcaseP[FlowOk](MethodId(21)) { case m: FlowOk => m }(flowOkCodec)
+      .subcaseP[Close](MethodId(40)) { case m: Close => m }(closeCodec)
+      .subcaseP[CloseOk.type](MethodId(41)) { case m: CloseOk.type => m }(
+        closeOkCodec
+      )
       .withContext("channel methods")
 
 }

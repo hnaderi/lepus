@@ -40,8 +40,13 @@ object MethodCodecs {
     ) ++ Stream
       .emits(cls.methods)
       .map(m =>
-        s".typecase(MethodId(${m.id}), ${valName(m.name)}Codec)"
+        s".subcaseP[${tpeName(m)}](MethodId(${m.id})){case m:${tpeName(m)}=> m}(${valName(m.name)}Codec)"
       ) ++ Stream(s""".withContext("${cls.name} methods")""")
+
+  private def tpeName(m: Method): String = if (
+    m.fields.filterNot(_.reserved).isEmpty
+  ) then idName(m.name) + ".type"
+  else idName(m.name)
 
   private def codecFor(method: Method): String =
     val tpe = idName(method.name)

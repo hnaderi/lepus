@@ -69,14 +69,22 @@ object ExchangeCodecs {
   val all: Codec[ExchangeClass] =
     discriminated[ExchangeClass]
       .by(methodId)
-      .typecase(MethodId(10), declareCodec)
-      .typecase(MethodId(11), declareOkCodec)
-      .typecase(MethodId(20), deleteCodec)
-      .typecase(MethodId(21), deleteOkCodec)
-      .typecase(MethodId(30), bindCodec)
-      .typecase(MethodId(31), bindOkCodec)
-      .typecase(MethodId(40), unbindCodec)
-      .typecase(MethodId(51), unbindOkCodec)
+      .subcaseP[Declare](MethodId(10)) { case m: Declare => m }(declareCodec)
+      .subcaseP[DeclareOk.type](MethodId(11)) { case m: DeclareOk.type => m }(
+        declareOkCodec
+      )
+      .subcaseP[Delete](MethodId(20)) { case m: Delete => m }(deleteCodec)
+      .subcaseP[DeleteOk.type](MethodId(21)) { case m: DeleteOk.type => m }(
+        deleteOkCodec
+      )
+      .subcaseP[Bind](MethodId(30)) { case m: Bind => m }(bindCodec)
+      .subcaseP[BindOk.type](MethodId(31)) { case m: BindOk.type => m }(
+        bindOkCodec
+      )
+      .subcaseP[Unbind](MethodId(40)) { case m: Unbind => m }(unbindCodec)
+      .subcaseP[UnbindOk.type](MethodId(51)) { case m: UnbindOk.type => m }(
+        unbindOkCodec
+      )
       .withContext("exchange methods")
 
 }

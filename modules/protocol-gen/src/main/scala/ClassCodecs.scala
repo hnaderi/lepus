@@ -24,7 +24,9 @@ object ClassCodecs {
 
   private def allCodecsIn(clss: Seq[Class]): Lines =
     header ++ obj("MethodCodec") {
-      emit("val all : Codec[Method] = discriminated.by(classId)") ++ emits(clss)
+      emit(
+        "val all : Codec[Method] = discriminated[Method].by(classId)"
+      ) ++ emits(clss)
         .flatMap(
           typecase
         ) ++
@@ -33,7 +35,11 @@ object ClassCodecs {
 
   private def typecase(cls: Class): Lines =
     emit(
-      s".typecase(ClassId(${cls.id}), ${idName(cls.name)}Codecs.all)"
+      s""".subcaseP[${idName(
+        cls.name
+      )}Class](ClassId(${cls.id})){case m:${idName(
+        cls.name
+      )}Class=> m}(${idName(cls.name)}Codecs.all)"""
     )
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =

@@ -32,8 +32,10 @@ object ConfirmCodecs {
   val all: Codec[ConfirmClass] =
     discriminated[ConfirmClass]
       .by(methodId)
-      .typecase(MethodId(10), selectCodec)
-      .typecase(MethodId(11), selectOkCodec)
+      .subcaseP[Select](MethodId(10)) { case m: Select => m }(selectCodec)
+      .subcaseP[SelectOk.type](MethodId(11)) { case m: SelectOk.type => m }(
+        selectOkCodec
+      )
       .withContext("confirm methods")
 
 }

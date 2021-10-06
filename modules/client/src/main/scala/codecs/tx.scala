@@ -47,12 +47,24 @@ object TxCodecs {
   val all: Codec[TxClass] =
     discriminated[TxClass]
       .by(methodId)
-      .typecase(MethodId(10), selectCodec)
-      .typecase(MethodId(11), selectOkCodec)
-      .typecase(MethodId(20), commitCodec)
-      .typecase(MethodId(21), commitOkCodec)
-      .typecase(MethodId(30), rollbackCodec)
-      .typecase(MethodId(31), rollbackOkCodec)
+      .subcaseP[Select.type](MethodId(10)) { case m: Select.type => m }(
+        selectCodec
+      )
+      .subcaseP[SelectOk.type](MethodId(11)) { case m: SelectOk.type => m }(
+        selectOkCodec
+      )
+      .subcaseP[Commit.type](MethodId(20)) { case m: Commit.type => m }(
+        commitCodec
+      )
+      .subcaseP[CommitOk.type](MethodId(21)) { case m: CommitOk.type => m }(
+        commitOkCodec
+      )
+      .subcaseP[Rollback.type](MethodId(30)) { case m: Rollback.type => m }(
+        rollbackCodec
+      )
+      .subcaseP[RollbackOk.type](MethodId(31)) { case m: RollbackOk.type => m }(
+        rollbackOkCodec
+      )
       .withContext("tx methods")
 
 }

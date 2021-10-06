@@ -18,15 +18,27 @@ import scodec.codecs.discriminated
 
 object MethodCodec {
 
-  val all: Codec[Method] = discriminated
+  val all: Codec[Method] = discriminated[Method]
     .by(classId)
-    .typecase(ClassId(10), ConnectionCodecs.all)
-    .typecase(ClassId(20), ChannelCodecs.all)
-    .typecase(ClassId(40), ExchangeCodecs.all)
-    .typecase(ClassId(50), QueueCodecs.all)
-    .typecase(ClassId(60), BasicCodecs.all)
-    .typecase(ClassId(90), TxCodecs.all)
-    .typecase(ClassId(85), ConfirmCodecs.all)
+    .subcaseP[ConnectionClass](ClassId(10)) { case m: ConnectionClass => m }(
+      ConnectionCodecs.all
+    )
+    .subcaseP[ChannelClass](ClassId(20)) { case m: ChannelClass => m }(
+      ChannelCodecs.all
+    )
+    .subcaseP[ExchangeClass](ClassId(40)) { case m: ExchangeClass => m }(
+      ExchangeCodecs.all
+    )
+    .subcaseP[QueueClass](ClassId(50)) { case m: QueueClass => m }(
+      QueueCodecs.all
+    )
+    .subcaseP[BasicClass](ClassId(60)) { case m: BasicClass => m }(
+      BasicCodecs.all
+    )
+    .subcaseP[TxClass](ClassId(90)) { case m: TxClass => m }(TxCodecs.all)
+    .subcaseP[ConfirmClass](ClassId(85)) { case m: ConfirmClass => m }(
+      ConfirmCodecs.all
+    )
     .withContext("Method codecs")
 
 }

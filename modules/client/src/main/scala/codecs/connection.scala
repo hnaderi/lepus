@@ -89,20 +89,30 @@ object ConnectionCodecs {
   val all: Codec[ConnectionClass] =
     discriminated[ConnectionClass]
       .by(methodId)
-      .typecase(MethodId(10), startCodec)
-      .typecase(MethodId(11), startOkCodec)
-      .typecase(MethodId(20), secureCodec)
-      .typecase(MethodId(21), secureOkCodec)
-      .typecase(MethodId(30), tuneCodec)
-      .typecase(MethodId(31), tuneOkCodec)
-      .typecase(MethodId(40), openCodec)
-      .typecase(MethodId(41), openOkCodec)
-      .typecase(MethodId(50), closeCodec)
-      .typecase(MethodId(51), closeOkCodec)
-      .typecase(MethodId(60), blockedCodec)
-      .typecase(MethodId(61), unblockedCodec)
-      .typecase(MethodId(70), updateSecretCodec)
-      .typecase(MethodId(71), updateSecretOkCodec)
+      .subcaseP[Start](MethodId(10)) { case m: Start => m }(startCodec)
+      .subcaseP[StartOk](MethodId(11)) { case m: StartOk => m }(startOkCodec)
+      .subcaseP[Secure](MethodId(20)) { case m: Secure => m }(secureCodec)
+      .subcaseP[SecureOk](MethodId(21)) { case m: SecureOk => m }(secureOkCodec)
+      .subcaseP[Tune](MethodId(30)) { case m: Tune => m }(tuneCodec)
+      .subcaseP[TuneOk](MethodId(31)) { case m: TuneOk => m }(tuneOkCodec)
+      .subcaseP[Open](MethodId(40)) { case m: Open => m }(openCodec)
+      .subcaseP[OpenOk.type](MethodId(41)) { case m: OpenOk.type => m }(
+        openOkCodec
+      )
+      .subcaseP[Close](MethodId(50)) { case m: Close => m }(closeCodec)
+      .subcaseP[CloseOk.type](MethodId(51)) { case m: CloseOk.type => m }(
+        closeOkCodec
+      )
+      .subcaseP[Blocked](MethodId(60)) { case m: Blocked => m }(blockedCodec)
+      .subcaseP[Unblocked.type](MethodId(61)) { case m: Unblocked.type => m }(
+        unblockedCodec
+      )
+      .subcaseP[UpdateSecret](MethodId(70)) { case m: UpdateSecret => m }(
+        updateSecretCodec
+      )
+      .subcaseP[UpdateSecretOk.type](MethodId(71)) {
+        case m: UpdateSecretOk.type => m
+      }(updateSecretOkCodec)
       .withContext("connection methods")
 
 }

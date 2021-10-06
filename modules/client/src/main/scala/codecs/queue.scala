@@ -77,16 +77,22 @@ object QueueCodecs {
   val all: Codec[QueueClass] =
     discriminated[QueueClass]
       .by(methodId)
-      .typecase(MethodId(10), declareCodec)
-      .typecase(MethodId(11), declareOkCodec)
-      .typecase(MethodId(20), bindCodec)
-      .typecase(MethodId(21), bindOkCodec)
-      .typecase(MethodId(50), unbindCodec)
-      .typecase(MethodId(51), unbindOkCodec)
-      .typecase(MethodId(30), purgeCodec)
-      .typecase(MethodId(31), purgeOkCodec)
-      .typecase(MethodId(40), deleteCodec)
-      .typecase(MethodId(41), deleteOkCodec)
+      .subcaseP[Declare](MethodId(10)) { case m: Declare => m }(declareCodec)
+      .subcaseP[DeclareOk](MethodId(11)) { case m: DeclareOk => m }(
+        declareOkCodec
+      )
+      .subcaseP[Bind](MethodId(20)) { case m: Bind => m }(bindCodec)
+      .subcaseP[BindOk.type](MethodId(21)) { case m: BindOk.type => m }(
+        bindOkCodec
+      )
+      .subcaseP[Unbind](MethodId(50)) { case m: Unbind => m }(unbindCodec)
+      .subcaseP[UnbindOk.type](MethodId(51)) { case m: UnbindOk.type => m }(
+        unbindOkCodec
+      )
+      .subcaseP[Purge](MethodId(30)) { case m: Purge => m }(purgeCodec)
+      .subcaseP[PurgeOk](MethodId(31)) { case m: PurgeOk => m }(purgeOkCodec)
+      .subcaseP[Delete](MethodId(40)) { case m: Delete => m }(deleteCodec)
+      .subcaseP[DeleteOk](MethodId(41)) { case m: DeleteOk => m }(deleteOkCodec)
       .withContext("queue methods")
 
 }

@@ -118,24 +118,34 @@ object BasicCodecs {
   val all: Codec[BasicClass] =
     discriminated[BasicClass]
       .by(methodId)
-      .typecase(MethodId(10), qosCodec)
-      .typecase(MethodId(11), qosOkCodec)
-      .typecase(MethodId(20), consumeCodec)
-      .typecase(MethodId(21), consumeOkCodec)
-      .typecase(MethodId(30), cancelCodec)
-      .typecase(MethodId(31), cancelOkCodec)
-      .typecase(MethodId(40), publishCodec)
-      .typecase(MethodId(50), returnCodec)
-      .typecase(MethodId(60), deliverCodec)
-      .typecase(MethodId(70), getCodec)
-      .typecase(MethodId(71), getOkCodec)
-      .typecase(MethodId(72), getEmptyCodec)
-      .typecase(MethodId(80), ackCodec)
-      .typecase(MethodId(90), rejectCodec)
-      .typecase(MethodId(100), recoverAsyncCodec)
-      .typecase(MethodId(110), recoverCodec)
-      .typecase(MethodId(111), recoverOkCodec)
-      .typecase(MethodId(120), nackCodec)
+      .subcaseP[Qos](MethodId(10)) { case m: Qos => m }(qosCodec)
+      .subcaseP[QosOk.type](MethodId(11)) { case m: QosOk.type => m }(
+        qosOkCodec
+      )
+      .subcaseP[Consume](MethodId(20)) { case m: Consume => m }(consumeCodec)
+      .subcaseP[ConsumeOk](MethodId(21)) { case m: ConsumeOk => m }(
+        consumeOkCodec
+      )
+      .subcaseP[Cancel](MethodId(30)) { case m: Cancel => m }(cancelCodec)
+      .subcaseP[CancelOk](MethodId(31)) { case m: CancelOk => m }(cancelOkCodec)
+      .subcaseP[Publish](MethodId(40)) { case m: Publish => m }(publishCodec)
+      .subcaseP[Return](MethodId(50)) { case m: Return => m }(returnCodec)
+      .subcaseP[Deliver](MethodId(60)) { case m: Deliver => m }(deliverCodec)
+      .subcaseP[Get](MethodId(70)) { case m: Get => m }(getCodec)
+      .subcaseP[GetOk](MethodId(71)) { case m: GetOk => m }(getOkCodec)
+      .subcaseP[GetEmpty.type](MethodId(72)) { case m: GetEmpty.type => m }(
+        getEmptyCodec
+      )
+      .subcaseP[Ack](MethodId(80)) { case m: Ack => m }(ackCodec)
+      .subcaseP[Reject](MethodId(90)) { case m: Reject => m }(rejectCodec)
+      .subcaseP[RecoverAsync](MethodId(100)) { case m: RecoverAsync => m }(
+        recoverAsyncCodec
+      )
+      .subcaseP[Recover](MethodId(110)) { case m: Recover => m }(recoverCodec)
+      .subcaseP[RecoverOk.type](MethodId(111)) { case m: RecoverOk.type => m }(
+        recoverOkCodec
+      )
+      .subcaseP[Nack](MethodId(120)) { case m: Nack => m }(nackCodec)
       .withContext("basic methods")
 
 }
