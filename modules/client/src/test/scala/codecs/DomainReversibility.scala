@@ -22,15 +22,6 @@ import DomainGenerators.*
 
 class DomainReversibility extends munit.ScalaCheckSuite {
 
-  def assertReversed[T](
-      original: T,
-      obtained: Attempt[DecodeResult[T]]
-  )(using Location): Unit =
-    obtained.toEither
-      .map(v => assertEquals(original, v.value))
-      .leftMap(e => fail(e.messageWithContext))
-      .merge
-
   property("Field tables") {
     forAll(fieldTable) { table =>
       val res = for {

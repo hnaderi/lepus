@@ -15,12 +15,13 @@ object ClassDataGenerator {
   private val header = headers(
     "package lepus.codecs",
     "\n",
+    "import lepus.protocol.Method",
     "import lepus.protocol.classes.*",
-    "import lepus.protocol.domains.*",
     "import lepus.protocol.constants.*",
-    "import ArbitraryDomains.given",
-    "import org.scalacheck.Gen",
+    "import lepus.protocol.domains.*",
     "import org.scalacheck.Arbitrary",
+    "import org.scalacheck.Gen",
+    "import ArbitraryDomains.given",
     "\n"
   )
 
@@ -90,10 +91,21 @@ object ClassDataGenerator {
 
   private def fileNameFor(cls: Class) = idName(cls.name) + "DataGenerator"
 
+  private def allDataGen(clss: Seq[Class]): Lines =
+    header ++ obj("AllClassesDataGenerator")(
+      emit(
+        "val methods : Gen[Method] = Gen.oneOf(" ++ clss
+          .map(cls => fileNameFor(cls) + ".classGen")
+          .mkString(",") + ")"
+      )
+    )
+
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =
     emits(clss).flatMap(cls =>
       dataGeneratorsFor(cls).through(
         testFile("client", Path(s"generators/${fileNameFor(cls)}.scala"))
       )
+    ) merge allDataGen(clss).through(
+      testFile("client", Path(s"generators/AllClassesDataGenerator.scala"))
     )
 }

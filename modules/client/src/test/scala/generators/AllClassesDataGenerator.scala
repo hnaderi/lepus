@@ -17,22 +17,16 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import ArbitraryDomains.given
 
-object ConfirmDataGenerator {
+object AllClassesDataGenerator {
 
-  val selectGen: Gen[ConfirmClass.Select] =
-    for {
-      arg0 <- Arbitrary.arbitrary[NoWait]
-    } yield ConfirmClass.Select(arg0)
-
-  given Arbitrary[ConfirmClass.Select] = Arbitrary(selectGen)
-
-  val selectOkGen: Gen[ConfirmClass.SelectOk.type] =
-    Gen.const(ConfirmClass.SelectOk)
-
-  given Arbitrary[ConfirmClass.SelectOk.type] = Arbitrary(selectOkGen)
-
-  val classGen: Gen[ConfirmClass] = Gen.oneOf(selectGen, selectOkGen)
-
-  given Arbitrary[ConfirmClass] = Arbitrary(classGen)
+  val methods: Gen[Method] = Gen.oneOf(
+    ConnectionDataGenerator.classGen,
+    ChannelDataGenerator.classGen,
+    ExchangeDataGenerator.classGen,
+    QueueDataGenerator.classGen,
+    BasicDataGenerator.classGen,
+    TxDataGenerator.classGen,
+    ConfirmDataGenerator.classGen
+  )
 
 }

@@ -9,12 +9,13 @@
 
 package lepus.codecs
 
+import lepus.protocol.Method
 import lepus.protocol.classes.*
-import lepus.protocol.domains.*
 import lepus.protocol.constants.*
-import ArbitraryDomains.given
-import org.scalacheck.Gen
+import lepus.protocol.domains.*
 import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
+import ArbitraryDomains.given
 
 object ExchangeDataGenerator {
 

@@ -134,7 +134,7 @@ object DomainCodecs {
   lazy val noWait: Codec[NoWait] = bool
   lazy val redelivered: Codec[Redelivered] = bool
   lazy val peerProperties: Codec[PeerProperties] = fieldTable
-  lazy val messageCount: Codec[MessageCount] = int16
+  lazy val messageCount: Codec[MessageCount] = uint16
   lazy val replyText: Codec[ReplyText] = shortString
   lazy val replyCode: Codec[ReplyCode] =
     short16.exmap(
