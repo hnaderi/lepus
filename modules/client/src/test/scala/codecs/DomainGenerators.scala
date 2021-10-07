@@ -20,6 +20,7 @@ import lepus.client.codecs.ExchangeCodecs
 import com.rabbitmq.client.impl.AMQImpl
 import scala.annotation.meta.field
 import cats.implicits.*
+import lepus.protocol.constants.ReplyCode
 
 object DomainGenerators {
   extension [A](g: Gen[A]) {
@@ -88,4 +89,6 @@ object DomainGenerators {
         else fieldMap.map(FieldTable(_))
       }
     )
+
+  val replyCode: Gen[ReplyCode] = Gen.oneOf(ReplyCode.values.toSeq)
 }

@@ -7,7 +7,7 @@ val FrameHeartbeat: Short = 8 //
 val FrameMinSize: Short = 4096 //
 val FrameEnd: Short = 206 //
 
-enum ReplyCode(code: Short) {
+enum ReplyCode(val code: Short) {
   case ReplySuccess extends ReplyCode(200) //
   case ContentTooLarge extends ReplyCode(311) // soft-error
   case NoConsumers extends ReplyCode(313) // soft-error

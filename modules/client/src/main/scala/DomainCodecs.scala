@@ -137,7 +137,14 @@ object DomainCodecs {
   lazy val messageCount: Codec[MessageCount] = int16
   lazy val replyText: Codec[ReplyText] = shortString
   lazy val replyCode: Codec[ReplyCode] =
-    ignore(16) ~> provide(ReplyCode.AccessRefused)
+    short16.exmap(
+      i =>
+        ReplyCode.values
+          .find(_.code == i)
+          .toRight(s"Unknown reply code $i")
+          .asAttempt,
+      r => Attempt.successful(r.code)
+    )
 
   def reverseByteAligned[T](c: Codec[T]): Codec[T] = new Codec[T] {
     val bal = byteAligned(c)
