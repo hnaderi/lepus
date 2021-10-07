@@ -15,5 +15,5 @@ object Constants {
       .map { case (name, value, cls) =>
         s"val ${idName(name)} : Short = $value // $cls"
       }
-      .through(file("protocol", Path("constants.scala")))
+      .through(srcFile("protocol", Path("constants.scala")))
 }

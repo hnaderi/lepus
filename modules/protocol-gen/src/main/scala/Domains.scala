@@ -17,7 +17,7 @@ ${d.doc.map(comment).getOrElse("")}
 opaque type $DTName <: String = String
     """
     })
-      .through(file("protocol", Path("gen-domains.scala")))
+      .through(srcFile("protocol", Path("gen-domains.scala")))
 
   def generate(protocol: NodeSeq): Stream[IO, Nothing] =
     Stream.emits(Extractors.domains(protocol)).through(domainCodeGen)

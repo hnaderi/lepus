@@ -14,9 +14,10 @@ import scala.xml.*
 def gen: IO[Unit] = for {
   protocol <- IO(XML.load("amqp0-9-1.extended.xml"))
   classes = Extractors.classes(protocol)
-  generation = MethodCodecs.generate(classes) merge Classes.generate(
-    classes
-  ) merge ClassCodecs.generate(classes)
+  // generation = MethodCodecs.generate(classes) merge Classes.generate(
+  //   classes
+  // ) merge ClassCodecs.generate(classes)
+  generation = ClassDataGenerator.generate(classes)
   // generation = genClasses(protocol)
   // generation = ClassCodecs.generate(classes)
   //genConsts(    protocol  ) genDomains(protocol) merge genClasses(protocol)

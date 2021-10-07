@@ -31,7 +31,7 @@ object Classes {
   private def requests(cls: Class): Stream[IO, Nothing] =
     (header(cls) ++ requestsBody(cls))
       .through(
-        file(
+        srcFile(
           "protocol",
           Path(s"classes/${cls.name.toLowerCase}/Methods.scala")
         )

@@ -8,6 +8,7 @@ import lepus.client.codecs.FrameCodec
 import lepus.client.codecs.MethodCodec
 import lepus.protocol.Method
 import lepus.protocol.classes.ExchangeClass
+import lepus.protocol.classes.QueueClass
 import lepus.protocol.domains.*
 import munit.FunSuite
 import munit.Location
@@ -19,14 +20,9 @@ import scodec.bits.*
 import scodec.codecs.*
 
 import DomainGenerators.*
+import DataTest.*
 
 class DataTest extends munit.ScalaCheckSuite {
-
-  val deletes: Gen[ExchangeClass.Delete] = for {
-    ex <- exchangeName
-    a <- Arbitrary.arbitrary[Boolean]
-    b <- Arbitrary.arbitrary[Boolean]
-  } yield ExchangeClass.Delete(ex, a, b)
 
   // property("Field tables official") {
   //   forAll(fieldTable) { table =>
@@ -44,6 +40,44 @@ class DataTest extends munit.ScalaCheckSuite {
       val lepusRead = MethodCodec.all.decode(officialOut)
       val lepusOut = MethodCodec.all.encode(d).getOrElse(???)
       assertEquals(bitSplit(officialOut.toBin), bitSplit(lepusOut.toBin))
+      assertEquals(Attempt.successful[Method](d), lepusRead.map(_.value))
     }
   }
+
+  property("Queue declare") {
+    forAll(qDeclare) { d =>
+      val df = AMQImpl.Queue.Declare(
+        0,
+        d.queue,
+        d._2,
+        d._3,
+        d._4,
+        d._5,
+        d._6,
+        java.util.Map.of()
+      )
+      val officialOut = writeMethod(df)
+      val lepusRead = MethodCodec.all.decode(officialOut)
+      val lepusOut = MethodCodec.all.encode(d).getOrElse(???)
+      assertEquals(bitSplit(officialOut.toBin), bitSplit(lepusOut.toBin))
+      assertEquals(Attempt.successful[Method](d), lepusRead.map(_.value))
+    }
+  }
+}
+
+object DataTest {
+  val deletes: Gen[ExchangeClass.Delete] = for {
+    ex <- exchangeName
+    a <- Arbitrary.arbitrary[Boolean]
+    b <- Arbitrary.arbitrary[Boolean]
+  } yield ExchangeClass.Delete(ex, a, b)
+
+  val qDeclare: Gen[QueueClass.Declare] = for {
+    qName <- queueName
+    a <- Arbitrary.arbitrary[Boolean]
+    b <- Arbitrary.arbitrary[Boolean]
+    c <- Arbitrary.arbitrary[Boolean]
+    d <- Arbitrary.arbitrary[Boolean]
+    e <- Arbitrary.arbitrary[Boolean]
+  } yield QueueClass.Declare(qName, a, b, c, d, e, FieldTable.empty)
 }

@@ -44,6 +44,6 @@ object ClassCodecs {
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =
     allCodecsIn(clss).through(
-      file("client", Path(s"codecs/MethodCodec.scala"))
+      srcFile("client", Path(s"codecs/MethodCodec.scala"))
     )
 }

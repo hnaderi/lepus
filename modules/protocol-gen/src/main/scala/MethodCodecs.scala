@@ -119,7 +119,7 @@ object MethodCodecs {
 
   private def generateMethodCodecs(cls: Class): Stream[IO, Nothing] =
     allCodecsIn(cls).through(
-      file("client", Path(s"codecs/${cls.name.toLowerCase}.scala"))
+      srcFile("client", Path(s"codecs/${cls.name.toLowerCase}.scala"))
     )
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =

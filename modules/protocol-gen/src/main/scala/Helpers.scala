@@ -20,12 +20,20 @@ object Helpers {
 =================================================================================
 */
 """
-  def file(module: String, out: Path): FileGen = lines =>
+  def srcFile(module: String, out: Path): FileGen =
+    file(module, out, isMain = true)
+
+  def testFile(module: String, out: Path): FileGen =
+    file(module, out, isMain = false)
+
+  def file(module: String, out: Path, isMain: Boolean): FileGen = lines =>
+    val subDir = if isMain then "main" else "test"
+    val base = Path(s"modules/$module/src/$subDir/scala")
     (Stream(genWarn) ++ lines)
       .intersperse("\n")
       .through(utf8.encode)
       .through(
-        Files[IO].writeAll(Path(s"modules/${module}/src/main/scala") / out)
+        Files[IO].writeAll(base / out)
       )
 
   private val namePattern = "\\W*\\b(\\w)".r

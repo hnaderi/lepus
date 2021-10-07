@@ -48,6 +48,9 @@ type FieldData =
     Double | Decimal | Timestamp | FieldTable
 
 final case class FieldTable(values: Map[ShortString, FieldData])
+object FieldTable {
+  val empty: FieldTable = FieldTable(Map.empty)
+}
 
 opaque type ClassId <: Short = Short
 object ClassId extends TaggedOpaqueComp[Short, ClassId]
