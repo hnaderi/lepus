@@ -82,7 +82,7 @@ object MethodCodecs {
       val otherFields = fields.dropWhile(isBit)
       val op = if bitFields.size == 1 then "::" else ":+"
       val bitsSection = bitFields.map(codecFor).mkString(" :: ")
-      val aligned = s"byteAligned($bitsSection)"
+      val aligned = s"reverseByteAligned($bitsSection)"
       if otherFields.isEmpty then s"($aligned)"
       else s"($aligned $op ${codecsFor(otherFields)})"
     else

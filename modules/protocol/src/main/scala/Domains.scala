@@ -15,9 +15,9 @@ object ShortString {
   def empty: ShortString = ""
   def apply(str: String): Either[String, ShortString] =
     Either.cond(
-      str.length <= 256,
+      str.length <= 255,
       str,
-      s"Maximum size for short strings is 256 characters! cannot create short string with length of ${str.length}"
+      s"Maximum size for short strings is 255 characters! cannot create short string with length of ${str.length}"
     )
 }
 

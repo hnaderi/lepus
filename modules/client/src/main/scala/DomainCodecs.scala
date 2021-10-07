@@ -12,6 +12,8 @@ import scodec.Err
 import lepus.protocol.classes.basic
 import lepus.protocol.constants.ReplyCode
 import cats.instances.lazyList
+import scodec.DecodeResult
+import scodec.SizeBound
 
 extension [T](self: Either[String, T]) {
   def asAttempt: Attempt[T] = self match {
@@ -32,11 +34,11 @@ object DomainCodecs {
   lazy val deliveryTag: Codec[DeliveryTag] =
     long(32).xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
-    variableSizeBytes(int8, ascii).exmap(ShortString(_).asAttempt, success)
+    variableSizeBytes(uint8, ascii).exmap(ShortString(_).asAttempt, success)
   lazy val emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
 
   lazy val longString: Codec[LongString] =
-    variableSizeBytes(int32, ascii).exmap(LongString(_).asAttempt, success)
+    variableSizeBytesLong(uint32, ascii).exmap(LongString(_).asAttempt, success)
   lazy val emptyLongString: Codec[Unit] = longString.unit(LongString.empty)
 
   lazy val timestamp: Codec[Timestamp] = long(64).xmap(Timestamp(_), identity)
@@ -136,4 +138,11 @@ object DomainCodecs {
   lazy val replyText: Codec[ReplyText] = shortString
   lazy val replyCode: Codec[ReplyCode] =
     ignore(16) ~> provide(ReplyCode.AccessRefused)
+
+  def reverseByteAligned[T](c: Codec[T]): Codec[T] = new Codec[T] {
+    val bal = byteAligned(c)
+    def encode(t: T) = bal.encode(t).map(_.reverseBitOrder)
+    def decode(b: BitVector) = bal.decode(b.reverseBitOrder)
+    def sizeBound = bal.sizeBound
+  }
 }
