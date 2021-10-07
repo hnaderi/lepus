@@ -22,6 +22,11 @@ import DomainGenerators.*
 
 class MethodsTest extends munit.ScalaCheckSuite {
 
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters
+      .withMinSuccessfulTests(200)
+      .withMaxDiscardRatio(10)
+
   property("All methods codecs must be reversible") {
     forAll(AllClassesDataGenerator.methods) { m =>
       val res = for {

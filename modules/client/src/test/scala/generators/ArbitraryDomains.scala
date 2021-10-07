@@ -15,6 +15,7 @@ object ArbitraryDomains {
   given Arbitrary[LongString] = Arbitrary(longString)
   given Arbitrary[Timestamp] = Arbitrary(timestamp)
   given Arbitrary[ConsumerTag] = Arbitrary(consumerTag)
+  given Arbitrary[MessageCount] = Arbitrary(messageCount)
   given Arbitrary[Path] = Arbitrary(path)
   given Arbitrary[DeliveryTag] = Arbitrary(deliveryTag)
   given Arbitrary[DeliveryMode] = Arbitrary(deliveryMode)

@@ -32,9 +32,9 @@ object DomainCodecs {
   lazy val consumerTag: Codec[ConsumerTag] =
     shortString.xmap(ConsumerTag(_), identity)
   lazy val deliveryTag: Codec[DeliveryTag] =
-    long(32).xmap(DeliveryTag(_), identity)
+    int64.xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
-    variableSizeBytes(uint8, ascii).exmap(ShortString(_).asAttempt, success)
+    variableSizeBytes(uint8, utf8).exmap(ShortString(_).asAttempt, success)
   lazy val emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
 
   lazy val longString: Codec[LongString] =
@@ -134,7 +134,8 @@ object DomainCodecs {
   lazy val noWait: Codec[NoWait] = bool
   lazy val redelivered: Codec[Redelivered] = bool
   lazy val peerProperties: Codec[PeerProperties] = fieldTable
-  lazy val messageCount: Codec[MessageCount] = uint16
+  lazy val messageCount: Codec[MessageCount] =
+    uint32.exmap(MessageCount(_).asAttempt, success)
   lazy val replyText: Codec[ReplyText] = shortString
   lazy val replyCode: Codec[ReplyCode] =
     short16.exmap(

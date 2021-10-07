@@ -41,6 +41,7 @@ object DomainGenerators {
 
   val timestamp: Gen[Timestamp] = Arbitrary.arbitrary[Long].map(Timestamp(_))
 
+  val messageCount: Gen[MessageCount] = Gen.posNum[Long].emap(MessageCount(_))
   val consumerTag: Gen[ConsumerTag] = shortString.map(ConsumerTag(_))
   val path: Gen[Path] = shortString.emap(Path(_))
   val deliveryTag: Gen[DeliveryTag] =

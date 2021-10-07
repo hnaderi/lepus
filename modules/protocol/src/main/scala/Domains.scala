@@ -143,7 +143,11 @@ type Redelivered = Boolean
   * if the channel on which they were published is transacted, that are not
   * waiting acknowledgement.
   */
-type MessageCount = Int
+opaque type MessageCount <: Long = Long
+object MessageCount {
+  def apply(count: Long): Either[String, MessageCount] =
+    Either.cond(count >= 0, count, "Count cannot be negative!")
+}
 
 /** The localised reply text. This text can be logged as an aid to resolving
   * issues.
