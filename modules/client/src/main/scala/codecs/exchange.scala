@@ -21,7 +21,7 @@ import scodec.codecs.*
 object ExchangeCodecs {
 
   private val declareCodec: Codec[Declare] =
-    ((short16.unit(0) :: exchangeName :: shortString) ++ (byteAligned(
+    ((short16.unit(0) :: exchangeName :: shortString) ++ (reverseByteAligned(
       bool :: bool :: bool :: bool :: noWait
     ) :+ (fieldTable)))
       .as[Declare]
@@ -32,7 +32,7 @@ object ExchangeCodecs {
       .withContext("declareOk method")
 
   private val deleteCodec: Codec[Delete] =
-    ((short16.unit(0) :: exchangeName) ++ (byteAligned(bool :: noWait)))
+    ((short16.unit(0) :: exchangeName) ++ (reverseByteAligned(bool :: noWait)))
       .as[Delete]
       .withContext("delete method")
 
@@ -43,7 +43,7 @@ object ExchangeCodecs {
   private val bindCodec: Codec[Bind] =
     ((short16.unit(
       0
-    ) :: exchangeName :: exchangeName :: shortString) ++ (byteAligned(
+    ) :: exchangeName :: exchangeName :: shortString) ++ (reverseByteAligned(
       noWait
     ) :: (fieldTable)))
       .as[Bind]
@@ -56,7 +56,7 @@ object ExchangeCodecs {
   private val unbindCodec: Codec[Unbind] =
     ((short16.unit(
       0
-    ) :: exchangeName :: exchangeName :: shortString) ++ (byteAligned(
+    ) :: exchangeName :: exchangeName :: shortString) ++ (reverseByteAligned(
       noWait
     ) :: (fieldTable)))
       .as[Unbind]
