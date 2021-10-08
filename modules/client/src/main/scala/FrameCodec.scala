@@ -8,7 +8,6 @@ import lepus.protocol.*
 import lepus.protocol.frame.*
 import lepus.protocol.domains.*
 import java.nio.ByteBuffer
-import com.rabbitmq.client.impl.ValueWriter
 
 object FrameCodec {
   import DomainCodecs.*

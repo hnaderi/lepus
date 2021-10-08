@@ -37,7 +37,7 @@ object Dependencies {
     ).map(_ % Versions.circe)
 
     val rabbit: Seq[ModuleID] = Seq(
-      "com.rabbitmq" % "amqp-client" % Versions.rabbit
+      "com.rabbitmq" % "amqp-client" % Versions.rabbit % Test
     )
 
     val scodec = Seq(
