@@ -22,6 +22,11 @@ import DomainGenerators.*
 
 class DomainReversibility extends munit.ScalaCheckSuite {
 
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters
+      .withMinSuccessfulTests(200)
+      .withMaxDiscardRatio(10)
+
   property("Field tables") {
     forAll(fieldTable) { table =>
       val res = for {

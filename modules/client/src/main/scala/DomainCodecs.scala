@@ -34,7 +34,7 @@ object DomainCodecs {
   lazy val deliveryTag: Codec[DeliveryTag] =
     int64.xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
-    variableSizeBytes(uint8, utf8).exmap(ShortString(_).asAttempt, success)
+    variableSizeBytes(uint8, ascii).exmap(ShortString(_).asAttempt, success)
   lazy val emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
 
   lazy val longString: Codec[LongString] =
@@ -55,8 +55,8 @@ object DomainCodecs {
       .typecase("u", short16)
       .typecase("I", int32)
       .typecase("i", int32)
-      .typecase("L", long(64)) //FIXME when encoding?
-      .typecase("l", long(64))
+      .typecase("l", int64)
+      .typecase("L", int64) //Only when decoding
       .typecase("f", float)
       .typecase("d", double)
       .typecase("D", decimal)
@@ -147,10 +147,39 @@ object DomainCodecs {
       r => Attempt.successful(r.code)
     )
 
-  def reverseByteAligned[T](c: Codec[T]): Codec[T] = new Codec[T] {
-    val bal = byteAligned(c)
-    def encode(t: T) = bal.encode(t).map(_.reverseBitOrder)
-    def decode(b: BitVector) = bal.decode(b.reverseBitOrder)
-    def sizeBound = bal.sizeBound
+  inline def reverseByteAligned[T](inline i: Int, codec: Codec[T]): Codec[T] =
+    inline if i >= 8 || i <= 0 then
+      scala.compiletime.error("Invalid padding size")
+    else ReverseByteAlignedCodec(i, codec)
+
+  /** Codec that aligned contigous bit fields into a byte, assuming that no more
+    * than 8 bits are used as is the case in AMQP
+    */
+  private[client] final class ReverseByteAlignedCodec[T](
+      i: Int,
+      codec: Codec[T]
+  ) extends Codec[T] {
+    private def padAmount(size: Long) =
+      val mod = size % 8
+      if mod == 0 then 0 else 8 - mod
+    def encode(t: T) =
+      codec
+        .encode(t)
+        .map(b =>
+          val padSize = padAmount(b.size)
+          b.reverseBitOrder.padLeft(padSize + b.size)
+        )
+    def decode(b: BitVector) =
+      codec.decode(b.take(8).reverseBitOrder).map { a =>
+        val taken = b.size - a.remainder.size
+        val padding = padAmount(taken)
+        DecodeResult(a.value, b.drop(8))
+      }
+    def sizeBound =
+      val sz = codec.sizeBound
+      val lb = sz.lowerBound + padAmount(sz.lowerBound)
+      val ub = sz.upperBound.map(ub => ub + padAmount(ub))
+      SizeBound(lb, ub)
+    override def toString = s"reverseByteAligned($codec)"
   }
 }

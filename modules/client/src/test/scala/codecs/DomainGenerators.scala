@@ -1,9 +1,18 @@
 package lepus.codecs
 
+import cats.implicits.*
+import com.rabbitmq.client.impl.AMQImpl
 import lepus.client.codecs.DomainCodecs
+import lepus.client.codecs.ExchangeCodecs
 import lepus.client.codecs.FrameCodec
+import lepus.client.codecs.MethodCodec
+import lepus.protocol.Method
+import lepus.protocol.classes.ExchangeClass
+import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.FunSuite
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
 import org.scalacheck.Prop._
 import scodec.Codec
 import scodec.Decoder
@@ -11,22 +20,18 @@ import scodec.Encoder
 import scodec.bits.*
 import scodec.codecs
 import scodec.codecs.*
-import lepus.protocol.classes.ExchangeClass
-import org.scalacheck.Gen
-import org.scalacheck.Arbitrary
-import lepus.client.codecs.MethodCodec
-import lepus.protocol.Method
-import lepus.client.codecs.ExchangeCodecs
-import com.rabbitmq.client.impl.AMQImpl
+
 import scala.annotation.meta.field
-import cats.implicits.*
-import lepus.protocol.constants.ReplyCode
+import lepus.protocol.classes.basic.Properties
 
 object DomainGenerators {
   extension [A](g: Gen[A]) {
     def emap[B](f: A => Either[String, B]): Gen[B] =
       g.flatMap(a => f(a).map(Gen.const).getOrElse(Gen.fail))
   }
+  val channelNumber: Gen[ChannelNumber] =
+    Arbitrary.arbitrary[Short].map(ChannelNumber(_))
+
   val exchangeName: Gen[ExchangeName] = Gen.alphaNumStr.emap(ExchangeName(_))
   val queueName: Gen[QueueName] = Gen.alphaNumStr.emap(QueueName(_))
 
@@ -36,6 +41,7 @@ object DomainGenerators {
   val shortString: Gen[ShortString] = Gen
     .choose(0, 255)
     .flatMap(n => Gen.stringOfN(n, Gen.alphaNumChar).emap(ShortString(_)))
+
   val longString: Gen[LongString] =
     Gen.alphaNumStr.emap(LongString(_))
 
@@ -92,4 +98,36 @@ object DomainGenerators {
     )
 
   val replyCode: Gen[ReplyCode] = Gen.oneOf(ReplyCode.values.toSeq)
+
+  val properties: Gen[Properties] = for {
+    contentType <- Gen.option(shortString)
+    contentEncoding <- Gen.option(shortString)
+    headers <- Gen.option(fieldTable)
+    deliveryModeArg <- Gen.option(deliveryMode)
+    priorityArg <- Gen.option[Priority](priority)
+    correlationId <- Gen.option(shortString)
+    replyTo <- Gen.option(shortString)
+    expiration <- Gen.option(shortString)
+    messageId <- Gen.option(shortString)
+    timestamp <- Gen.option(timestamp)
+    msgType <- Gen.option(shortString)
+    userId <- Gen.option(shortString)
+    appId <- Gen.option(shortString)
+    clusterId <- Gen.option(shortString)
+  } yield Properties(
+    contentType,
+    contentEncoding,
+    headers,
+    deliveryModeArg,
+    priorityArg,
+    correlationId,
+    replyTo,
+    expiration,
+    messageId,
+    timestamp,
+    msgType,
+    userId,
+    appId,
+    clusterId
+  )
 }

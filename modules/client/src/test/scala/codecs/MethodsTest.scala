@@ -20,11 +20,11 @@ import scodec.codecs.*
 
 import DomainGenerators.*
 
-class MethodsTest extends munit.ScalaCheckSuite {
+class MethodsTest extends CodecTest {
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
-      .withMinSuccessfulTests(200)
+      .withMinSuccessfulTests(2000)
       .withMaxDiscardRatio(10)
 
   property("All methods codecs must be reversible") {
@@ -34,7 +34,6 @@ class MethodsTest extends munit.ScalaCheckSuite {
         dec <- MethodCodec.all.decode(enc)
       } yield dec
 
-      println(m)
       assertReversed(m, res)
     }
   }
