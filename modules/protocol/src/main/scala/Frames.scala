@@ -2,16 +2,16 @@ package lepus.protocol.frame
 
 import lepus.protocol.domains.*
 import lepus.protocol.classes.basic.Properties
+import java.nio.ByteBuffer
 
-final case class Frame(channel: ChannelNumber, payload: FramePayload)
-
-enum FramePayload {
-  case Method(value: lepus.protocol.Method)
+enum Frame {
+  case Method(channel: ChannelNumber, value: lepus.protocol.Method)
   case Header(
+      channel: ChannelNumber,
       classId: ClassId,
       bodySize: Long,
       props: Properties
   )
-  case Body(payload: Array[Byte])
+  case Body(channel: ChannelNumber, payload: ByteBuffer)
   case Heartbeat
 }

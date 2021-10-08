@@ -82,26 +82,26 @@ def inspector[F[_]: Files: Console: Network: Temporal](
     protocol = Stream.chunk(
       Chunk.byteVector(ByteVector('A', 'M', 'Q', 'P', 0, 0, 9, 1))
     )
-    send = client.reads.broadcastThrough(
-      socket.writes,
-      _.through(Transport.decoderServer)
-        .through(Transport.debug(true))
-    )
-    recv = socket.reads.broadcastThrough(
-      client.writes,
-      _.through(Transport.decoder)
-        .through(Transport.debug(false))
-    )
-    // send = (protocol ++ client.reads
-    //   .through(Transport.decoderServer)
-    //   .through(Transport.debug(false))
-    //   .through(Transport.encoder))
-    //   .through(socket.writes)
-    // recv = socket.reads
-    //   .through(Transport.decoder)
-    //   .through(Transport.debug(true))
-    //   .through(Transport.encoder)
-    //   .through(client.writes)
+    // send = client.reads.broadcastThrough(
+    //   socket.writes,
+    //   _.through(Transport.decoderServer)
+    //     .through(Transport.debug(true))
+    // )
+    // recv = socket.reads.broadcastThrough(
+    //   client.writes,
+    //   _.through(Transport.decoder)
+    //     .through(Transport.debug(false))
+    // )
+    send = (protocol ++ client.reads
+      .through(Transport.decoderServer)
+      .through(Transport.debug(false))
+      .through(Transport.encoder))
+      .through(socket.writes)
+    recv = socket.reads
+      .through(Transport.decoder)
+      .through(Transport.debug(true))
+      .through(Transport.encoder)
+      .through(client.writes)
     _ <- (send mergeHaltBoth recv).onFinalizeCase(e =>
       Console[F].println(s"Proxy disconnected. $e")
     )

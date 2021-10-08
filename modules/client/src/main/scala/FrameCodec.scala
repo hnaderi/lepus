@@ -7,6 +7,8 @@ import scodec.codecs.*
 import lepus.protocol.*
 import lepus.protocol.frame.*
 import lepus.protocol.domains.*
+import java.nio.ByteBuffer
+import com.rabbitmq.client.impl.ValueWriter
 
 object FrameCodec {
   import DomainCodecs.*
@@ -19,24 +21,29 @@ object FrameCodec {
 
   lazy val frameEnd: Codec[Unit] = constant(hex"CE")
 
-  private lazy val byteArray: Codec[Array[Byte]] =
-    bytes.xmap(_.toArray, ByteVector(_))
+  private lazy val byteArray: Codec[ByteBuffer] =
+    bytes.xmap(_.toByteBuffer, ByteVector(_))
 
-  private lazy val methodFP: Codec[FramePayload.Method] = (MethodCodec.all).as
-  private lazy val headerFP: Codec[FramePayload.Header] =
-    (classId :: short16.unit(0) ~> long(64) :: basicProps).as
+  private val methodFP: Codec[Frame.Method] =
+    (channelNumber :: sized(MethodCodec.all)).as
 
-  private lazy val bodyFP: Codec[FramePayload.Body] = byteArray.as
+  private val headerFP: Codec[Frame.Header] =
+    (channelNumber :: sized(
+      classId :: short16.unit(0) ~> int64 :: basicProps
+    )).as
 
-  private lazy val heartbeat: Codec[FramePayload.Heartbeat.type] =
-    codecs.provide(FramePayload.Heartbeat)
+  private val bodyFP: Codec[Frame.Body] =
+    (channelNumber :: sized(byteArray)).as
+
+  private val heartbeat: Codec[Frame.Heartbeat.type] =
+    channelNumber.unit(ChannelNumber(0)) ~> codecs.provide(Frame.Heartbeat)
 
   lazy val frame: Codec[Frame] = discriminated
     .by(int8)
-    .typecase(1, channelNumber :: sized(methodFP))
-    .typecase(2, channelNumber :: sized(headerFP))
-    .typecase(3, channelNumber :: sized(bodyFP))
-    .typecase(8, channelNumber :: sized(headerFP))
+    .typecase(1, methodFP)
+    .typecase(2, headerFP)
+    .typecase(3, bodyFP)
+    .typecase(8, headerFP)
     .withContext("Frame")
     .as[Frame] <~ frameEnd
 
