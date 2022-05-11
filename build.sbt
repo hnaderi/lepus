@@ -8,7 +8,7 @@ val libVersion = "1.0.0-SNAPSHOT"
 
 version := libVersion
 
-lazy val scala3 = "3.0.1"
+lazy val scala3 = "3.1.2"
 ThisBuild / scalaVersion := scala3
 ThisBuild / version := libVersion
 
