@@ -1,65 +1,81 @@
 import Dependencies.Libraries._
 import sbt.ThisBuild
 
-name := "lepus"
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-val libVersion = "1.0.0-SNAPSHOT"
-
-version := libVersion
-
 lazy val scala3 = "3.1.2"
-ThisBuild / scalaVersion := scala3
-ThisBuild / version := libVersion
+val PrimaryJava = JavaSpec.temurin("8")
+val LTSJava = JavaSpec.temurin("17")
 
+inThisBuild(
+  List(
+    tlBaseVersion := "0.0",
+    scalaVersion := scala3,
+    fork := true,
+    Test / fork := false,
+    organization := "dev.hnaderi",
+    organizationName := "Hossein Naderi",
+    startYear := Some(2021),
+    tlSonatypeUseLegacyHost := false,
+    // tlCiReleaseBranches := Seq("main"), // No snapshots while not ready!
+    tlSitePublishBranch := Some("main"),
+    githubWorkflowJavaVersions := Seq(PrimaryJava, LTSJava),
+    licenses := Seq(License.Apache2),
+    developers := List(
+      Developer(
+        id = "hnaderi",
+        name = "Hossein Naderi",
+        email = "mail@hnaderi.dev",
+        url = url("https://hnaderi.dev")
+      )
+    )
+  )
+)
 
-val protocol = Module
-  .named("protocol")
+def module(module: String): Project = {
+  val id = s"lepus-$module"
+  Project(id, file(s"modules/$module"))
+    .settings(
+      libraryDependencies ++= (munit)
+    )
+}
 
-val protocolGen = Module
-  .named("protocol-gen")
+val protocol = module("protocol")
+
+val protocolGen = module("protocol-gen")
   .settings(libraryDependencies ++= fs2IO ++ scodecStream ++ scalaXml)
 
-val core = Module
-  .named("core")
+val core = module("core")
   .settings(libraryDependencies ++= cats ++ catsEffect ++ fs2)
   .dependsOn(protocol)
 
-val data = Module
-  .named("data")
+val data = module("data")
   .dependsOn(core)
 
-val client = Module
-  .named("client")
+val client = module("client")
   .dependsOn(core)
   .dependsOn(protocol)
   .settings(
     libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ scodecStream ++ scalaXml
   )
 
-val std = Module
-  .named("std")
+val std = module("std")
   .dependsOn(core)
   .dependsOn(data)
 
-val dataCirce = Module
-  .named("data-circe")
+val dataCirce = module("data-circe")
   .dependsOn(data)
   .settings(libraryDependencies ++= circe)
 
 val docs = project
-  .in(file("docs-build"))
+  .in(file("site"))
+  .enablePlugins(TypelevelSitePlugin)
   .dependsOn(core)
-  .enablePlugins(MdocPlugin)
 
-mdocVariables := Map(
-  "VERSION" -> version.value
-)
-
-val root = (project in file("."))
+val root = project
+  .in(file("."))
   .settings(
-    Common.settings,
-    version := libVersion
+    name := "lepus"
   )
   .aggregate(
     protocol,
@@ -71,4 +87,24 @@ val root = (project in file("."))
     dataCirce,
     docs
   )
-  .enablePlugins(MicrositesPlugin)
+
+def addAlias(name: String)(tasks: String*) =
+  addCommandAlias(name, tasks.mkString(" ;"))
+
+addAlias("commit")(
+  "clean",
+  "scalafmtCheckAll",
+  "scalafmtSbtCheck",
+  "headerCheckAll",
+  "githubWorkflowCheck",
+  "compile",
+  "test"
+)
+addAlias("precommit")(
+  "scalafmtAll",
+  "scalafmtSbt",
+  "headerCreateAll",
+  "githubWorkflowGenerate",
+  "compile",
+  "test"
+)

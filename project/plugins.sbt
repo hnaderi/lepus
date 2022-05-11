@@ -1,4 +1,5 @@
-addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.2.21")
-addSbtPlugin("com.47deg" % "sbt-microsites" % "1.3.4")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.2")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.29")
+addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.4.9")
+addSbtPlugin("org.typelevel" % "sbt-typelevel-site" % "0.4.9")
+addSbtPlugin("org.typelevel" % "sbt-typelevel-github-actions" % "0.4.9")
