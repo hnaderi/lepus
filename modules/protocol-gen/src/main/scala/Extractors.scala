@@ -32,7 +32,7 @@ object Extractors {
         name = d \@ "name",
         dataType = PrimitiveType.valueOf(d \@ "type"),
         label = d \@ "label",
-        doc = Option.when(!doc.isBlank)(doc),
+        doc = Option.when(!doc.trim.isEmpty)(doc),
         assertions = (d \ "assert").toList.map(_.text)
       )
     }
@@ -75,7 +75,7 @@ object Extractors {
     (thisMethod \ "field").map { c =>
       val domain = c \@ "domain"
       val tpe = c \@ "type"
-      val dataType = if domain.isBlank then tpe else domain
+      val dataType = if domain.trim.isEmpty then tpe else domain
       Field(
         name = c \@ "name",
         label = c \@ "label",

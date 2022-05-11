@@ -71,7 +71,7 @@ class DataTest extends CodecTest {
         d._4,
         d._5,
         d._6,
-        java.util.Map.of()
+        new java.util.HashMap()
       )
       val officialOut = writeMethod(df)
       val lepusRead = MethodCodec.all.decode(officialOut)
