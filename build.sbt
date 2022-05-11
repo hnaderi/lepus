@@ -71,6 +71,13 @@ val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
   .dependsOn(core)
+  .settings(
+    tlSiteRelatedProjects := Seq(
+      TypelevelProject.Cats,
+      TypelevelProject.CatsEffect,
+      TypelevelProject.Fs2
+    )
+  )
 
 val root = project
   .in(file("."))
