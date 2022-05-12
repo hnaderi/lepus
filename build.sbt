@@ -79,7 +79,8 @@ val docs = project
       TypelevelProject.Cats,
       TypelevelProject.CatsEffect,
       TypelevelProject.Fs2
-    )
+    ),
+    tlSiteHeliumConfig := SiteConfigs(mdocVariables.value)
   )
 
 val root = project
