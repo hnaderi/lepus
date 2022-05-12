@@ -4,7 +4,6 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    // val odin = "0.12.0"
     val cats = "2.6.1"
     val catsEffect = "3.2.2"
     val fs2 = "3.1.0"
@@ -51,11 +50,6 @@ object Dependencies {
     val scalaXml = Seq(
       "org.scala-lang.modules" %% "scala-xml" % "2.0.1"
     )
-
-    // val odin: Seq[ModuleID] = Seq(
-    //   "com.github.valskalla" %% "odin-core",
-    //   "com.github.valskalla" %% "odin-slf4j"
-    // ).map(_ % Versions.odin)
 
     val munit = Seq(
       "org.scalameta" %% "munit" % Versions.MUnit % Test,
