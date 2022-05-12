@@ -6,8 +6,8 @@ object Dependencies {
   object Versions {
     val cats = "2.6.1"
     val catsEffect = "3.2.2"
-    val fs2 = "3.1.0"
-    val scodec = "2.0.0"
+    val fs2 = "3.2.7"
+    val scodec = "2.1.0"
     val scodecStream = "3.0.1"
     val circe = "0.14.1"
     val rabbit = "5.13.0"
@@ -31,6 +31,10 @@ object Dependencies {
       "co.fs2" %% "fs2-io" % Versions.fs2
     )
 
+    val fs2scodec: Seq[ModuleID] = Seq(
+      "co.fs2" %% "fs2-scodec" % Versions.fs2
+    )
+
     val circe: Seq[ModuleID] = Seq(
       "io.circe" %% "circe-core"
     ).map(_ % Versions.circe)
@@ -41,10 +45,6 @@ object Dependencies {
 
     val scodec = Seq(
       "org.scodec" %% "scodec-core" % Versions.scodec
-    )
-
-    val scodecStream = Seq(
-      "org.scodec" %% "scodec-stream" % Versions.scodecStream
     )
 
     val scalaXml = Seq(

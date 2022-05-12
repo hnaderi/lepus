@@ -28,6 +28,7 @@ import fs2.Chunk
 import fs2.Pull
 import fs2.Stream
 import fs2.Stream.*
+import fs2.interop.scodec.*
 import fs2.io.file.FileHandle
 import fs2.io.file.Files
 import fs2.io.file.Flags
@@ -45,8 +46,6 @@ import scodec.Attempt
 import scodec.Encoder
 import scodec.Err
 import scodec.bits.ByteVector
-import scodec.stream.CodecError
-import scodec.stream.StreamEncoder
 
 import java.net.ConnectException
 import java.nio.file.OpenOption

@@ -43,7 +43,10 @@ def module(module: String): Project = {
 val protocol = module("protocol")
 
 val protocolGen = module("protocol-gen")
-  .settings(libraryDependencies ++= fs2IO ++ scodecStream ++ scalaXml)
+  .settings(
+    libraryDependencies ++= fs2IO ++ fs2scodec ++ scalaXml,
+    Compile / run / baseDirectory := file(".")
+  )
 
 val core = module("core")
   .settings(libraryDependencies ++= cats ++ catsEffect ++ fs2)
@@ -56,7 +59,7 @@ val client = module("client")
   .dependsOn(core)
   .dependsOn(protocol)
   .settings(
-    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ scodecStream ++ scalaXml
+    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ fs2scodec ++ scalaXml
   )
 
 val std = module("std")

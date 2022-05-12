@@ -28,7 +28,7 @@ import scodec.codecs.*
 object ConfirmCodecs {
 
   private val selectCodec: Codec[Select] =
-    (reverseByteAligned(7, noWait))
+    (reverseByteAligned(noWait))
       .as[Select]
       .withContext("select method")
 

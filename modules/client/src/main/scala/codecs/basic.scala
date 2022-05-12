@@ -28,7 +28,7 @@ import scodec.codecs.*
 object BasicCodecs {
 
   private val qosCodec: Codec[Qos] =
-    (int32 :: short16 :: (reverseByteAligned(7, bool)))
+    (int32 :: short16 :: (reverseByteAligned(bool)))
       .as[Qos]
       .withContext("qos method")
 
@@ -38,7 +38,6 @@ object BasicCodecs {
 
   private val consumeCodec: Codec[Consume] =
     ((short16.unit(0) :: queueName :: consumerTag) ++ (reverseByteAligned(
-      4,
       noLocal :: noAck :: bool :: noWait
     ) :+ (fieldTable)))
       .as[Consume]
@@ -50,7 +49,7 @@ object BasicCodecs {
       .withContext("consumeOk method")
 
   private val cancelCodec: Codec[Cancel] =
-    (consumerTag :: (reverseByteAligned(7, noWait)))
+    (consumerTag :: (reverseByteAligned(noWait)))
       .as[Cancel]
       .withContext("cancel method")
 
@@ -61,7 +60,6 @@ object BasicCodecs {
 
   private val publishCodec: Codec[Publish] =
     ((short16.unit(0) :: exchangeName :: shortString) ++ (reverseByteAligned(
-      6,
       bool :: bool
     )))
       .as[Publish]
@@ -74,20 +72,18 @@ object BasicCodecs {
 
   private val deliverCodec: Codec[Deliver] =
     ((consumerTag :: deliveryTag) ++ (reverseByteAligned(
-      7,
       redelivered
     ) :: (exchangeName :: shortString)))
       .as[Deliver]
       .withContext("deliver method")
 
   private val getCodec: Codec[Get] =
-    (short16.unit(0) :: queueName :: (reverseByteAligned(7, noAck)))
+    (short16.unit(0) :: queueName :: (reverseByteAligned(noAck)))
       .as[Get]
       .withContext("get method")
 
   private val getOkCodec: Codec[GetOk] =
     (deliveryTag :: (reverseByteAligned(
-      7,
       redelivered
     ) :: (exchangeName :: shortString :: messageCount)))
       .as[GetOk]
@@ -98,22 +94,22 @@ object BasicCodecs {
       .withContext("getEmpty method")
 
   private val ackCodec: Codec[Ack] =
-    (deliveryTag :: (reverseByteAligned(7, bool)))
+    (deliveryTag :: (reverseByteAligned(bool)))
       .as[Ack]
       .withContext("ack method")
 
   private val rejectCodec: Codec[Reject] =
-    (deliveryTag :: (reverseByteAligned(7, bool)))
+    (deliveryTag :: (reverseByteAligned(bool)))
       .as[Reject]
       .withContext("reject method")
 
   private val recoverAsyncCodec: Codec[RecoverAsync] =
-    (reverseByteAligned(7, bool))
+    (reverseByteAligned(bool))
       .as[RecoverAsync]
       .withContext("recoverAsync method")
 
   private val recoverCodec: Codec[Recover] =
-    (reverseByteAligned(7, bool))
+    (reverseByteAligned(bool))
       .as[Recover]
       .withContext("recover method")
 
@@ -122,7 +118,7 @@ object BasicCodecs {
       .withContext("recoverOk method")
 
   private val nackCodec: Codec[Nack] =
-    (deliveryTag :: (reverseByteAligned(6, bool :: bool)))
+    (deliveryTag :: (reverseByteAligned(bool :: bool)))
       .as[Nack]
       .withContext("nack method")
 

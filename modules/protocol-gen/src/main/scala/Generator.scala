@@ -16,15 +16,16 @@
 
 package lepus.protocol.gen
 
-import fs2.Stream
-import fs2.io.file.writeAll
-import fs2.text.utf8
 import cats.effect.*
+import cats.implicits.*
+import fs2.Pipe
+import fs2.Stream
 import fs2.io.file.Files
 import fs2.io.file.Path
-import cats.implicits.*
+import fs2.io.file.writeAll
+import fs2.text.utf8
+
 import scala.xml.NodeSeq
-import fs2.Pipe
 import scala.xml.*
 
 def gen: IO[Unit] = for {

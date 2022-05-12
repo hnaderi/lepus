@@ -29,7 +29,6 @@ object ExchangeCodecs {
 
   private val declareCodec: Codec[Declare] =
     ((short16.unit(0) :: exchangeName :: shortString) ++ (reverseByteAligned(
-      3,
       bool :: bool :: bool :: bool :: noWait
     ) :+ (fieldTable)))
       .as[Declare]
@@ -40,8 +39,7 @@ object ExchangeCodecs {
       .withContext("declareOk method")
 
   private val deleteCodec: Codec[Delete] =
-    ((short16
-      .unit(0) :: exchangeName) ++ (reverseByteAligned(6, bool :: noWait)))
+    ((short16.unit(0) :: exchangeName) ++ (reverseByteAligned(bool :: noWait)))
       .as[Delete]
       .withContext("delete method")
 
@@ -53,7 +51,6 @@ object ExchangeCodecs {
     ((short16.unit(
       0
     ) :: exchangeName :: exchangeName :: shortString) ++ (reverseByteAligned(
-      7,
       noWait
     ) :: (fieldTable)))
       .as[Bind]
@@ -67,7 +64,6 @@ object ExchangeCodecs {
     ((short16.unit(
       0
     ) :: exchangeName :: exchangeName :: shortString) ++ (reverseByteAligned(
-      7,
       noWait
     ) :: (fieldTable)))
       .as[Unbind]

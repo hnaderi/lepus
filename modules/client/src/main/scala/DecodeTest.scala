@@ -16,19 +16,18 @@
 
 package lepus.client
 
-import scodec.*
-import scodec.bits.*
-import scodec.codecs.*
-import scodec.stream.StreamDecoder
 import cats.effect.*
+import fs2.Pipe
 import fs2.Stream
+import fs2.interop.scodec.*
 import fs2.io.file.Files
 import fs2.io.file.Path
 import lepus.client.codecs.FrameCodec
-import lepus.protocol.frame.*
 import lepus.protocol.ProtocolVersion
-import fs2.Pipe
-import scodec.stream.StreamEncoder
+import lepus.protocol.frame.*
+import scodec.*
+import scodec.bits.*
+import scodec.codecs.*
 
 object DecodeTest extends IOApp {
   private val fenc = logFailuresToStdOut(FrameCodec.frame, "FAILURE")

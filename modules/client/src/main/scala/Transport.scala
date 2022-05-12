@@ -25,14 +25,13 @@ import com.comcast.ip4s.SocketAddress
 import fs2.Pipe
 import fs2.Stream
 import fs2.Stream.*
+import fs2.interop.scodec.*
 import fs2.io.net.Network
 import fs2.io.net.Socket
 import fs2.io.net.SocketOption
 import lepus.client.codecs.FrameCodec
 import lepus.protocol.ProtocolVersion
 import lepus.protocol.frame.*
-import scodec.stream.StreamDecoder
-import scodec.stream.StreamEncoder
 import scodec.codecs.logFailuresToStdOut
 
 import scala.{Console => SCon}

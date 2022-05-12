@@ -163,39 +163,26 @@ object DomainCodecs {
       r => Attempt.successful(r.code)
     )
 
-  inline def reverseByteAligned[T](inline i: Int, codec: Codec[T]): Codec[T] =
-    inline if i >= 8 || i <= 0 then
-      scala.compiletime.error("Invalid padding size")
-    else ReverseByteAlignedCodec(i, codec)
+  inline def reverseByteAligned[T](codec: Codec[T]): Codec[T] =
+    ReverseByteAlignedCodec(codec)
 
   /** Codec that aligned contigous bit fields into a byte, assuming that no more
     * than 8 bits are used as is the case in AMQP
     */
   private[client] final class ReverseByteAlignedCodec[T](
-      i: Int,
       codec: Codec[T]
   ) extends Codec[T] {
-    private def padAmount(size: Long) =
-      val mod = size % 8
-      if mod == 0 then 0 else 8 - mod
+
     def encode(t: T) =
       codec
         .encode(t)
-        .map(b =>
-          val padSize = padAmount(b.size)
-          b.reverseBitOrder.padLeft(padSize + b.size)
-        )
+        .map(_.padRight(8).reverseBitOrder)
+
     def decode(b: BitVector) =
       codec.decode(b.take(8).reverseBitOrder).map { a =>
-        val taken = b.size - a.remainder.size
-        val padding = padAmount(taken)
         DecodeResult(a.value, b.drop(8))
       }
-    def sizeBound =
-      val sz = codec.sizeBound
-      val lb = sz.lowerBound + padAmount(sz.lowerBound)
-      val ub = sz.upperBound.map(ub => ub + padAmount(ub))
-      SizeBound(lb, ub)
+    def sizeBound = SizeBound.exact(8)
     override def toString = s"reverseByteAligned($codec)"
   }
 }
