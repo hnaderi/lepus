@@ -20,15 +20,15 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum BasicClass(methodId: MethodId)
+enum BasicClass(methodId: MethodId, synchronous: Boolean)
     extends Class(ClassId(60))
-    with Method(methodId) {
+    with Method(methodId, synchronous) {
 
   case Qos(prefetchSize: Int, prefetchCount: Short, global: Boolean)
-      extends BasicClass(MethodId(10))
+      extends BasicClass(MethodId(10), true)
       with Request
 
-  case QosOk extends BasicClass(MethodId(11)) with Response
+  case QosOk extends BasicClass(MethodId(11), true) with Response
 
   case Consume(
       queue: QueueName,
@@ -38,19 +38,19 @@ enum BasicClass(methodId: MethodId)
       exclusive: Boolean,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends BasicClass(MethodId(20)) with Request
+  ) extends BasicClass(MethodId(20), true) with Request
 
   case ConsumeOk(consumerTag: ConsumerTag)
-      extends BasicClass(MethodId(21))
+      extends BasicClass(MethodId(21), true)
       with Response
 
   case Cancel(consumerTag: ConsumerTag, noWait: NoWait)
-      extends BasicClass(MethodId(30))
+      extends BasicClass(MethodId(30), true)
       with Request
       with Response
 
   case CancelOk(consumerTag: ConsumerTag)
-      extends BasicClass(MethodId(31))
+      extends BasicClass(MethodId(31), true)
       with Request
       with Response
 
@@ -59,14 +59,14 @@ enum BasicClass(methodId: MethodId)
       routingKey: ShortString,
       mandatory: Boolean,
       immediate: Boolean
-  ) extends BasicClass(MethodId(40)) with Request
+  ) extends BasicClass(MethodId(40), false) with Request
 
   case Return(
       replyCode: ReplyCode,
       replyText: ReplyText,
       exchange: ExchangeName,
       routingKey: ShortString
-  ) extends BasicClass(MethodId(50)) with Response
+  ) extends BasicClass(MethodId(50), false) with Response
 
   case Deliver(
       consumerTag: ConsumerTag,
@@ -74,10 +74,10 @@ enum BasicClass(methodId: MethodId)
       redelivered: Redelivered,
       exchange: ExchangeName,
       routingKey: ShortString
-  ) extends BasicClass(MethodId(60)) with Response
+  ) extends BasicClass(MethodId(60), false) with Response
 
   case Get(queue: QueueName, noAck: NoAck)
-      extends BasicClass(MethodId(70))
+      extends BasicClass(MethodId(70), true)
       with Request
 
   case GetOk(
@@ -86,29 +86,31 @@ enum BasicClass(methodId: MethodId)
       exchange: ExchangeName,
       routingKey: ShortString,
       messageCount: MessageCount
-  ) extends BasicClass(MethodId(71)) with Response
+  ) extends BasicClass(MethodId(71), true) with Response
 
-  case GetEmpty extends BasicClass(MethodId(72)) with Response
+  case GetEmpty extends BasicClass(MethodId(72), true) with Response
 
   case Ack(deliveryTag: DeliveryTag, multiple: Boolean)
-      extends BasicClass(MethodId(80))
+      extends BasicClass(MethodId(80), false)
       with Request
       with Response
 
   case Reject(deliveryTag: DeliveryTag, requeue: Boolean)
-      extends BasicClass(MethodId(90))
+      extends BasicClass(MethodId(90), false)
       with Request
 
   case RecoverAsync(requeue: Boolean)
-      extends BasicClass(MethodId(100))
+      extends BasicClass(MethodId(100), false)
       with Request
 
-  case Recover(requeue: Boolean) extends BasicClass(MethodId(110)) with Request
+  case Recover(requeue: Boolean)
+      extends BasicClass(MethodId(110), false)
+      with Request
 
-  case RecoverOk extends BasicClass(MethodId(111)) with Response
+  case RecoverOk extends BasicClass(MethodId(111), true) with Response
 
   case Nack(deliveryTag: DeliveryTag, multiple: Boolean, requeue: Boolean)
-      extends BasicClass(MethodId(120))
+      extends BasicClass(MethodId(120), false)
       with Request
       with Response
 

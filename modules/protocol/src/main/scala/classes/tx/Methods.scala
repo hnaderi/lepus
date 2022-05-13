@@ -20,20 +20,20 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum TxClass(methodId: MethodId)
+enum TxClass(methodId: MethodId, synchronous: Boolean)
     extends Class(ClassId(90))
-    with Method(methodId) {
+    with Method(methodId, synchronous) {
 
-  case Select extends TxClass(MethodId(10)) with Request
+  case Select extends TxClass(MethodId(10), true) with Request
 
-  case SelectOk extends TxClass(MethodId(11)) with Response
+  case SelectOk extends TxClass(MethodId(11), true) with Response
 
-  case Commit extends TxClass(MethodId(20)) with Request
+  case Commit extends TxClass(MethodId(20), true) with Request
 
-  case CommitOk extends TxClass(MethodId(21)) with Response
+  case CommitOk extends TxClass(MethodId(21), true) with Response
 
-  case Rollback extends TxClass(MethodId(30)) with Request
+  case Rollback extends TxClass(MethodId(30), true) with Request
 
-  case RollbackOk extends TxClass(MethodId(31)) with Response
+  case RollbackOk extends TxClass(MethodId(31), true) with Response
 
 }

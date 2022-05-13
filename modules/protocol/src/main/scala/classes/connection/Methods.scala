@@ -20,9 +20,9 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum ConnectionClass(methodId: MethodId)
+enum ConnectionClass(methodId: MethodId, synchronous: Boolean)
     extends Class(ClassId(10))
-    with Method(methodId) {
+    with Method(methodId, synchronous) {
 
   case Start(
       versionMajor: Byte,
@@ -30,60 +30,63 @@ enum ConnectionClass(methodId: MethodId)
       serverProperties: PeerProperties,
       mechanisms: LongString,
       locales: LongString
-  ) extends ConnectionClass(MethodId(10)) with Response
+  ) extends ConnectionClass(MethodId(10), true) with Response
 
   case StartOk(
       clientProperties: PeerProperties,
       mechanism: ShortString,
       response: LongString,
       locale: ShortString
-  ) extends ConnectionClass(MethodId(11)) with Request
+  ) extends ConnectionClass(MethodId(11), true) with Request
 
   case Secure(challenge: LongString)
-      extends ConnectionClass(MethodId(20))
+      extends ConnectionClass(MethodId(20), true)
       with Response
 
   case SecureOk(response: LongString)
-      extends ConnectionClass(MethodId(21))
+      extends ConnectionClass(MethodId(21), true)
       with Request
 
   case Tune(channelMax: Short, frameMax: Int, heartbeat: Short)
-      extends ConnectionClass(MethodId(30))
+      extends ConnectionClass(MethodId(30), true)
       with Response
 
   case TuneOk(channelMax: Short, frameMax: Int, heartbeat: Short)
-      extends ConnectionClass(MethodId(31))
+      extends ConnectionClass(MethodId(31), true)
       with Request
 
   case Open(virtualHost: Path)
-      extends ConnectionClass(MethodId(40))
+      extends ConnectionClass(MethodId(40), true)
       with Request
 
-  case OpenOk extends ConnectionClass(MethodId(41)) with Response
+  case OpenOk extends ConnectionClass(MethodId(41), true) with Response
 
   case Close(
       replyCode: ReplyCode,
       replyText: ReplyText,
       classId: ClassId,
       methodId: MethodId
-  ) extends ConnectionClass(MethodId(50)) with Request with Response
+  ) extends ConnectionClass(MethodId(50), true) with Request with Response
 
-  case CloseOk extends ConnectionClass(MethodId(51)) with Request with Response
+  case CloseOk
+      extends ConnectionClass(MethodId(51), true)
+      with Request
+      with Response
 
   case Blocked(reason: ShortString)
-      extends ConnectionClass(MethodId(60))
+      extends ConnectionClass(MethodId(60), false)
       with Request
       with Response
 
   case Unblocked
-      extends ConnectionClass(MethodId(61))
+      extends ConnectionClass(MethodId(61), false)
       with Request
       with Response
 
   case UpdateSecret(newSecret: LongString, reason: ShortString)
-      extends ConnectionClass(MethodId(70))
+      extends ConnectionClass(MethodId(70), true)
       with Response
 
-  case UpdateSecretOk extends ConnectionClass(MethodId(71)) with Request
+  case UpdateSecretOk extends ConnectionClass(MethodId(71), true) with Request
 
 }

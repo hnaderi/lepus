@@ -20,21 +20,21 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum ChannelClass(methodId: MethodId)
+enum ChannelClass(methodId: MethodId, synchronous: Boolean)
     extends Class(ClassId(20))
-    with Method(methodId) {
+    with Method(methodId, synchronous) {
 
-  case Open extends ChannelClass(MethodId(10)) with Request
+  case Open extends ChannelClass(MethodId(10), true) with Request
 
-  case OpenOk extends ChannelClass(MethodId(11)) with Response
+  case OpenOk extends ChannelClass(MethodId(11), true) with Response
 
   case Flow(active: Boolean)
-      extends ChannelClass(MethodId(20))
+      extends ChannelClass(MethodId(20), true)
       with Request
       with Response
 
   case FlowOk(active: Boolean)
-      extends ChannelClass(MethodId(21))
+      extends ChannelClass(MethodId(21), false)
       with Request
       with Response
 
@@ -43,8 +43,11 @@ enum ChannelClass(methodId: MethodId)
       replyText: ReplyText,
       classId: ClassId,
       methodId: MethodId
-  ) extends ChannelClass(MethodId(40)) with Request with Response
+  ) extends ChannelClass(MethodId(40), true) with Request with Response
 
-  case CloseOk extends ChannelClass(MethodId(41)) with Request with Response
+  case CloseOk
+      extends ChannelClass(MethodId(41), true)
+      with Request
+      with Response
 
 }

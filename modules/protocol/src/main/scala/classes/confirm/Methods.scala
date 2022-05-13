@@ -20,12 +20,14 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum ConfirmClass(methodId: MethodId)
+enum ConfirmClass(methodId: MethodId, synchronous: Boolean)
     extends Class(ClassId(85))
-    with Method(methodId) {
+    with Method(methodId, synchronous) {
 
-  case Select(nowait: NoWait) extends ConfirmClass(MethodId(10)) with Request
+  case Select(nowait: NoWait)
+      extends ConfirmClass(MethodId(10), true)
+      with Request
 
-  case SelectOk extends ConfirmClass(MethodId(11)) with Response
+  case SelectOk extends ConfirmClass(MethodId(11), true) with Response
 
 }

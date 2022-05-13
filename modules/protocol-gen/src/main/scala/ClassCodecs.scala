@@ -38,7 +38,7 @@ object ClassCodecs {
   private def requestsBody(cls: Class): Stream[IO, String] =
     val tpe = idName(cls.name) + "Class"
     (Stream(
-      s"enum $tpe(methodId: MethodId) extends Class(ClassId(${cls.id})) with Method(methodId) {"
+      s"enum $tpe(methodId: MethodId, synchronous: Boolean) extends Class(ClassId(${cls.id})) with Method(methodId, synchronous) {"
     ) ++
       Stream
         .emits(cls.methods)
@@ -64,9 +64,11 @@ object ClassCodecs {
       if fields.isEmpty then ""
       else "(" + fields.map(fieldCodeGen).mkString(",\n") + ")"
     val caseName = idName(method.name)
-    s"""  case $caseName$fieldsStr extends $superType(MethodId(${method.id})) ${sideFor(
-      method
-    )} """
+
+    val extendsType =
+      s"$superType(MethodId(${method.id}), ${method.sync == MethodType.Sync}) ${sideFor(method)}"
+
+    s"""  case $caseName$fieldsStr extends $extendsType"""
 
   private def sideFor(method: Method): String = method.receiver match {
     case MethodReceiver.Server => "with Request"

@@ -20,9 +20,9 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum QueueClass(methodId: MethodId)
+enum QueueClass(methodId: MethodId, synchronous: Boolean)
     extends Class(ClassId(50))
-    with Method(methodId) {
+    with Method(methodId, synchronous) {
 
   case Declare(
       queue: QueueName,
@@ -32,13 +32,13 @@ enum QueueClass(methodId: MethodId)
       autoDelete: Boolean,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends QueueClass(MethodId(10)) with Request
+  ) extends QueueClass(MethodId(10), true) with Request
 
   case DeclareOk(
       queue: QueueName,
       messageCount: MessageCount,
       consumerCount: Int
-  ) extends QueueClass(MethodId(11)) with Response
+  ) extends QueueClass(MethodId(11), true) with Response
 
   case Bind(
       queue: QueueName,
@@ -46,25 +46,25 @@ enum QueueClass(methodId: MethodId)
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends QueueClass(MethodId(20)) with Request
+  ) extends QueueClass(MethodId(20), true) with Request
 
-  case BindOk extends QueueClass(MethodId(21)) with Response
+  case BindOk extends QueueClass(MethodId(21), true) with Response
 
   case Unbind(
       queue: QueueName,
       exchange: ExchangeName,
       routingKey: ShortString,
       arguments: FieldTable
-  ) extends QueueClass(MethodId(50)) with Request
+  ) extends QueueClass(MethodId(50), true) with Request
 
-  case UnbindOk extends QueueClass(MethodId(51)) with Response
+  case UnbindOk extends QueueClass(MethodId(51), true) with Response
 
   case Purge(queue: QueueName, noWait: NoWait)
-      extends QueueClass(MethodId(30))
+      extends QueueClass(MethodId(30), true)
       with Request
 
   case PurgeOk(messageCount: MessageCount)
-      extends QueueClass(MethodId(31))
+      extends QueueClass(MethodId(31), true)
       with Response
 
   case Delete(
@@ -72,10 +72,10 @@ enum QueueClass(methodId: MethodId)
       ifUnused: Boolean,
       ifEmpty: Boolean,
       noWait: NoWait
-  ) extends QueueClass(MethodId(40)) with Request
+  ) extends QueueClass(MethodId(40), true) with Request
 
   case DeleteOk(messageCount: MessageCount)
-      extends QueueClass(MethodId(41))
+      extends QueueClass(MethodId(41), true)
       with Response
 
 }

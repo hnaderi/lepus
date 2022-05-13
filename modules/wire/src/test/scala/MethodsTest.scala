@@ -16,8 +16,8 @@
 
 package lepus.codecs
 
-import lepus.wire.MethodCodec
 import lepus.protocol.domains.*
+import lepus.wire.MethodCodec
 import org.scalacheck.Prop.*
 
 import DomainGenerators.*

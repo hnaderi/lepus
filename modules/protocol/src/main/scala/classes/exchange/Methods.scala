@@ -20,9 +20,9 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.constants.*
 
-enum ExchangeClass(methodId: MethodId)
+enum ExchangeClass(methodId: MethodId, synchronous: Boolean)
     extends Class(ClassId(40))
-    with Method(methodId) {
+    with Method(methodId, synchronous) {
 
   case Declare(
       exchange: ExchangeName,
@@ -33,15 +33,15 @@ enum ExchangeClass(methodId: MethodId)
       internal: Boolean,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends ExchangeClass(MethodId(10)) with Request
+  ) extends ExchangeClass(MethodId(10), true) with Request
 
-  case DeclareOk extends ExchangeClass(MethodId(11)) with Response
+  case DeclareOk extends ExchangeClass(MethodId(11), true) with Response
 
   case Delete(exchange: ExchangeName, ifUnused: Boolean, noWait: NoWait)
-      extends ExchangeClass(MethodId(20))
+      extends ExchangeClass(MethodId(20), true)
       with Request
 
-  case DeleteOk extends ExchangeClass(MethodId(21)) with Response
+  case DeleteOk extends ExchangeClass(MethodId(21), true) with Response
 
   case Bind(
       destination: ExchangeName,
@@ -49,9 +49,9 @@ enum ExchangeClass(methodId: MethodId)
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends ExchangeClass(MethodId(30)) with Request
+  ) extends ExchangeClass(MethodId(30), true) with Request
 
-  case BindOk extends ExchangeClass(MethodId(31)) with Response
+  case BindOk extends ExchangeClass(MethodId(31), true) with Response
 
   case Unbind(
       destination: ExchangeName,
@@ -59,8 +59,8 @@ enum ExchangeClass(methodId: MethodId)
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends ExchangeClass(MethodId(40)) with Request
+  ) extends ExchangeClass(MethodId(40), true) with Request
 
-  case UnbindOk extends ExchangeClass(MethodId(51)) with Response
+  case UnbindOk extends ExchangeClass(MethodId(51), true) with Response
 
 }
