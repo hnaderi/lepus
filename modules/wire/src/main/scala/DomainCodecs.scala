@@ -27,7 +27,6 @@ import scodec.Attempt
 import scodec.Err
 import lepus.protocol.classes.basic
 import lepus.protocol.constants.ReplyCode
-import cats.instances.lazyList
 import scodec.DecodeResult
 import scodec.SizeBound
 

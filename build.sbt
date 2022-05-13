@@ -1,4 +1,5 @@
 import Dependencies.Libraries._
+import Dependencies.Versions
 import sbt.ThisBuild
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
@@ -48,6 +49,21 @@ val protocolGen = module("protocol-gen")
     Compile / run / baseDirectory := file(".")
   )
 
+val protocolTestkit = module("protocol-testkit")
+  .dependsOn(protocol)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.scalameta" %% "munit" % Versions.MUnit,
+      "org.scalameta" %% "munit-scalacheck" % "0.7.27",
+      "org.typelevel" %% "munit-cats-effect-3" % "1.0.5"
+    )
+  )
+
+val wire = module("wire")
+  .dependsOn(protocol)
+  .dependsOn(protocolTestkit % Test)
+  .settings(libraryDependencies ++= scodec)
+
 val core = module("core")
   .settings(libraryDependencies ++= cats ++ catsEffect ++ fs2)
   .dependsOn(protocol)
@@ -56,19 +72,15 @@ val data = module("data")
   .dependsOn(core)
 
 val client = module("client")
-  .dependsOn(core)
-  .dependsOn(protocol)
+  .dependsOn(core, wire, protocol)
+  .dependsOn(protocolTestkit % Test)
   .settings(
-    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ fs2scodec ++ scalaXml
+    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ fs2scodec
   )
 
 val std = module("std")
-  .dependsOn(core)
+  .dependsOn(client)
   .dependsOn(data)
-
-val dataCirce = module("data-circe")
-  .dependsOn(data)
-  .settings(libraryDependencies ++= circe)
 
 val docs = project
   .in(file("site"))
@@ -90,12 +102,13 @@ val root = project
   )
   .aggregate(
     protocol,
+    protocolTestkit,
+    wire,
     protocolGen,
     core,
     client,
     std,
     data,
-    dataCirce,
     docs
   )
 

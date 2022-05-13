@@ -27,7 +27,7 @@ import scala.xml.NodeSeq
 
 import Helpers.*
 
-object ClassDataGenerator {
+object ClassDataGenerators {
   private val header = headers(
     "package lepus.codecs",
     "\n",
@@ -119,9 +119,15 @@ object ClassDataGenerator {
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =
     emits(clss).flatMap(cls =>
       dataGeneratorsFor(cls).through(
-        testFile("client", Path(s"generators/${fileNameFor(cls)}.scala"))
+        srcFile(
+          "protocol-testkit",
+          Path(s"generators/${fileNameFor(cls)}.scala")
+        )
       )
     ) merge allDataGen(clss).through(
-      testFile("client", Path(s"generators/AllClassesDataGenerator.scala"))
+      srcFile(
+        "protocol-testkit",
+        Path(s"generators/AllClassesDataGenerator.scala")
+      )
     )
 }

@@ -78,12 +78,3 @@ def writeMap(ft: FieldTable): BitVector = {
 def splitEvery(s: String, i: Int): String =
   s.grouped(i).map(_.mkString).mkString(",")
 def bitSplit: String => String = splitEvery(_, 8)
-
-def assertReversed[T](
-    original: T,
-    obtained: Attempt[DecodeResult[T]]
-)(using Location): Unit =
-  obtained.toEither
-    .map(v => munit.Assertions.assertEquals(original, v.value))
-    .leftMap(e => munit.Assertions.fail(e.messageWithContext))
-    .merge

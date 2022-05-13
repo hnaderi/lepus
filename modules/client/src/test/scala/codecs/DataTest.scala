@@ -38,8 +38,9 @@ import scodec.codecs.*
 import DomainGenerators.*
 import DataTest.*
 import org.scalacheck.Prop
+import munit.ScalaCheckSuite
 
-class DataTest extends CodecTest {
+class DataTest extends ScalaCheckSuite {
 
   // property("Field tables official") {
   //   forAll(fieldTable) { table =>

@@ -21,45 +21,78 @@ import cats.effect.IO
 import scala.xml.NodeSeq
 import fs2.Pipe
 import fs2.io.file.Path
-import cats.implicits.*
 import Helpers.*
-import fs2.Stream.*
 
 object ClassCodecs {
-  private val header = headers(
-    "package lepus.client.codecs",
+  private def header(cls: Class) = headers(
+    "package lepus.protocol.classes",
     "\n",
-    "import lepus.protocol.Method",
-    "import lepus.protocol.domains.ClassId",
-    s"import lepus.protocol.classes.*",
-    "import lepus.client.codecs.DomainCodecs.classId",
-    "import scodec.Codec",
-    "import scodec.codecs.discriminated",
+    "import lepus.protocol.*",
+    "import lepus.protocol.domains.*",
+    "import lepus.protocol.constants.*",
     "\n"
   )
 
-  private def allCodecsIn(clss: Seq[Class]): Lines =
-    header ++ obj("MethodCodec") {
-      emit(
-        "val all : Codec[Method] = discriminated[Method].by(classId)"
-      ) ++ emits(clss)
-        .flatMap(
-          typecase
-        ) ++
-        emit(""".withContext("Method codecs")""")
-    }
+  private def requestsBody(cls: Class): Stream[IO, String] =
+    val tpe = idName(cls.name) + "Class"
+    (Stream(
+      s"enum $tpe(methodId: MethodId) extends Class(ClassId(${cls.id})) with Method(methodId) {"
+    ) ++
+      Stream
+        .emits(cls.methods)
+        .map(methodCodeGen(tpe, _)) ++
+      Stream("}"))
+      .intersperse("\n")
 
-  private def typecase(cls: Class): Lines =
-    emit(
-      s""".subcaseP[${idName(
-        cls.name
-      )}Class](ClassId(${cls.id})){case m:${idName(
-        cls.name
-      )}Class=> m}(${idName(cls.name)}Codecs.all)"""
-    )
+  private def requests(cls: Class): Stream[IO, Nothing] =
+    (header(cls) ++ requestsBody(cls))
+      .through(
+        srcFile(
+          "protocol",
+          Path(s"classes/${cls.name.toLowerCase}/Methods.scala")
+        )
+      )
+
+  private def classCodeGen: Pipe[IO, Class, Nothing] =
+    _.map(requests).parJoinUnbounded
+
+  private def methodCodeGen(superType: String, method: Method): String =
+    val fields = method.fields.filterNot(_.reserved)
+    val fieldsStr =
+      if fields.isEmpty then ""
+      else "(" + fields.map(fieldCodeGen).mkString(",\n") + ")"
+    val caseName = idName(method.name)
+    s"""  case $caseName$fieldsStr extends $superType(MethodId(${method.id})) ${sideFor(
+      method
+    )} """
+
+  private def sideFor(method: Method): String = method.receiver match {
+    case MethodReceiver.Server => "with Response"
+    case MethodReceiver.Client => "with Request"
+    case MethodReceiver.Both   => "with Response with Request"
+  }
+
+  private def fieldCodeGen(field: Field): String =
+    val name = field.name match {
+      case "type" => "`type`"
+      case other  => valName(other)
+    }
+    s"""$name: ${typeFor(field.dataType)}"""
+
+  private def typeFor(str: String): String = str match {
+    case "bit"       => "Boolean"
+    case "octet"     => "Byte"
+    case "short"     => "Short"
+    case "long"      => "Int"
+    case "longlong"  => "Long"
+    case "shortstr"  => "ShortString"
+    case "longstr"   => "LongString"
+    case "timestamp" => "Timestamp"
+    case "table"     => "FieldTable"
+    case other       => idName(other)
+  }
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =
-    allCodecsIn(clss).through(
-      srcFile("client", Path(s"codecs/MethodCodec.scala"))
-    )
+    Stream.emits(clss).through(classCodeGen)
+
 }

@@ -32,10 +32,10 @@ def gen: IO[Unit] = for {
   protocol <- IO(XML.load("amqp0-9-1.extended.xml"))
   classes = Extractors.classes(protocol)
   generation = Stream(
-    MethodCodecs.generate(classes),
-    Classes.generate(classes),
+    ClassDefinitions.generate(classes),
     ClassCodecs.generate(classes),
-    ClassDataGenerator.generate(classes)
+    MethodCodecs.generate(classes),
+    ClassDataGenerators.generate(classes)
   ).parJoinUnbounded
   _ <- generation.compile.drain
 } yield ()
