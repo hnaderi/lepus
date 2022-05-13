@@ -27,7 +27,7 @@ import scala.xml.NodeSeq
 
 import Helpers.*
 
-object ClassDefinitions {
+object ClassCodecs {
   private val header = headers(
     "package lepus.wire",
     "\n",
