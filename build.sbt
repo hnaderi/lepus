@@ -43,11 +43,13 @@ def module(module: String): Project = {
 
 val protocol = module("protocol")
 
-val protocolGen = module("protocol-gen")
+val codeGen = module("code-gen")
   .settings(
     libraryDependencies ++= fs2IO ++ fs2scodec ++ scalaXml,
-    Compile / run / baseDirectory := file(".")
+    Compile / run / baseDirectory := file("."),
+    description := "Lepus internal code generator based on AMQP spec"
   )
+  .enablePlugins(NoPublishPlugin)
 
 val protocolTestkit = module("protocol-testkit")
   .dependsOn(protocol)
@@ -104,7 +106,7 @@ val root = project
     protocol,
     protocolTestkit,
     wire,
-    protocolGen,
+    codeGen,
     core,
     client,
     std,
