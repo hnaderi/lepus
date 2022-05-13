@@ -27,12 +27,12 @@ import fs2.Stream.*
 
 object ClassDefinitions {
   private val header = headers(
-    "package lepus.client.codecs",
+    "package lepus.wire",
     "\n",
     "import lepus.protocol.Method",
     "import lepus.protocol.domains.ClassId",
     s"import lepus.protocol.classes.*",
-    "import lepus.client.codecs.DomainCodecs.classId",
+    "import lepus.wire.DomainCodecs.classId",
     "import scodec.Codec",
     "import scodec.codecs.discriminated",
     "\n"

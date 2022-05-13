@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package lepus.client.codecs
+package lepus.wire
 
 import lepus.protocol.Method
 import lepus.protocol.domains.ClassId
 import lepus.protocol.classes.*
-import lepus.client.codecs.DomainCodecs.classId
+import lepus.wire.DomainCodecs.classId
 import scodec.Codec
 import scodec.codecs.discriminated
 

@@ -22,9 +22,9 @@ import fs2.Stream
 import fs2.interop.scodec.*
 import fs2.io.file.Files
 import fs2.io.file.Path
-import lepus.client.codecs.FrameCodec
 import lepus.protocol.ProtocolVersion
 import lepus.protocol.frame.*
+import lepus.wire.FrameCodec
 import scodec.*
 import scodec.bits.*
 import scodec.codecs.*

@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package lepus.client.codecs
+package lepus.wire
 
-import scodec.{Codec, Encoder, Decoder}
-import scodec.bits.*
-import scodec.codecs
-import scodec.codecs.*
 import lepus.protocol.*
-import lepus.protocol.frame.*
-import lepus.protocol.domains.*
-import scodec.Attempt
-import scodec.Err
 import lepus.protocol.classes.basic
 import lepus.protocol.constants.ReplyCode
-import scodec.DecodeResult
-import scodec.SizeBound
+import lepus.protocol.domains.*
+import lepus.protocol.frame.*
+import scodec.*
+import scodec.bits.*
+import scodec.codecs.*
 
 extension [T](self: Either[String, T]) {
   def asAttempt: Attempt[T] = self match {
@@ -168,7 +163,7 @@ object DomainCodecs {
   /** Codec that aligned contigous bit fields into a byte, assuming that no more
     * than 8 bits are used as is the case in AMQP
     */
-  private[client] final class ReverseByteAlignedCodec[T](
+  private[wire] final class ReverseByteAlignedCodec[T](
       codec: Codec[T]
   ) extends Codec[T] {
 

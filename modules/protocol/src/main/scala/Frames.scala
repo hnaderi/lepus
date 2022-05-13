@@ -16,8 +16,9 @@
 
 package lepus.protocol.frame
 
-import lepus.protocol.domains.*
 import lepus.protocol.classes.basic.Properties
+import lepus.protocol.domains.*
+
 import java.nio.ByteBuffer
 
 enum Frame {

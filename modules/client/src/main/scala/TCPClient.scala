@@ -39,9 +39,9 @@ import fs2.io.net.Socket
 import fs2.text
 import lepus.client.DecodeTest
 import lepus.client.Transport
-import lepus.client.codecs.FrameCodec
 import lepus.protocol.ProtocolVersion
 import lepus.protocol.frame.Frame
+import lepus.wire.FrameCodec
 import scodec.Attempt
 import scodec.Encoder
 import scodec.Err

@@ -38,7 +38,7 @@ object ShortString {
 }
 
 opaque type LongString <: String = String
-private val LongStringSize: Long = BigDecimal(2).pow(32).toLongExact
+private inline val LongStringSize = 4294967296L // 2 ^ 32
 object LongString {
   def empty: LongString = ""
   def apply(str: String): Either[String, LongString] =

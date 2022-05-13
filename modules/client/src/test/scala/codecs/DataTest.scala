@@ -18,10 +18,10 @@ package lepus.codecs
 
 import cats.implicits.*
 import com.rabbitmq.client.impl.AMQImpl
-import lepus.client.codecs.DomainCodecs
-import lepus.client.codecs.ExchangeCodecs
-import lepus.client.codecs.FrameCodec
-import lepus.client.codecs.MethodCodec
+import lepus.wire.DomainCodecs
+import lepus.wire.ExchangeCodecs
+import lepus.wire.FrameCodec
+import lepus.wire.MethodCodec
 import lepus.protocol.Method
 import lepus.protocol.classes.ExchangeClass
 import lepus.protocol.classes.QueueClass

@@ -16,7 +16,7 @@
 
 package lepus.codecs
 
-import lepus.client.codecs.FrameCodec
+import lepus.wire.FrameCodec
 import lepus.protocol.domains.*
 import lepus.protocol.frame.Frame
 import org.scalacheck.Gen

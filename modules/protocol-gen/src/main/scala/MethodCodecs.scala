@@ -29,14 +29,14 @@ import Helpers.*
 
 object MethodCodecs {
   private def header(cls: Class) = headers(
-    "package lepus.client.codecs",
+    "package lepus.wire",
     "\n",
     "import lepus.protocol.*",
     "import lepus.protocol.domains.*",
     s"import lepus.protocol.classes.*",
     s"import lepus.protocol.classes.${idName(cls.name)}Class.*",
     "import lepus.protocol.constants.*",
-    "import lepus.client.codecs.DomainCodecs.*",
+    "import lepus.wire.DomainCodecs.*",
     "import scodec.{Codec, Encoder, Decoder}",
     "import scodec.codecs.*",
     "\n"

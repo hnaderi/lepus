@@ -29,9 +29,9 @@ import fs2.interop.scodec.*
 import fs2.io.net.Network
 import fs2.io.net.Socket
 import fs2.io.net.SocketOption
-import lepus.client.codecs.FrameCodec
 import lepus.protocol.ProtocolVersion
 import lepus.protocol.frame.*
+import lepus.wire.FrameCodec
 import scodec.codecs.logFailuresToStdOut
 
 import scala.{Console => SCon}

@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package lepus.client.codecs
+package lepus.wire
 
 import lepus.protocol.*
 import lepus.protocol.domains.*
 import lepus.protocol.classes.*
 import lepus.protocol.classes.ConfirmClass.*
 import lepus.protocol.constants.*
-import lepus.client.codecs.DomainCodecs.*
+import lepus.wire.DomainCodecs.*
 import scodec.{Codec, Encoder, Decoder}
 import scodec.codecs.*
 

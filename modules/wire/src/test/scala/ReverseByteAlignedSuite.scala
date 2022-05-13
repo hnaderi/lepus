@@ -16,7 +16,7 @@
 
 package lepus.codecs
 
-import lepus.client.codecs.DomainCodecs
+import lepus.wire.DomainCodecs
 import scodec.*
 import scodec.bits.BitVector
 import scodec.codecs.*

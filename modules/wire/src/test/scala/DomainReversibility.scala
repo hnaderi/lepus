@@ -16,7 +16,7 @@
 
 package lepus.codecs
 
-import lepus.client.codecs.DomainCodecs
+import lepus.wire.DomainCodecs
 import lepus.protocol.domains.*
 import org.scalacheck.Prop.*
 

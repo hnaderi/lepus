@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package lepus.client.codecs
+package lepus.wire
 
-import scodec.{Codec, Encoder, Decoder}
+import lepus.protocol.*
+import lepus.protocol.domains.*
+import lepus.protocol.frame.*
+import scodec.Codec
+import scodec.Decoder
+import scodec.Encoder
 import scodec.bits.*
 import scodec.codecs
 import scodec.codecs.*
-import lepus.protocol.*
-import lepus.protocol.frame.*
-import lepus.protocol.domains.*
+
 import java.nio.ByteBuffer
 
 object FrameCodec {
