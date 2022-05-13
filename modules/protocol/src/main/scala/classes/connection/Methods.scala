@@ -30,60 +30,60 @@ enum ConnectionClass(methodId: MethodId)
       serverProperties: PeerProperties,
       mechanisms: LongString,
       locales: LongString
-  ) extends ConnectionClass(MethodId(10)) with Request
+  ) extends ConnectionClass(MethodId(10)) with Response
 
   case StartOk(
       clientProperties: PeerProperties,
       mechanism: ShortString,
       response: LongString,
       locale: ShortString
-  ) extends ConnectionClass(MethodId(11)) with Response
+  ) extends ConnectionClass(MethodId(11)) with Request
 
   case Secure(challenge: LongString)
       extends ConnectionClass(MethodId(20))
-      with Request
+      with Response
 
   case SecureOk(response: LongString)
       extends ConnectionClass(MethodId(21))
-      with Response
+      with Request
 
   case Tune(channelMax: Short, frameMax: Int, heartbeat: Short)
       extends ConnectionClass(MethodId(30))
-      with Request
+      with Response
 
   case TuneOk(channelMax: Short, frameMax: Int, heartbeat: Short)
       extends ConnectionClass(MethodId(31))
-      with Response
+      with Request
 
   case Open(virtualHost: Path)
       extends ConnectionClass(MethodId(40))
-      with Response
+      with Request
 
-  case OpenOk extends ConnectionClass(MethodId(41)) with Request
+  case OpenOk extends ConnectionClass(MethodId(41)) with Response
 
   case Close(
       replyCode: ReplyCode,
       replyText: ReplyText,
       classId: ClassId,
       methodId: MethodId
-  ) extends ConnectionClass(MethodId(50)) with Response with Request
+  ) extends ConnectionClass(MethodId(50)) with Request with Response
 
-  case CloseOk extends ConnectionClass(MethodId(51)) with Response with Request
+  case CloseOk extends ConnectionClass(MethodId(51)) with Request with Response
 
   case Blocked(reason: ShortString)
       extends ConnectionClass(MethodId(60))
-      with Response
       with Request
+      with Response
 
   case Unblocked
       extends ConnectionClass(MethodId(61))
-      with Response
       with Request
+      with Response
 
   case UpdateSecret(newSecret: LongString, reason: ShortString)
       extends ConnectionClass(MethodId(70))
-      with Request
+      with Response
 
-  case UpdateSecretOk extends ConnectionClass(MethodId(71)) with Response
+  case UpdateSecretOk extends ConnectionClass(MethodId(71)) with Request
 
 }

@@ -26,9 +26,9 @@ enum BasicClass(methodId: MethodId)
 
   case Qos(prefetchSize: Int, prefetchCount: Short, global: Boolean)
       extends BasicClass(MethodId(10))
-      with Response
+      with Request
 
-  case QosOk extends BasicClass(MethodId(11)) with Request
+  case QosOk extends BasicClass(MethodId(11)) with Response
 
   case Consume(
       queue: QueueName,
@@ -38,35 +38,35 @@ enum BasicClass(methodId: MethodId)
       exclusive: Boolean,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends BasicClass(MethodId(20)) with Response
+  ) extends BasicClass(MethodId(20)) with Request
 
   case ConsumeOk(consumerTag: ConsumerTag)
       extends BasicClass(MethodId(21))
-      with Request
+      with Response
 
   case Cancel(consumerTag: ConsumerTag, noWait: NoWait)
       extends BasicClass(MethodId(30))
-      with Response
       with Request
+      with Response
 
   case CancelOk(consumerTag: ConsumerTag)
       extends BasicClass(MethodId(31))
-      with Response
       with Request
+      with Response
 
   case Publish(
       exchange: ExchangeName,
       routingKey: ShortString,
       mandatory: Boolean,
       immediate: Boolean
-  ) extends BasicClass(MethodId(40)) with Response
+  ) extends BasicClass(MethodId(40)) with Request
 
   case Return(
       replyCode: ReplyCode,
       replyText: ReplyText,
       exchange: ExchangeName,
       routingKey: ShortString
-  ) extends BasicClass(MethodId(50)) with Request
+  ) extends BasicClass(MethodId(50)) with Response
 
   case Deliver(
       consumerTag: ConsumerTag,
@@ -74,11 +74,11 @@ enum BasicClass(methodId: MethodId)
       redelivered: Redelivered,
       exchange: ExchangeName,
       routingKey: ShortString
-  ) extends BasicClass(MethodId(60)) with Request
+  ) extends BasicClass(MethodId(60)) with Response
 
   case Get(queue: QueueName, noAck: NoAck)
       extends BasicClass(MethodId(70))
-      with Response
+      with Request
 
   case GetOk(
       deliveryTag: DeliveryTag,
@@ -86,30 +86,30 @@ enum BasicClass(methodId: MethodId)
       exchange: ExchangeName,
       routingKey: ShortString,
       messageCount: MessageCount
-  ) extends BasicClass(MethodId(71)) with Request
+  ) extends BasicClass(MethodId(71)) with Response
 
-  case GetEmpty extends BasicClass(MethodId(72)) with Request
+  case GetEmpty extends BasicClass(MethodId(72)) with Response
 
   case Ack(deliveryTag: DeliveryTag, multiple: Boolean)
       extends BasicClass(MethodId(80))
-      with Response
       with Request
+      with Response
 
   case Reject(deliveryTag: DeliveryTag, requeue: Boolean)
       extends BasicClass(MethodId(90))
-      with Response
+      with Request
 
   case RecoverAsync(requeue: Boolean)
       extends BasicClass(MethodId(100))
-      with Response
+      with Request
 
-  case Recover(requeue: Boolean) extends BasicClass(MethodId(110)) with Response
+  case Recover(requeue: Boolean) extends BasicClass(MethodId(110)) with Request
 
-  case RecoverOk extends BasicClass(MethodId(111)) with Request
+  case RecoverOk extends BasicClass(MethodId(111)) with Response
 
   case Nack(deliveryTag: DeliveryTag, multiple: Boolean, requeue: Boolean)
       extends BasicClass(MethodId(120))
-      with Response
       with Request
+      with Response
 
 }

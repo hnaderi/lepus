@@ -33,15 +33,15 @@ enum ExchangeClass(methodId: MethodId)
       internal: Boolean,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends ExchangeClass(MethodId(10)) with Response
+  ) extends ExchangeClass(MethodId(10)) with Request
 
-  case DeclareOk extends ExchangeClass(MethodId(11)) with Request
+  case DeclareOk extends ExchangeClass(MethodId(11)) with Response
 
   case Delete(exchange: ExchangeName, ifUnused: Boolean, noWait: NoWait)
       extends ExchangeClass(MethodId(20))
-      with Response
+      with Request
 
-  case DeleteOk extends ExchangeClass(MethodId(21)) with Request
+  case DeleteOk extends ExchangeClass(MethodId(21)) with Response
 
   case Bind(
       destination: ExchangeName,
@@ -49,9 +49,9 @@ enum ExchangeClass(methodId: MethodId)
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends ExchangeClass(MethodId(30)) with Response
+  ) extends ExchangeClass(MethodId(30)) with Request
 
-  case BindOk extends ExchangeClass(MethodId(31)) with Request
+  case BindOk extends ExchangeClass(MethodId(31)) with Response
 
   case Unbind(
       destination: ExchangeName,
@@ -59,8 +59,8 @@ enum ExchangeClass(methodId: MethodId)
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ) extends ExchangeClass(MethodId(40)) with Response
+  ) extends ExchangeClass(MethodId(40)) with Request
 
-  case UnbindOk extends ExchangeClass(MethodId(51)) with Request
+  case UnbindOk extends ExchangeClass(MethodId(51)) with Response
 
 }

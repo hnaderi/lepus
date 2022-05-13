@@ -24,8 +24,8 @@ enum ConfirmClass(methodId: MethodId)
     extends Class(ClassId(85))
     with Method(methodId) {
 
-  case Select(nowait: NoWait) extends ConfirmClass(MethodId(10)) with Response
+  case Select(nowait: NoWait) extends ConfirmClass(MethodId(10)) with Request
 
-  case SelectOk extends ConfirmClass(MethodId(11)) with Request
+  case SelectOk extends ConfirmClass(MethodId(11)) with Response
 
 }

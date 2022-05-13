@@ -24,27 +24,27 @@ enum ChannelClass(methodId: MethodId)
     extends Class(ClassId(20))
     with Method(methodId) {
 
-  case Open extends ChannelClass(MethodId(10)) with Response
+  case Open extends ChannelClass(MethodId(10)) with Request
 
-  case OpenOk extends ChannelClass(MethodId(11)) with Request
+  case OpenOk extends ChannelClass(MethodId(11)) with Response
 
   case Flow(active: Boolean)
       extends ChannelClass(MethodId(20))
-      with Response
       with Request
+      with Response
 
   case FlowOk(active: Boolean)
       extends ChannelClass(MethodId(21))
-      with Response
       with Request
+      with Response
 
   case Close(
       replyCode: ReplyCode,
       replyText: ReplyText,
       classId: ClassId,
       methodId: MethodId
-  ) extends ChannelClass(MethodId(40)) with Response with Request
+  ) extends ChannelClass(MethodId(40)) with Request with Response
 
-  case CloseOk extends ChannelClass(MethodId(41)) with Response with Request
+  case CloseOk extends ChannelClass(MethodId(41)) with Request with Response
 
 }

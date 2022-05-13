@@ -16,11 +16,13 @@
 
 package lepus.protocol.gen
 
-import fs2.Stream
 import cats.effect.IO
-import scala.xml.NodeSeq
 import fs2.Pipe
+import fs2.Stream
 import fs2.io.file.Path
+
+import scala.xml.NodeSeq
+
 import Helpers.*
 
 object ClassCodecs {
@@ -67,9 +69,9 @@ object ClassCodecs {
     )} """
 
   private def sideFor(method: Method): String = method.receiver match {
-    case MethodReceiver.Server => "with Response"
-    case MethodReceiver.Client => "with Request"
-    case MethodReceiver.Both   => "with Response with Request"
+    case MethodReceiver.Server => "with Request"
+    case MethodReceiver.Client => "with Response"
+    case MethodReceiver.Both   => "with Request with Response"
   }
 
   private def fieldCodeGen(field: Field): String =

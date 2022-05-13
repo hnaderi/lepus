@@ -16,11 +16,13 @@
 
 package lepus.protocol.gen
 
-import fs2.Stream
 import cats.effect.IO
-import scala.xml.NodeSeq
 import fs2.Pipe
+import fs2.Stream
 import fs2.io.file.Path
+
+import scala.xml.NodeSeq
+
 import Helpers.*
 
 object Domains {

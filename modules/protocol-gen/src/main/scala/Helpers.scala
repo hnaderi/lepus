@@ -17,10 +17,11 @@
 package lepus.protocol.gen
 
 import cats.effect.IO
-import fs2.{Stream, Pipe}
+import fs2.Pipe
+import fs2.Stream
+import fs2.io.file.Files
 import fs2.io.file.Path
 import fs2.text.utf8
-import fs2.io.file.Files
 
 type Lines = Stream[IO, String]
 type FileGen = Pipe[IO, String, Nothing]

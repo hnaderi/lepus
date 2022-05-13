@@ -24,16 +24,16 @@ enum TxClass(methodId: MethodId)
     extends Class(ClassId(90))
     with Method(methodId) {
 
-  case Select extends TxClass(MethodId(10)) with Response
+  case Select extends TxClass(MethodId(10)) with Request
 
-  case SelectOk extends TxClass(MethodId(11)) with Request
+  case SelectOk extends TxClass(MethodId(11)) with Response
 
-  case Commit extends TxClass(MethodId(20)) with Response
+  case Commit extends TxClass(MethodId(20)) with Request
 
-  case CommitOk extends TxClass(MethodId(21)) with Request
+  case CommitOk extends TxClass(MethodId(21)) with Response
 
-  case Rollback extends TxClass(MethodId(30)) with Response
+  case Rollback extends TxClass(MethodId(30)) with Request
 
-  case RollbackOk extends TxClass(MethodId(31)) with Request
+  case RollbackOk extends TxClass(MethodId(31)) with Response
 
 }
