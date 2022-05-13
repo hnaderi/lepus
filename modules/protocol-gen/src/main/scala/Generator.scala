@@ -33,7 +33,7 @@ def gen: IO[Unit] = for {
   classes = Extractors.classes(protocol)
   generation = Stream(
     ClassDefinitions.generate(classes),
-    ClassCodecs.generate(classes),
+    ClassDefs.generate(classes),
     MethodCodecs.generate(classes),
     ClassDataGenerators.generate(classes)
   ).parJoinUnbounded

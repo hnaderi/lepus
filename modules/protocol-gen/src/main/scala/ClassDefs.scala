@@ -25,7 +25,7 @@ import scala.xml.NodeSeq
 
 import Helpers.*
 
-object ClassCodecs {
+object ClassDefs {
   private def header(cls: Class) = headers(
     "package lepus.protocol.classes",
     "\n",
