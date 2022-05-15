@@ -22,6 +22,7 @@ import cats.effect.*
 import cats.effect.std.Console
 import com.comcast.ip4s.Host
 import com.comcast.ip4s.SocketAddress
+import fs2.Chunk
 import fs2.Pipe
 import fs2.Stream
 import fs2.Stream.*
@@ -30,25 +31,39 @@ import fs2.io.net.Network
 import fs2.io.net.Socket
 import fs2.io.net.SocketOption
 import lepus.protocol.ProtocolVersion
+import lepus.protocol.constants.ProtocolHeader
 import lepus.protocol.frame.*
 import lepus.wire.FrameCodec
 import scodec.codecs.logFailuresToStdOut
 
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 import scala.{Console => SCon}
 
 type Transport[F[_]] = Pipe[F, Frame, Frame]
+
 object Transport {
-  def decoderServer[F[_]](using F: MonadError[F, Throwable]) =
+  private[lepus] def decoderServer[F[_]](using
+      F: MonadError[F, Throwable]
+  ): Pipe[F, Byte, Frame] =
     StreamDecoder
       .once(logFailuresToStdOut(FrameCodec.protocol))
       .flatMap(pv => StreamDecoder.many(logFailuresToStdOut(FrameCodec.frame)))
       .toPipeByte
 
-  def decoder[F[_]](using F: MonadError[F, Throwable]) =
+  private[lepus] def decoder[F[_]](using
+      F: MonadError[F, Throwable]
+  ): Pipe[F, Byte, Frame] =
     StreamDecoder.many(logFailuresToStdOut(FrameCodec.frame)).toPipeByte
 
-  def encoder[F[_]](using F: MonadError[F, Throwable]) =
+  private[lepus] def encoder[F[_]](using
+      F: MonadError[F, Throwable]
+  ): Pipe[F, Frame, Byte] =
     StreamEncoder.many(logFailuresToStdOut(FrameCodec.frame)).toPipeByte
+
+  private val protocolHeader = chunk(
+    Chunk.array(ProtocolHeader.getBytes(StandardCharsets.US_ASCII))
+  )
 
   inline def debug[F[_]: Functor](
       send: Boolean
@@ -63,7 +78,7 @@ object Transport {
   ): Transport[F] =
     toSend =>
       val recv = reads.through(decoderServer)
-      val send = toSend.through(encoder).through(writes)
+      val send = (protocolHeader ++ toSend.through(encoder)).through(writes)
       recv mergeHaltBoth send
 
   def fromSocket[F[_]: Concurrent](socket: Socket[F]): Transport[F] =

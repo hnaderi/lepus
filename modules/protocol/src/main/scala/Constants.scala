@@ -22,6 +22,9 @@ val FrameBody: Short = 3
 val FrameHeartbeat: Short = 8
 val FrameMinSize: Short = 4096
 val FrameEnd: Short = 206
+val ProtocolHeader: String = new String(
+  Array[Byte]('A', 'M', 'Q', 'P', 0, 0, 9, 1)
+)
 
 enum ReplyCode(val code: Short) {
   case ReplySuccess extends ReplyCode(200)
