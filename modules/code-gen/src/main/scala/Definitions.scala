@@ -51,7 +51,8 @@ final case class Method(
     sync: MethodType,
     receiver: MethodReceiver,
     doc: String,
-    fields: List[Field]
+    fields: List[Field],
+    responses: List[String]
 )
 
 final case class Field(

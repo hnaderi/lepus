@@ -59,6 +59,7 @@ object Extractors {
         case 1 if chassis.contains("client") => MethodReceiver.Client
         case _                               => MethodReceiver.Both
       }
+      val resps = (c \ "response").map(_ \@ "name")
 
       Method(
         name = c \@ "name",
@@ -67,7 +68,8 @@ object Extractors {
         sync = sync,
         receiver = recv,
         doc = (c \ "doc").map(_.text).headOption.getOrElse(""),
-        fields = buildFieldModels(c).toList
+        fields = buildFieldModels(c).toList,
+        responses = resps.toList
       )
     }
 
