@@ -42,6 +42,15 @@ enum MethodType {
 
 enum MethodReceiver {
   case Server, Client, Both
+
+  def isRequest: Boolean = this match {
+    case Server | Both => true
+    case _             => false
+  }
+  def isResponse: Boolean = this match {
+    case Client | Both => true
+    case _             => false
+  }
 }
 
 final case class Method(
