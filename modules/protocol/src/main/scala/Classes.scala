@@ -21,38 +21,38 @@ import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 
 sealed trait Method {
-  inline val _classId: ClassId
-  inline val _methodId: MethodId
-  inline val _synchronous: Boolean
-  inline val _isRequest: Boolean
-  inline val _isResponse: Boolean
+  val _classId: ClassId
+  val _methodId: MethodId
+  val _synchronous: Boolean
+  val _isRequest: Boolean
+  val _isResponse: Boolean
 }
 
 object Metadata {
   sealed trait Async extends Method {
-    override inline val _synchronous = false
+    override val _synchronous = false
   }
   sealed trait Sync extends Method {
-    override inline val _synchronous = true
+    override val _synchronous = true
   }
   sealed trait Request extends Method {
-    override inline val _isRequest = true
+    override val _isRequest = true
   }
   sealed trait Response extends Method {
-    override inline val _isResponse = true
+    override val _isResponse = true
   }
   sealed trait NotRequest extends Method {
-    override inline val _isRequest = false
+    override val _isRequest = false
   }
   sealed trait NotResponse extends Method {
-    override inline val _isResponse = false
+    override val _isResponse = false
   }
 }
 
 import Metadata.*
 
 sealed trait ConnectionClass extends Method {
-  override inline val _classId = 10
+  override val _classId = ClassId(10)
 }
 
 object ConnectionClass {
@@ -67,7 +67,7 @@ object ConnectionClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 10
+    override val _methodId = MethodId(10)
   }
 
   final case class StartOk(
@@ -79,7 +79,7 @@ object ConnectionClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 11
+    override val _methodId = MethodId(11)
   }
 
   final case class Secure(challenge: LongString)
@@ -87,7 +87,7 @@ object ConnectionClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 20
+    override val _methodId = MethodId(20)
   }
 
   final case class SecureOk(response: LongString)
@@ -95,7 +95,7 @@ object ConnectionClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 21
+    override val _methodId = MethodId(21)
   }
 
   final case class Tune(channelMax: Short, frameMax: Int, heartbeat: Short)
@@ -103,7 +103,7 @@ object ConnectionClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 30
+    override val _methodId = MethodId(30)
   }
 
   final case class TuneOk(channelMax: Short, frameMax: Int, heartbeat: Short)
@@ -111,7 +111,7 @@ object ConnectionClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 31
+    override val _methodId = MethodId(31)
   }
 
   final case class Open(virtualHost: Path)
@@ -119,7 +119,7 @@ object ConnectionClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 40
+    override val _methodId = MethodId(40)
   }
 
   case object OpenOk
@@ -127,7 +127,7 @@ object ConnectionClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 41
+    override val _methodId = MethodId(41)
   }
 
   final case class Close(
@@ -139,7 +139,7 @@ object ConnectionClass {
       with Sync
       with Request
       with Response {
-    override inline val _methodId = 50
+    override val _methodId = MethodId(50)
   }
 
   case object CloseOk
@@ -147,7 +147,7 @@ object ConnectionClass {
       with Sync
       with Request
       with Response {
-    override inline val _methodId = 51
+    override val _methodId = MethodId(51)
   }
 
   final case class Blocked(reason: ShortString)
@@ -155,7 +155,7 @@ object ConnectionClass {
       with Async
       with Request
       with Response {
-    override inline val _methodId = 60
+    override val _methodId = MethodId(60)
   }
 
   case object Unblocked
@@ -163,7 +163,7 @@ object ConnectionClass {
       with Async
       with Request
       with Response {
-    override inline val _methodId = 61
+    override val _methodId = MethodId(61)
   }
 
   final case class UpdateSecret(newSecret: LongString, reason: ShortString)
@@ -171,7 +171,7 @@ object ConnectionClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 70
+    override val _methodId = MethodId(70)
   }
 
   case object UpdateSecretOk
@@ -179,12 +179,12 @@ object ConnectionClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 71
+    override val _methodId = MethodId(71)
   }
 }
 
 sealed trait ChannelClass extends Method {
-  override inline val _classId = 20
+  override val _classId = ClassId(20)
 }
 
 object ChannelClass {
@@ -194,7 +194,7 @@ object ChannelClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 10
+    override val _methodId = MethodId(10)
   }
 
   case object OpenOk
@@ -202,7 +202,7 @@ object ChannelClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 11
+    override val _methodId = MethodId(11)
   }
 
   final case class Flow(active: Boolean)
@@ -210,7 +210,7 @@ object ChannelClass {
       with Sync
       with Request
       with Response {
-    override inline val _methodId = 20
+    override val _methodId = MethodId(20)
   }
 
   final case class FlowOk(active: Boolean)
@@ -218,7 +218,7 @@ object ChannelClass {
       with Async
       with Request
       with Response {
-    override inline val _methodId = 21
+    override val _methodId = MethodId(21)
   }
 
   final case class Close(
@@ -230,7 +230,7 @@ object ChannelClass {
       with Sync
       with Request
       with Response {
-    override inline val _methodId = 40
+    override val _methodId = MethodId(40)
   }
 
   case object CloseOk
@@ -238,12 +238,12 @@ object ChannelClass {
       with Sync
       with Request
       with Response {
-    override inline val _methodId = 41
+    override val _methodId = MethodId(41)
   }
 }
 
 sealed trait ExchangeClass extends Method {
-  override inline val _classId = 40
+  override val _classId = ClassId(40)
 }
 
 object ExchangeClass {
@@ -261,7 +261,7 @@ object ExchangeClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 10
+    override val _methodId = MethodId(10)
   }
 
   case object DeclareOk
@@ -269,7 +269,7 @@ object ExchangeClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 11
+    override val _methodId = MethodId(11)
   }
 
   final case class Delete(
@@ -280,7 +280,7 @@ object ExchangeClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 20
+    override val _methodId = MethodId(20)
   }
 
   case object DeleteOk
@@ -288,7 +288,7 @@ object ExchangeClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 21
+    override val _methodId = MethodId(21)
   }
 
   final case class Bind(
@@ -301,7 +301,7 @@ object ExchangeClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 30
+    override val _methodId = MethodId(30)
   }
 
   case object BindOk
@@ -309,7 +309,7 @@ object ExchangeClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 31
+    override val _methodId = MethodId(31)
   }
 
   final case class Unbind(
@@ -322,7 +322,7 @@ object ExchangeClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 40
+    override val _methodId = MethodId(40)
   }
 
   case object UnbindOk
@@ -330,12 +330,12 @@ object ExchangeClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 51
+    override val _methodId = MethodId(51)
   }
 }
 
 sealed trait QueueClass extends Method {
-  override inline val _classId = 50
+  override val _classId = ClassId(50)
 }
 
 object QueueClass {
@@ -352,7 +352,7 @@ object QueueClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 10
+    override val _methodId = MethodId(10)
   }
 
   final case class DeclareOk(
@@ -363,7 +363,7 @@ object QueueClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 11
+    override val _methodId = MethodId(11)
   }
 
   final case class Bind(
@@ -376,7 +376,7 @@ object QueueClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 20
+    override val _methodId = MethodId(20)
   }
 
   case object BindOk
@@ -384,7 +384,7 @@ object QueueClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 21
+    override val _methodId = MethodId(21)
   }
 
   final case class Unbind(
@@ -396,7 +396,7 @@ object QueueClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 50
+    override val _methodId = MethodId(50)
   }
 
   case object UnbindOk
@@ -404,7 +404,7 @@ object QueueClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 51
+    override val _methodId = MethodId(51)
   }
 
   final case class Purge(queue: QueueName, noWait: NoWait)
@@ -412,7 +412,7 @@ object QueueClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 30
+    override val _methodId = MethodId(30)
   }
 
   final case class PurgeOk(messageCount: MessageCount)
@@ -420,7 +420,7 @@ object QueueClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 31
+    override val _methodId = MethodId(31)
   }
 
   final case class Delete(
@@ -432,7 +432,7 @@ object QueueClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 40
+    override val _methodId = MethodId(40)
   }
 
   final case class DeleteOk(messageCount: MessageCount)
@@ -440,12 +440,12 @@ object QueueClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 41
+    override val _methodId = MethodId(41)
   }
 }
 
 sealed trait BasicClass extends Method {
-  override inline val _classId = 60
+  override val _classId = ClassId(60)
 }
 
 object BasicClass {
@@ -455,11 +455,11 @@ object BasicClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 10
+    override val _methodId = MethodId(10)
   }
 
   case object QosOk extends BasicClass with Sync with NotRequest with Response {
-    override inline val _methodId = 11
+    override val _methodId = MethodId(11)
   }
 
   final case class Consume(
@@ -474,7 +474,7 @@ object BasicClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 20
+    override val _methodId = MethodId(20)
   }
 
   final case class ConsumeOk(consumerTag: ConsumerTag)
@@ -482,7 +482,7 @@ object BasicClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 21
+    override val _methodId = MethodId(21)
   }
 
   final case class Cancel(consumerTag: ConsumerTag, noWait: NoWait)
@@ -490,7 +490,7 @@ object BasicClass {
       with Sync
       with Request
       with Response {
-    override inline val _methodId = 30
+    override val _methodId = MethodId(30)
   }
 
   final case class CancelOk(consumerTag: ConsumerTag)
@@ -498,7 +498,7 @@ object BasicClass {
       with Sync
       with Request
       with Response {
-    override inline val _methodId = 31
+    override val _methodId = MethodId(31)
   }
 
   final case class Publish(
@@ -510,7 +510,7 @@ object BasicClass {
       with Async
       with Request
       with NotResponse {
-    override inline val _methodId = 40
+    override val _methodId = MethodId(40)
   }
 
   final case class Return(
@@ -522,7 +522,7 @@ object BasicClass {
       with Async
       with NotRequest
       with Response {
-    override inline val _methodId = 50
+    override val _methodId = MethodId(50)
   }
 
   final case class Deliver(
@@ -535,7 +535,7 @@ object BasicClass {
       with Async
       with NotRequest
       with Response {
-    override inline val _methodId = 60
+    override val _methodId = MethodId(60)
   }
 
   final case class Get(queue: QueueName, noAck: NoAck)
@@ -543,7 +543,7 @@ object BasicClass {
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 70
+    override val _methodId = MethodId(70)
   }
 
   final case class GetOk(
@@ -556,7 +556,7 @@ object BasicClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 71
+    override val _methodId = MethodId(71)
   }
 
   case object GetEmpty
@@ -564,7 +564,7 @@ object BasicClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 72
+    override val _methodId = MethodId(72)
   }
 
   final case class Ack(deliveryTag: DeliveryTag, multiple: Boolean)
@@ -572,7 +572,7 @@ object BasicClass {
       with Async
       with Request
       with Response {
-    override inline val _methodId = 80
+    override val _methodId = MethodId(80)
   }
 
   final case class Reject(deliveryTag: DeliveryTag, requeue: Boolean)
@@ -580,7 +580,7 @@ object BasicClass {
       with Async
       with Request
       with NotResponse {
-    override inline val _methodId = 90
+    override val _methodId = MethodId(90)
   }
 
   final case class RecoverAsync(requeue: Boolean)
@@ -588,7 +588,7 @@ object BasicClass {
       with Async
       with Request
       with NotResponse {
-    override inline val _methodId = 100
+    override val _methodId = MethodId(100)
   }
 
   final case class Recover(requeue: Boolean)
@@ -596,7 +596,7 @@ object BasicClass {
       with Async
       with Request
       with NotResponse {
-    override inline val _methodId = 110
+    override val _methodId = MethodId(110)
   }
 
   case object RecoverOk
@@ -604,7 +604,7 @@ object BasicClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 111
+    override val _methodId = MethodId(111)
   }
 
   final case class Nack(
@@ -615,34 +615,34 @@ object BasicClass {
       with Async
       with Request
       with Response {
-    override inline val _methodId = 120
+    override val _methodId = MethodId(120)
   }
 }
 
 sealed trait TxClass extends Method {
-  override inline val _classId = 90
+  override val _classId = ClassId(90)
 }
 
 object TxClass {
 
   case object Select extends TxClass with Sync with Request with NotResponse {
-    override inline val _methodId = 10
+    override val _methodId = MethodId(10)
   }
 
   case object SelectOk extends TxClass with Sync with NotRequest with Response {
-    override inline val _methodId = 11
+    override val _methodId = MethodId(11)
   }
 
   case object Commit extends TxClass with Sync with Request with NotResponse {
-    override inline val _methodId = 20
+    override val _methodId = MethodId(20)
   }
 
   case object CommitOk extends TxClass with Sync with NotRequest with Response {
-    override inline val _methodId = 21
+    override val _methodId = MethodId(21)
   }
 
   case object Rollback extends TxClass with Sync with Request with NotResponse {
-    override inline val _methodId = 30
+    override val _methodId = MethodId(30)
   }
 
   case object RollbackOk
@@ -650,22 +650,22 @@ object TxClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 31
+    override val _methodId = MethodId(31)
   }
 }
 
 sealed trait ConfirmClass extends Method {
-  override inline val _classId = 85
+  override val _classId = ClassId(85)
 }
 
 object ConfirmClass {
 
-  final case class Select(nowait: NoWait)
+  final case class Select(noWait: NoWait)
       extends ConfirmClass
       with Sync
       with Request
       with NotResponse {
-    override inline val _methodId = 10
+    override val _methodId = MethodId(10)
   }
 
   case object SelectOk
@@ -673,6 +673,6 @@ object ConfirmClass {
       with Sync
       with NotRequest
       with Response {
-    override inline val _methodId = 11
+    override val _methodId = MethodId(11)
   }
 }

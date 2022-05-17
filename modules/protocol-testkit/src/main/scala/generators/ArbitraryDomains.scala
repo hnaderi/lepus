@@ -25,6 +25,8 @@ import DomainGenerators.*
 object ArbitraryDomains {
   given Arbitrary[ExchangeName] = Arbitrary(exchangeName)
   given Arbitrary[QueueName] = Arbitrary(queueName)
+  given Arbitrary[MethodId] = Arbitrary(methodIds)
+  given Arbitrary[ClassId] = Arbitrary(classIds)
   given Arbitrary[ShortString] = Arbitrary(shortString)
   given Arbitrary[LongString] = Arbitrary(longString)
   given Arbitrary[Timestamp] = Arbitrary(timestamp)

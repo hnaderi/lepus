@@ -33,31 +33,31 @@ object ClassDefs {
     "\n",
     """
 sealed trait Method {
-  inline val _classId: ClassId
-  inline val _methodId: MethodId
-  inline val _synchronous: Boolean
-  inline val _isRequest: Boolean
-  inline val _isResponse: Boolean
+  val _classId: ClassId
+  val _methodId: MethodId
+  val _synchronous: Boolean
+  val _isRequest: Boolean
+  val _isResponse: Boolean
 }
 
 object Metadata {
   sealed trait Async extends Method {
-    override inline val _synchronous = false
+    override val _synchronous = false
   }
   sealed trait Sync extends Method {
-    override inline val _synchronous = true
+    override val _synchronous = true
   }
   sealed trait Request extends Method {
-    override inline val _isRequest = true
+    override val _isRequest = true
   }
   sealed trait Response extends Method {
-    override inline val _isResponse = true
+    override val _isResponse = true
   }
   sealed trait NotRequest extends Method {
-    override inline val _isRequest = false
+    override val _isRequest = false
   }
   sealed trait NotResponse extends Method {
-    override inline val _isResponse = false
+    override val _isResponse = false
   }
 }
 
@@ -70,7 +70,7 @@ import Metadata.*
     val tpe = idName(cls.name) + "Class"
     val clazz = s"""
 sealed trait $tpe extends Method {
-  override inline val _classId = ${cls.id}
+  override val _classId = ClassId(${cls.id})
 }
 
 object $tpe {
@@ -98,7 +98,7 @@ object $tpe {
 
     s"""
 $body extends $extendsType {
-  override inline val _methodId = ${method.id}
+  override val _methodId = MethodId(${method.id})
 }"""
 
   private def fieldCodeGen(field: Field): String =
