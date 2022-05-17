@@ -18,8 +18,8 @@ package lepus.wire
 
 import lepus.protocol.*
 import lepus.protocol.domains.*
-import lepus.protocol.classes.*
-import lepus.protocol.classes.BasicClass.*
+import lepus.protocol.*
+import lepus.protocol.BasicClass.*
 import lepus.protocol.constants.*
 import lepus.wire.DomainCodecs.*
 import scodec.{Codec, Encoder, Decoder}

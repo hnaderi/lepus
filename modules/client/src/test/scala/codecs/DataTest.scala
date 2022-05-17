@@ -22,9 +22,7 @@ import lepus.wire.DomainCodecs
 import lepus.wire.ExchangeCodecs
 import lepus.wire.FrameCodec
 import lepus.wire.MethodCodec
-import lepus.protocol.Method
-import lepus.protocol.classes.ExchangeClass
-import lepus.protocol.classes.QueueClass
+import lepus.protocol.*
 import lepus.protocol.domains.*
 import munit.FunSuite
 import munit.Location

@@ -68,7 +68,7 @@ object FieldTable {
   val empty: FieldTable = FieldTable(Map.empty)
 }
 
-opaque type ClassId <: Short = Short
+type ClassId = Short
 object ClassId extends TaggedOpaqueComp[Short, ClassId]
 
 /** Identifier for the consumer, valid within the current c hannel.
@@ -100,7 +100,7 @@ object ExchangeName {
     validateName(name).flatMap(validateNameSize)
 }
 
-opaque type MethodId <: Short = Short
+type MethodId = Short
 object MethodId extends TaggedOpaqueComp[Short, MethodId]
 
 /** If this field is set the server does not expect acknowledgements for

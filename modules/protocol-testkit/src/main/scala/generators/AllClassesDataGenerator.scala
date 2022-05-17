@@ -16,8 +16,7 @@
 
 package lepus.codecs
 
-import lepus.protocol.Method
-import lepus.protocol.classes.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 import org.scalacheck.Arbitrary

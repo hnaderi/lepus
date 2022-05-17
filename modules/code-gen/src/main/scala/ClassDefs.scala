@@ -21,60 +21,85 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.io.file.Path
 
-import scala.xml.NodeSeq
-
 import Helpers.*
 
 object ClassDefs {
-  private def header(cls: Class) = headers(
-    "package lepus.protocol.classes",
+  private def header = headers(
+    "package lepus.protocol",
     "\n",
     "import lepus.protocol.*",
-    "import lepus.protocol.domains.*",
     "import lepus.protocol.constants.*",
-    "\n"
+    "import lepus.protocol.domains.*",
+    "\n",
+    """
+sealed trait Method {
+  inline val _classId: ClassId
+  inline val _methodId: MethodId
+  inline val _synchronous: Boolean
+  inline val _isRequest: Boolean
+  inline val _isResponse: Boolean
+}
+
+object Metadata {
+  sealed trait Async extends Method {
+    override inline val _synchronous = false
+  }
+  sealed trait Sync extends Method {
+    override inline val _synchronous = true
+  }
+  sealed trait Request extends Method {
+    override inline val _isRequest = true
+  }
+  sealed trait Response extends Method {
+    override inline val _isResponse = true
+  }
+  sealed trait NotRequest extends Method {
+    override inline val _isRequest = false
+  }
+  sealed trait NotResponse extends Method {
+    override inline val _isResponse = false
+  }
+}
+
+import Metadata.*
+
+"""
   )
 
-  private def requestsBody(cls: Class): Stream[IO, String] =
+  private def classCodeGen(cls: Class): Stream[IO, String] =
     val tpe = idName(cls.name) + "Class"
-    (Stream(
-      s"enum $tpe(methodId: MethodId, synchronous: Boolean) extends Class(ClassId(${cls.id})) with Method(methodId, synchronous) {"
-    ) ++
-      Stream
-        .emits(cls.methods)
-        .map(methodCodeGen(tpe, _)) ++
-      Stream("}"))
-      .intersperse("\n")
+    val clazz = s"""
+sealed trait $tpe extends Method {
+  override inline val _classId = ${cls.id}
+}
 
-  private def requests(cls: Class): Stream[IO, Nothing] =
-    (header(cls) ++ requestsBody(cls))
-      .through(
-        srcFile(
-          "protocol",
-          Path(s"classes/${cls.name.toLowerCase}/Methods.scala")
-        )
-      )
+object $tpe {
+"""
+    val methods = cls.methods.map(methodCodeGen(tpe, _))
 
-  private def classCodeGen: Pipe[IO, Class, Nothing] =
-    _.map(requests).parJoinUnbounded
+    Stream.emits(methods.prepended(clazz).appended("}"))
 
   private def methodCodeGen(superType: String, method: Method): String =
     val fields = method.fields.filterNot(_.reserved)
-    val fieldsStr =
-      if fields.isEmpty then ""
-      else "(" + fields.map(fieldCodeGen).mkString(",\n") + ")"
     val caseName = idName(method.name)
+    val body =
+      if fields.isEmpty then s"case object $caseName"
+      else
+        s"final case class $caseName(" + fields
+          .map(fieldCodeGen)
+          .mkString(",\n") + ")"
 
-    val extendsType =
-      s"$superType(MethodId(${method.id}), ${method.sync == MethodType.Sync}) ${sideFor(method)}"
+    val extendsType = List(
+      superType,
+      if method.sync == MethodType.Sync then "Sync" else "Async",
+      if method.receiver.isRequest then "Request" else "NotRequest",
+      if method.receiver.isResponse then "Response" else "NotResponse"
+    ).mkString(" with ")
 
-    s"""  case $caseName$fieldsStr extends $extendsType"""
-
-  private def sideFor(method: Method): String = method.receiver match {
-    case MethodReceiver.Server => "with Request"
-    case MethodReceiver.Client => "with Response"
-    case MethodReceiver.Both   => "with Request with Response"
-  }
+    s"""
+$body extends $extendsType {
+  override inline val _methodId = ${method.id}
+}"""
 
   private def fieldCodeGen(field: Field): String =
     val name = field.name match {
@@ -97,6 +122,9 @@ object ClassDefs {
   }
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =
-    Stream.emits(clss).through(classCodeGen)
+    (header ++ Stream.emits(clss).flatMap(classCodeGen))
+      .through(
+        srcFile("protocol", Path(s"Classes.scala"))
+      )
 
 }

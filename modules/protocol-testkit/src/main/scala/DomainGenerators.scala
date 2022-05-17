@@ -17,8 +17,7 @@
 package lepus.codecs
 
 import cats.implicits.*
-import lepus.protocol.Method
-import lepus.protocol.classes.ExchangeClass
+import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*

@@ -31,9 +31,8 @@ object ClassCodecs {
   private val header = headers(
     "package lepus.wire",
     "\n",
-    "import lepus.protocol.Method",
+    "import lepus.protocol.*",
     "import lepus.protocol.domains.ClassId",
-    s"import lepus.protocol.classes.*",
     "import lepus.wire.DomainCodecs.classId",
     "import scodec.Codec",
     "import scodec.codecs.discriminated",

@@ -16,9 +16,8 @@
 
 package lepus.wire
 
-import lepus.protocol.Method
+import lepus.protocol.*
 import lepus.protocol.domains.ClassId
-import lepus.protocol.classes.*
 import lepus.wire.DomainCodecs.classId
 import scodec.Codec
 import scodec.codecs.discriminated
