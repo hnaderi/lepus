@@ -32,6 +32,7 @@ def gen: IO[Unit] = for {
   protocol <- IO(XML.load("amqp0-9-1.extended.xml"))
   classes = Extractors.classes(protocol)
   generation = Stream(
+    APIDefs.generate(classes),
     ClassDefs.generate(classes),
     ClassCodecs.generate(classes),
     MethodCodecs.generate(classes),

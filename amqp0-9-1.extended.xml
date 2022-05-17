@@ -3367,7 +3367,7 @@
       </doc>
       <chassis name="server" implement="MUST"/>
       <response name="select-ok"/>
-      <field name = "nowait" domain = "no-wait" />
+      <field name = "no-wait" domain = "no-wait" />
     </method>
 
     <method name="select-ok" synchronous="1" index="11">
