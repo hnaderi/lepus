@@ -47,17 +47,17 @@ object Metadata {
   sealed trait Sync extends Method {
     override val _synchronous = true
   }
-  sealed trait Request extends Method {
+  sealed trait ServerMethod extends Method {
     override val _isRequest = true
+    override val _isResponse = false
   }
-  sealed trait Response extends Method {
+  sealed trait ClientMethod extends Method {
     override val _isResponse = true
-  }
-  sealed trait NotRequest extends Method {
     override val _isRequest = false
   }
-  sealed trait NotResponse extends Method {
-    override val _isResponse = false
+  sealed trait DualMethod extends Method {
+    override val _isRequest = true
+    override val _isResponse = true
   }
 }
 
@@ -92,8 +92,11 @@ object $tpe {
     val extendsType = List(
       superType,
       if method.sync == MethodType.Sync then "Sync" else "Async",
-      if method.receiver.isRequest then "Request" else "NotRequest",
-      if method.receiver.isResponse then "Response" else "NotResponse"
+      method.receiver match {
+        case MethodReceiver.Client => "ServerMethod"
+        case MethodReceiver.Server => "ClientMethod"
+        case MethodReceiver.Both   => "DualMethod"
+      }
     ).mkString(" with ")
 
     s"""
