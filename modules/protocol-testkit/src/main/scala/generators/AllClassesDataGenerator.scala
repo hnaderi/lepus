@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object AllClassesDataGenerator {
-
   val methods: Gen[Method] = Gen.oneOf(
     ConnectionDataGenerator.classGen,
     ChannelDataGenerator.classGen,
@@ -34,5 +33,4 @@ object AllClassesDataGenerator {
     TxDataGenerator.classGen,
     ConfirmDataGenerator.classGen
   )
-
 }

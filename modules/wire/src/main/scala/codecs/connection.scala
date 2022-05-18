@@ -16,17 +16,17 @@
 
 package lepus.wire
 
-import lepus.protocol.*
-import lepus.protocol.domains.*
-import lepus.protocol.*
 import lepus.protocol.ConnectionClass.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
+import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
-import scodec.{Codec, Encoder, Decoder}
+import scodec.Codec
 import scodec.codecs.*
 
-object ConnectionCodecs {
+import scala.annotation.switch
 
+object ConnectionCodecs {
   private val startCodec: Codec[Start] =
     (byte :: byte :: peerProperties :: longString :: longString)
       .as[Start]
@@ -93,33 +93,25 @@ object ConnectionCodecs {
     provide(UpdateSecretOk)
       .withContext("updateSecretOk method")
 
-  val all: Codec[ConnectionClass] =
-    discriminated[ConnectionClass]
-      .by(methodId)
-      .subcaseP[Start](MethodId(10)) { case m: Start => m }(startCodec)
-      .subcaseP[StartOk](MethodId(11)) { case m: StartOk => m }(startOkCodec)
-      .subcaseP[Secure](MethodId(20)) { case m: Secure => m }(secureCodec)
-      .subcaseP[SecureOk](MethodId(21)) { case m: SecureOk => m }(secureOkCodec)
-      .subcaseP[Tune](MethodId(30)) { case m: Tune => m }(tuneCodec)
-      .subcaseP[TuneOk](MethodId(31)) { case m: TuneOk => m }(tuneOkCodec)
-      .subcaseP[Open](MethodId(40)) { case m: Open => m }(openCodec)
-      .subcaseP[OpenOk.type](MethodId(41)) { case m: OpenOk.type => m }(
-        openOkCodec
-      )
-      .subcaseP[Close](MethodId(50)) { case m: Close => m }(closeCodec)
-      .subcaseP[CloseOk.type](MethodId(51)) { case m: CloseOk.type => m }(
-        closeOkCodec
-      )
-      .subcaseP[Blocked](MethodId(60)) { case m: Blocked => m }(blockedCodec)
-      .subcaseP[Unblocked.type](MethodId(61)) { case m: Unblocked.type => m }(
-        unblockedCodec
-      )
-      .subcaseP[UpdateSecret](MethodId(70)) { case m: UpdateSecret => m }(
-        updateSecretCodec
-      )
-      .subcaseP[UpdateSecretOk.type](MethodId(71)) {
-        case m: UpdateSecretOk.type => m
-      }(updateSecretOkCodec)
-      .withContext("connection methods")
-
+  val all: Codec[ConnectionClass] = methodId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10 => startCodec.upcast[ConnectionClass]
+        case 11 => startOkCodec.upcast[ConnectionClass]
+        case 20 => secureCodec.upcast[ConnectionClass]
+        case 21 => secureOkCodec.upcast[ConnectionClass]
+        case 30 => tuneCodec.upcast[ConnectionClass]
+        case 31 => tuneOkCodec.upcast[ConnectionClass]
+        case 40 => openCodec.upcast[ConnectionClass]
+        case 41 => openOkCodec.upcast[ConnectionClass]
+        case 50 => closeCodec.upcast[ConnectionClass]
+        case 51 => closeOkCodec.upcast[ConnectionClass]
+        case 60 => blockedCodec.upcast[ConnectionClass]
+        case 61 => unblockedCodec.upcast[ConnectionClass]
+        case 70 => updateSecretCodec.upcast[ConnectionClass]
+        case 71 => updateSecretOkCodec.upcast[ConnectionClass]
+      }
+    )
+    .xmap(_._2, a => (a._methodId, a))
+    .withContext("connection methods")
 }

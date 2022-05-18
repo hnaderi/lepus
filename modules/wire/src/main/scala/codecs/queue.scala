@@ -16,17 +16,17 @@
 
 package lepus.wire
 
-import lepus.protocol.*
-import lepus.protocol.domains.*
-import lepus.protocol.*
 import lepus.protocol.QueueClass.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
+import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
-import scodec.{Codec, Encoder, Decoder}
+import scodec.Codec
 import scodec.codecs.*
 
-object QueueCodecs {
+import scala.annotation.switch
 
+object QueueCodecs {
   private val declareCodec: Codec[Declare] =
     ((short16.unit(0) :: queueName) ++ (reverseByteAligned(
       bool :: bool :: bool :: bool :: noWait
@@ -83,25 +83,21 @@ object QueueCodecs {
       .as[DeleteOk]
       .withContext("deleteOk method")
 
-  val all: Codec[QueueClass] =
-    discriminated[QueueClass]
-      .by(methodId)
-      .subcaseP[Declare](MethodId(10)) { case m: Declare => m }(declareCodec)
-      .subcaseP[DeclareOk](MethodId(11)) { case m: DeclareOk => m }(
-        declareOkCodec
-      )
-      .subcaseP[Bind](MethodId(20)) { case m: Bind => m }(bindCodec)
-      .subcaseP[BindOk.type](MethodId(21)) { case m: BindOk.type => m }(
-        bindOkCodec
-      )
-      .subcaseP[Unbind](MethodId(50)) { case m: Unbind => m }(unbindCodec)
-      .subcaseP[UnbindOk.type](MethodId(51)) { case m: UnbindOk.type => m }(
-        unbindOkCodec
-      )
-      .subcaseP[Purge](MethodId(30)) { case m: Purge => m }(purgeCodec)
-      .subcaseP[PurgeOk](MethodId(31)) { case m: PurgeOk => m }(purgeOkCodec)
-      .subcaseP[Delete](MethodId(40)) { case m: Delete => m }(deleteCodec)
-      .subcaseP[DeleteOk](MethodId(41)) { case m: DeleteOk => m }(deleteOkCodec)
-      .withContext("queue methods")
-
+  val all: Codec[QueueClass] = methodId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10 => declareCodec.upcast[QueueClass]
+        case 11 => declareOkCodec.upcast[QueueClass]
+        case 20 => bindCodec.upcast[QueueClass]
+        case 21 => bindOkCodec.upcast[QueueClass]
+        case 50 => unbindCodec.upcast[QueueClass]
+        case 51 => unbindOkCodec.upcast[QueueClass]
+        case 30 => purgeCodec.upcast[QueueClass]
+        case 31 => purgeOkCodec.upcast[QueueClass]
+        case 40 => deleteCodec.upcast[QueueClass]
+        case 41 => deleteOkCodec.upcast[QueueClass]
+      }
+    )
+    .xmap(_._2, a => (a._methodId, a))
+    .withContext("queue methods")
 }

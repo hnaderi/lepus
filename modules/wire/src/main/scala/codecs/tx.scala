@@ -16,17 +16,17 @@
 
 package lepus.wire
 
-import lepus.protocol.*
-import lepus.protocol.domains.*
-import lepus.protocol.*
 import lepus.protocol.TxClass.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
+import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
-import scodec.{Codec, Encoder, Decoder}
+import scodec.Codec
 import scodec.codecs.*
 
-object TxCodecs {
+import scala.annotation.switch
 
+object TxCodecs {
   private val selectCodec: Codec[Select.type] =
     provide(Select)
       .withContext("select method")
@@ -51,27 +51,17 @@ object TxCodecs {
     provide(RollbackOk)
       .withContext("rollbackOk method")
 
-  val all: Codec[TxClass] =
-    discriminated[TxClass]
-      .by(methodId)
-      .subcaseP[Select.type](MethodId(10)) { case m: Select.type => m }(
-        selectCodec
-      )
-      .subcaseP[SelectOk.type](MethodId(11)) { case m: SelectOk.type => m }(
-        selectOkCodec
-      )
-      .subcaseP[Commit.type](MethodId(20)) { case m: Commit.type => m }(
-        commitCodec
-      )
-      .subcaseP[CommitOk.type](MethodId(21)) { case m: CommitOk.type => m }(
-        commitOkCodec
-      )
-      .subcaseP[Rollback.type](MethodId(30)) { case m: Rollback.type => m }(
-        rollbackCodec
-      )
-      .subcaseP[RollbackOk.type](MethodId(31)) { case m: RollbackOk.type => m }(
-        rollbackOkCodec
-      )
-      .withContext("tx methods")
-
+  val all: Codec[TxClass] = methodId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10 => selectCodec.upcast[TxClass]
+        case 11 => selectOkCodec.upcast[TxClass]
+        case 20 => commitCodec.upcast[TxClass]
+        case 21 => commitOkCodec.upcast[TxClass]
+        case 30 => rollbackCodec.upcast[TxClass]
+        case 31 => rollbackOkCodec.upcast[TxClass]
+      }
+    )
+    .xmap(_._2, a => (a._methodId, a))
+    .withContext("tx methods")
 }

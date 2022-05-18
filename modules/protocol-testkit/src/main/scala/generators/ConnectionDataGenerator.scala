@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object ConnectionDataGenerator {
-
   val startGen: Gen[ConnectionClass.Start] =
     for {
       arg0 <- Arbitrary.arbitrary[Byte]
@@ -148,7 +147,5 @@ object ConnectionDataGenerator {
     updateSecretGen,
     updateSecretOkGen
   )
-
   given Arbitrary[ConnectionClass] = Arbitrary(classGen)
-
 }

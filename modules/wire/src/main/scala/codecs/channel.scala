@@ -16,17 +16,17 @@
 
 package lepus.wire
 
-import lepus.protocol.*
-import lepus.protocol.domains.*
-import lepus.protocol.*
 import lepus.protocol.ChannelClass.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
+import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
-import scodec.{Codec, Encoder, Decoder}
+import scodec.Codec
 import scodec.codecs.*
 
-object ChannelCodecs {
+import scala.annotation.switch
 
+object ChannelCodecs {
   private val openCodec: Codec[Open.type] =
     (emptyShortString) ~> provide(Open)
       .withContext("open method")
@@ -54,19 +54,17 @@ object ChannelCodecs {
     provide(CloseOk)
       .withContext("closeOk method")
 
-  val all: Codec[ChannelClass] =
-    discriminated[ChannelClass]
-      .by(methodId)
-      .subcaseP[Open.type](MethodId(10)) { case m: Open.type => m }(openCodec)
-      .subcaseP[OpenOk.type](MethodId(11)) { case m: OpenOk.type => m }(
-        openOkCodec
-      )
-      .subcaseP[Flow](MethodId(20)) { case m: Flow => m }(flowCodec)
-      .subcaseP[FlowOk](MethodId(21)) { case m: FlowOk => m }(flowOkCodec)
-      .subcaseP[Close](MethodId(40)) { case m: Close => m }(closeCodec)
-      .subcaseP[CloseOk.type](MethodId(41)) { case m: CloseOk.type => m }(
-        closeOkCodec
-      )
-      .withContext("channel methods")
-
+  val all: Codec[ChannelClass] = methodId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10 => openCodec.upcast[ChannelClass]
+        case 11 => openOkCodec.upcast[ChannelClass]
+        case 20 => flowCodec.upcast[ChannelClass]
+        case 21 => flowOkCodec.upcast[ChannelClass]
+        case 40 => closeCodec.upcast[ChannelClass]
+        case 41 => closeOkCodec.upcast[ChannelClass]
+      }
+    )
+    .xmap(_._2, a => (a._methodId, a))
+    .withContext("channel methods")
 }

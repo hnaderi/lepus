@@ -23,8 +23,6 @@ import fs2.Stream
 import fs2.Stream.*
 import fs2.io.file.Path
 
-import scala.xml.NodeSeq
-
 import Helpers.*
 
 object ClassCodecs {
@@ -35,28 +33,26 @@ object ClassCodecs {
     "import lepus.protocol.domains.ClassId",
     "import lepus.wire.DomainCodecs.classId",
     "import scodec.Codec",
-    "import scodec.codecs.discriminated",
+    "import scala.annotation.switch",
     "\n"
   )
 
   private def allCodecsIn(clss: Seq[Class]): Lines =
     header ++ obj("MethodCodec") {
       emit(
-        "val all : Codec[Method] = discriminated[Method].by(classId)"
+        "val all : Codec[Method] = classId.flatZip(m=> ((m:Short): @switch) match {"
       ) ++ emits(clss)
         .flatMap(
           typecase
         ) ++
-        emit(""".withContext("Method codecs")""")
+        emit(
+          """}).xmap(_._2, a => (a._classId, a)).withContext("Method codecs")"""
+        )
     }
 
   private def typecase(cls: Class): Lines =
     emit(
-      s""".subcaseP[${idName(
-        cls.name
-      )}Class](ClassId(${cls.id})){case m:${idName(
-        cls.name
-      )}Class=> m}(${idName(cls.name)}Codecs.all)"""
+      s"""case ${cls.id} => ${idName(cls.name)}Codecs.all.upcast[Method]"""
     )
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =

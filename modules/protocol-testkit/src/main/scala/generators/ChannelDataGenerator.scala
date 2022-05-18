@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object ChannelDataGenerator {
-
   val openGen: Gen[ChannelClass.Open.type] =
     Gen.const(ChannelClass.Open)
 
@@ -66,7 +65,5 @@ object ChannelDataGenerator {
 
   val classGen: Gen[ChannelClass] =
     Gen.oneOf(openGen, openOkGen, flowGen, flowOkGen, closeGen, closeOkGen)
-
   given Arbitrary[ChannelClass] = Arbitrary(classGen)
-
 }

@@ -22,23 +22,21 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.io.file.Path
 
-import scala.annotation.tailrec
-import scala.xml.NodeSeq
-
 import Helpers.*
 
 object MethodCodecs {
   private def header(cls: Class) = headers(
     "package lepus.wire",
     "\n",
-    "import lepus.protocol.*",
-    "import lepus.protocol.domains.*",
-    s"import lepus.protocol.*",
     s"import lepus.protocol.${idName(cls.name)}Class.*",
+    "import lepus.protocol.*",
     "import lepus.protocol.constants.*",
+    "import lepus.protocol.domains.*",
     "import lepus.wire.DomainCodecs.*",
-    "import scodec.{Codec, Encoder, Decoder}",
+    "import scodec.Codec",
     "import scodec.codecs.*",
+    "\n",
+    "import scala.annotation.switch",
     "\n"
   )
 
@@ -50,14 +48,17 @@ object MethodCodecs {
     }
 
   private def discriminated(cls: Class): Lines =
+    val className = s"${idName(cls.name)}Class"
     Stream(
-      s"val all : Codec[${idName(cls.name)}Class] =",
-      s"discriminated[${idName(cls.name)}Class].by(methodId)"
+      s"val all : Codec[$className] = methodId.flatZip(m=> ((m:Short): @switch) match {"
     ) ++ Stream
       .emits(cls.methods)
       .map(m =>
-        s".subcaseP[${tpeName(m)}](MethodId(${m.id})){case m:${tpeName(m)}=> m}(${valName(m.name)}Codec)"
-      ) ++ Stream(s""".withContext("${cls.name} methods")""")
+        s"case ${m.id} => ${valName(m.name)}Codec.upcast[$className]"
+      ) ++
+      Stream(
+        s"""}).xmap(_._2, a => (a._methodId, a)).withContext("${cls.name} methods")"""
+      )
 
   private def tpeName(m: Method): String = if (
     m.fields.filterNot(_.reserved).isEmpty
@@ -79,7 +80,7 @@ object MethodCodecs {
 
     s"""private val ${name}Codec : Codec[$cType] =
            $codec
-             .withContext("$name method")"""
+             .withContext("$name method")\n"""
 
   private final case class FoldState(
       code: String = "",

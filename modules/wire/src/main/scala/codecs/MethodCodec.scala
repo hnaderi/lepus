@@ -20,31 +20,21 @@ import lepus.protocol.*
 import lepus.protocol.domains.ClassId
 import lepus.wire.DomainCodecs.classId
 import scodec.Codec
-import scodec.codecs.discriminated
+import scala.annotation.switch
 
 object MethodCodec {
-
-  val all: Codec[Method] = discriminated[Method]
-    .by(classId)
-    .subcaseP[ConnectionClass](ClassId(10)) { case m: ConnectionClass => m }(
-      ConnectionCodecs.all
+  val all: Codec[Method] = classId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10 => ConnectionCodecs.all.upcast[Method]
+        case 20 => ChannelCodecs.all.upcast[Method]
+        case 40 => ExchangeCodecs.all.upcast[Method]
+        case 50 => QueueCodecs.all.upcast[Method]
+        case 60 => BasicCodecs.all.upcast[Method]
+        case 90 => TxCodecs.all.upcast[Method]
+        case 85 => ConfirmCodecs.all.upcast[Method]
+      }
     )
-    .subcaseP[ChannelClass](ClassId(20)) { case m: ChannelClass => m }(
-      ChannelCodecs.all
-    )
-    .subcaseP[ExchangeClass](ClassId(40)) { case m: ExchangeClass => m }(
-      ExchangeCodecs.all
-    )
-    .subcaseP[QueueClass](ClassId(50)) { case m: QueueClass => m }(
-      QueueCodecs.all
-    )
-    .subcaseP[BasicClass](ClassId(60)) { case m: BasicClass => m }(
-      BasicCodecs.all
-    )
-    .subcaseP[TxClass](ClassId(90)) { case m: TxClass => m }(TxCodecs.all)
-    .subcaseP[ConfirmClass](ClassId(85)) { case m: ConfirmClass => m }(
-      ConfirmCodecs.all
-    )
+    .xmap(_._2, a => (a._classId, a))
     .withContext("Method codecs")
-
 }

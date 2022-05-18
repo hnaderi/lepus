@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object TxDataGenerator {
-
   val selectGen: Gen[TxClass.Select.type] =
     Gen.const(TxClass.Select)
 
@@ -63,7 +62,5 @@ object TxDataGenerator {
     rollbackGen,
     rollbackOkGen
   )
-
   given Arbitrary[TxClass] = Arbitrary(classGen)
-
 }

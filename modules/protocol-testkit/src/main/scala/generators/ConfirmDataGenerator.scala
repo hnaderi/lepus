@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object ConfirmDataGenerator {
-
   val selectGen: Gen[ConfirmClass.Select] =
     for {
       arg0 <- Arbitrary.arbitrary[NoWait]
@@ -38,7 +37,5 @@ object ConfirmDataGenerator {
   given Arbitrary[ConfirmClass.SelectOk.type] = Arbitrary(selectOkGen)
 
   val classGen: Gen[ConfirmClass] = Gen.oneOf(selectGen, selectOkGen)
-
   given Arbitrary[ConfirmClass] = Arbitrary(classGen)
-
 }

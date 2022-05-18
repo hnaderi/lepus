@@ -16,17 +16,17 @@
 
 package lepus.wire
 
-import lepus.protocol.*
-import lepus.protocol.domains.*
-import lepus.protocol.*
 import lepus.protocol.ExchangeClass.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
+import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
-import scodec.{Codec, Encoder, Decoder}
+import scodec.Codec
 import scodec.codecs.*
 
-object ExchangeCodecs {
+import scala.annotation.switch
 
+object ExchangeCodecs {
   private val declareCodec: Codec[Declare] =
     ((short16.unit(0) :: exchangeName :: shortString) ++ (reverseByteAligned(
       bool :: bool :: bool :: bool :: noWait
@@ -73,25 +73,19 @@ object ExchangeCodecs {
     provide(UnbindOk)
       .withContext("unbindOk method")
 
-  val all: Codec[ExchangeClass] =
-    discriminated[ExchangeClass]
-      .by(methodId)
-      .subcaseP[Declare](MethodId(10)) { case m: Declare => m }(declareCodec)
-      .subcaseP[DeclareOk.type](MethodId(11)) { case m: DeclareOk.type => m }(
-        declareOkCodec
-      )
-      .subcaseP[Delete](MethodId(20)) { case m: Delete => m }(deleteCodec)
-      .subcaseP[DeleteOk.type](MethodId(21)) { case m: DeleteOk.type => m }(
-        deleteOkCodec
-      )
-      .subcaseP[Bind](MethodId(30)) { case m: Bind => m }(bindCodec)
-      .subcaseP[BindOk.type](MethodId(31)) { case m: BindOk.type => m }(
-        bindOkCodec
-      )
-      .subcaseP[Unbind](MethodId(40)) { case m: Unbind => m }(unbindCodec)
-      .subcaseP[UnbindOk.type](MethodId(51)) { case m: UnbindOk.type => m }(
-        unbindOkCodec
-      )
-      .withContext("exchange methods")
-
+  val all: Codec[ExchangeClass] = methodId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10 => declareCodec.upcast[ExchangeClass]
+        case 11 => declareOkCodec.upcast[ExchangeClass]
+        case 20 => deleteCodec.upcast[ExchangeClass]
+        case 21 => deleteOkCodec.upcast[ExchangeClass]
+        case 30 => bindCodec.upcast[ExchangeClass]
+        case 31 => bindOkCodec.upcast[ExchangeClass]
+        case 40 => unbindCodec.upcast[ExchangeClass]
+        case 51 => unbindOkCodec.upcast[ExchangeClass]
+      }
+    )
+    .xmap(_._2, a => (a._methodId, a))
+    .withContext("exchange methods")
 }

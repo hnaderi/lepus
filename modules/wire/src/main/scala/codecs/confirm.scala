@@ -16,17 +16,17 @@
 
 package lepus.wire
 
-import lepus.protocol.*
-import lepus.protocol.domains.*
-import lepus.protocol.*
 import lepus.protocol.ConfirmClass.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
+import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
-import scodec.{Codec, Encoder, Decoder}
+import scodec.Codec
 import scodec.codecs.*
 
-object ConfirmCodecs {
+import scala.annotation.switch
 
+object ConfirmCodecs {
   private val selectCodec: Codec[Select] =
     (reverseByteAligned(noWait))
       .as[Select]
@@ -36,13 +36,13 @@ object ConfirmCodecs {
     provide(SelectOk)
       .withContext("selectOk method")
 
-  val all: Codec[ConfirmClass] =
-    discriminated[ConfirmClass]
-      .by(methodId)
-      .subcaseP[Select](MethodId(10)) { case m: Select => m }(selectCodec)
-      .subcaseP[SelectOk.type](MethodId(11)) { case m: SelectOk.type => m }(
-        selectOkCodec
-      )
-      .withContext("confirm methods")
-
+  val all: Codec[ConfirmClass] = methodId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10 => selectCodec.upcast[ConfirmClass]
+        case 11 => selectOkCodec.upcast[ConfirmClass]
+      }
+    )
+    .xmap(_._2, a => (a._methodId, a))
+    .withContext("confirm methods")
 }

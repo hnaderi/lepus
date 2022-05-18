@@ -16,17 +16,17 @@
 
 package lepus.wire
 
-import lepus.protocol.*
-import lepus.protocol.domains.*
-import lepus.protocol.*
 import lepus.protocol.BasicClass.*
+import lepus.protocol.*
 import lepus.protocol.constants.*
+import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
-import scodec.{Codec, Encoder, Decoder}
+import scodec.Codec
 import scodec.codecs.*
 
-object BasicCodecs {
+import scala.annotation.switch
 
+object BasicCodecs {
   private val qosCodec: Codec[Qos] =
     (int32 :: short16 :: (reverseByteAligned(bool)))
       .as[Qos]
@@ -122,37 +122,29 @@ object BasicCodecs {
       .as[Nack]
       .withContext("nack method")
 
-  val all: Codec[BasicClass] =
-    discriminated[BasicClass]
-      .by(methodId)
-      .subcaseP[Qos](MethodId(10)) { case m: Qos => m }(qosCodec)
-      .subcaseP[QosOk.type](MethodId(11)) { case m: QosOk.type => m }(
-        qosOkCodec
-      )
-      .subcaseP[Consume](MethodId(20)) { case m: Consume => m }(consumeCodec)
-      .subcaseP[ConsumeOk](MethodId(21)) { case m: ConsumeOk => m }(
-        consumeOkCodec
-      )
-      .subcaseP[Cancel](MethodId(30)) { case m: Cancel => m }(cancelCodec)
-      .subcaseP[CancelOk](MethodId(31)) { case m: CancelOk => m }(cancelOkCodec)
-      .subcaseP[Publish](MethodId(40)) { case m: Publish => m }(publishCodec)
-      .subcaseP[Return](MethodId(50)) { case m: Return => m }(returnCodec)
-      .subcaseP[Deliver](MethodId(60)) { case m: Deliver => m }(deliverCodec)
-      .subcaseP[Get](MethodId(70)) { case m: Get => m }(getCodec)
-      .subcaseP[GetOk](MethodId(71)) { case m: GetOk => m }(getOkCodec)
-      .subcaseP[GetEmpty.type](MethodId(72)) { case m: GetEmpty.type => m }(
-        getEmptyCodec
-      )
-      .subcaseP[Ack](MethodId(80)) { case m: Ack => m }(ackCodec)
-      .subcaseP[Reject](MethodId(90)) { case m: Reject => m }(rejectCodec)
-      .subcaseP[RecoverAsync](MethodId(100)) { case m: RecoverAsync => m }(
-        recoverAsyncCodec
-      )
-      .subcaseP[Recover](MethodId(110)) { case m: Recover => m }(recoverCodec)
-      .subcaseP[RecoverOk.type](MethodId(111)) { case m: RecoverOk.type => m }(
-        recoverOkCodec
-      )
-      .subcaseP[Nack](MethodId(120)) { case m: Nack => m }(nackCodec)
-      .withContext("basic methods")
-
+  val all: Codec[BasicClass] = methodId
+    .flatZip(m =>
+      ((m: Short): @switch) match {
+        case 10  => qosCodec.upcast[BasicClass]
+        case 11  => qosOkCodec.upcast[BasicClass]
+        case 20  => consumeCodec.upcast[BasicClass]
+        case 21  => consumeOkCodec.upcast[BasicClass]
+        case 30  => cancelCodec.upcast[BasicClass]
+        case 31  => cancelOkCodec.upcast[BasicClass]
+        case 40  => publishCodec.upcast[BasicClass]
+        case 50  => returnCodec.upcast[BasicClass]
+        case 60  => deliverCodec.upcast[BasicClass]
+        case 70  => getCodec.upcast[BasicClass]
+        case 71  => getOkCodec.upcast[BasicClass]
+        case 72  => getEmptyCodec.upcast[BasicClass]
+        case 80  => ackCodec.upcast[BasicClass]
+        case 90  => rejectCodec.upcast[BasicClass]
+        case 100 => recoverAsyncCodec.upcast[BasicClass]
+        case 110 => recoverCodec.upcast[BasicClass]
+        case 111 => recoverOkCodec.upcast[BasicClass]
+        case 120 => nackCodec.upcast[BasicClass]
+      }
+    )
+    .xmap(_._2, a => (a._methodId, a))
+    .withContext("basic methods")
 }

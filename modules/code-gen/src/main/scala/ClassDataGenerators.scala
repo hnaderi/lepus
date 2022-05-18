@@ -91,15 +91,16 @@ object ClassDataGenerators {
 
     val declare = s"val $valName : Gen[$tpeName] ="
     val define =
-      if isSingleton then s"Gen.const($mthName)"
+      if isSingleton then s"Gen.const($mthName)\n"
       else s"""for {
         ${fieldGen(mth.fields)}
       } yield $mthName(${argGen(mth.fields)}
         )
+
 """
 
     val arb =
-      s"given Arbitrary[$tpeName] = Arbitrary($valName)"
+      s"given Arbitrary[$tpeName] = Arbitrary($valName)\n"
 
     Stream(declare, define, arb)
   }

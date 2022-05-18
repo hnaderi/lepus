@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object QueueDataGenerator {
-
   val declareGen: Gen[QueueClass.Declare] =
     for {
       arg0 <- Arbitrary.arbitrary[QueueName]
@@ -122,7 +121,5 @@ object QueueDataGenerator {
     deleteGen,
     deleteOkGen
   )
-
   given Arbitrary[QueueClass] = Arbitrary(classGen)
-
 }

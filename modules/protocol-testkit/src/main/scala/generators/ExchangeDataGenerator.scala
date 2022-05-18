@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object ExchangeDataGenerator {
-
   val declareGen: Gen[ExchangeClass.Declare] =
     for {
       arg0 <- Arbitrary.arbitrary[ExchangeName]
@@ -109,7 +108,5 @@ object ExchangeDataGenerator {
     unbindGen,
     unbindOkGen
   )
-
   given Arbitrary[ExchangeClass] = Arbitrary(classGen)
-
 }

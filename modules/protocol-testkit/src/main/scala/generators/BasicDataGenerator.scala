@@ -24,7 +24,6 @@ import org.scalacheck.Gen
 import ArbitraryDomains.given
 
 object BasicDataGenerator {
-
   val qosGen: Gen[BasicClass.Qos] =
     for {
       arg0 <- Arbitrary.arbitrary[Int]
@@ -193,7 +192,5 @@ object BasicDataGenerator {
     recoverOkGen,
     nackGen
   )
-
   given Arbitrary[BasicClass] = Arbitrary(classGen)
-
 }
