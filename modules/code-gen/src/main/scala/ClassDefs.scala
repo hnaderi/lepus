@@ -32,12 +32,20 @@ object ClassDefs {
     "import lepus.protocol.domains.*",
     "\n",
     """
-sealed trait Method {
+enum Peer {
+  case Server, Client, Both
+}
+
+enum MethodIntent {
+  case Request, Response
+}
+
+sealed abstract class Method {
   val _classId: ClassId
   val _methodId: MethodId
   val _synchronous: Boolean
-  val _isRequest: Boolean
-  val _isResponse: Boolean
+  val _receiver: Peer
+  val _intent : MethodIntent
 }
 
 object Metadata {
@@ -48,16 +56,19 @@ object Metadata {
     override val _synchronous = true
   }
   sealed trait ServerMethod extends Method {
-    override val _isRequest = true
-    override val _isResponse = false
+    override val _receiver = Peer.Server
   }
   sealed trait ClientMethod extends Method {
-    override val _isResponse = true
-    override val _isRequest = false
+    override val _receiver = Peer.Client
   }
   sealed trait DualMethod extends Method {
-    override val _isRequest = true
-    override val _isResponse = true
+    override val _receiver = Peer.Both
+  }
+  sealed trait Request extends Method {
+    override val _intent = MethodIntent.Request
+  }
+  sealed trait Response extends Method {
+    override val _intent = MethodIntent.Response
   }
 }
 
@@ -66,8 +77,10 @@ import Metadata.*
 """
   )
 
+  private def methodSupertype(cls: Class) = idName(cls.name) + "Class"
+
   private def classCodeGen(cls: Class): Stream[IO, String] =
-    val tpe = idName(cls.name) + "Class"
+    val tpe = methodSupertype(cls)
     val clazz = s"""
 sealed trait $tpe extends Method {
   override val _classId = ClassId(${cls.id})
@@ -75,11 +88,11 @@ sealed trait $tpe extends Method {
 
 object $tpe {
 """
-    val methods = cls.methods.map(methodCodeGen(tpe, _))
+    val methods = cls.methods.map(methodCodeGen(cls, _))
 
     Stream.emits(methods.prepended(clazz).appended("}"))
 
-  private def methodCodeGen(superType: String, method: Method): String =
+  private def methodCodeGen(cls: Class, method: Method): String =
     val fields = method.fields.filterNot(_.reserved)
     val caseName = idName(method.name)
     val body =
@@ -90,13 +103,15 @@ object $tpe {
           .mkString(",\n") + ")"
 
     val extendsType = List(
-      superType,
+      methodSupertype(cls),
       if method.sync == MethodType.Sync then "Sync" else "Async",
       method.receiver match {
         case MethodReceiver.Client => "ServerMethod"
         case MethodReceiver.Server => "ClientMethod"
         case MethodReceiver.Both   => "DualMethod"
-      }
+      },
+      if cls.methods.exists(_.responses.contains(method.name)) then "Response"
+      else "Request"
     ).mkString(" with ")
 
     s"""

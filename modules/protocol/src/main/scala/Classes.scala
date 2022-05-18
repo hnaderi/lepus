@@ -20,12 +20,20 @@ import lepus.protocol.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 
-sealed trait Method {
+enum Peer {
+  case Server, Client, Both
+}
+
+enum MethodIntent {
+  case Request, Response
+}
+
+sealed abstract class Method {
   val _classId: ClassId
   val _methodId: MethodId
   val _synchronous: Boolean
-  val _isRequest: Boolean
-  val _isResponse: Boolean
+  val _receiver: Peer
+  val _intent: MethodIntent
 }
 
 object Metadata {
@@ -36,16 +44,19 @@ object Metadata {
     override val _synchronous = true
   }
   sealed trait ServerMethod extends Method {
-    override val _isRequest = true
-    override val _isResponse = false
+    override val _receiver = Peer.Server
   }
   sealed trait ClientMethod extends Method {
-    override val _isResponse = true
-    override val _isRequest = false
+    override val _receiver = Peer.Client
   }
   sealed trait DualMethod extends Method {
-    override val _isRequest = true
-    override val _isResponse = true
+    override val _receiver = Peer.Both
+  }
+  sealed trait Request extends Method {
+    override val _intent = MethodIntent.Request
+  }
+  sealed trait Response extends Method {
+    override val _intent = MethodIntent.Response
   }
 }
 
@@ -65,7 +76,8 @@ object ConnectionClass {
       locales: LongString
   ) extends ConnectionClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Request {
     override val _methodId = MethodId(10)
   }
 
@@ -76,46 +88,56 @@ object ConnectionClass {
       locale: ShortString
   ) extends ConnectionClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Response {
     override val _methodId = MethodId(11)
   }
 
   final case class Secure(challenge: LongString)
       extends ConnectionClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Request {
     override val _methodId = MethodId(20)
   }
 
   final case class SecureOk(response: LongString)
       extends ConnectionClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Response {
     override val _methodId = MethodId(21)
   }
 
   final case class Tune(channelMax: Short, frameMax: Int, heartbeat: Short)
       extends ConnectionClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Request {
     override val _methodId = MethodId(30)
   }
 
   final case class TuneOk(channelMax: Short, frameMax: Int, heartbeat: Short)
       extends ConnectionClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Response {
     override val _methodId = MethodId(31)
   }
 
   final case class Open(virtualHost: Path)
       extends ConnectionClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(40)
   }
 
-  case object OpenOk extends ConnectionClass with Sync with ServerMethod {
+  case object OpenOk
+      extends ConnectionClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(41)
   }
 
@@ -126,36 +148,48 @@ object ConnectionClass {
       methodId: MethodId
   ) extends ConnectionClass
       with Sync
-      with DualMethod {
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(50)
   }
 
-  case object CloseOk extends ConnectionClass with Sync with DualMethod {
+  case object CloseOk
+      extends ConnectionClass
+      with Sync
+      with DualMethod
+      with Response {
     override val _methodId = MethodId(51)
   }
 
   final case class Blocked(reason: ShortString)
       extends ConnectionClass
       with Async
-      with DualMethod {
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(60)
   }
 
-  case object Unblocked extends ConnectionClass with Async with DualMethod {
+  case object Unblocked
+      extends ConnectionClass
+      with Async
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(61)
   }
 
   final case class UpdateSecret(newSecret: LongString, reason: ShortString)
       extends ConnectionClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Request {
     override val _methodId = MethodId(70)
   }
 
   case object UpdateSecretOk
       extends ConnectionClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Response {
     override val _methodId = MethodId(71)
   }
 }
@@ -166,25 +200,35 @@ sealed trait ChannelClass extends Method {
 
 object ChannelClass {
 
-  case object Open extends ChannelClass with Sync with ClientMethod {
+  case object Open
+      extends ChannelClass
+      with Sync
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(10)
   }
 
-  case object OpenOk extends ChannelClass with Sync with ServerMethod {
+  case object OpenOk
+      extends ChannelClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(11)
   }
 
   final case class Flow(active: Boolean)
       extends ChannelClass
       with Sync
-      with DualMethod {
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(20)
   }
 
   final case class FlowOk(active: Boolean)
       extends ChannelClass
       with Async
-      with DualMethod {
+      with DualMethod
+      with Response {
     override val _methodId = MethodId(21)
   }
 
@@ -195,11 +239,16 @@ object ChannelClass {
       methodId: MethodId
   ) extends ChannelClass
       with Sync
-      with DualMethod {
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(40)
   }
 
-  case object CloseOk extends ChannelClass with Sync with DualMethod {
+  case object CloseOk
+      extends ChannelClass
+      with Sync
+      with DualMethod
+      with Response {
     override val _methodId = MethodId(41)
   }
 }
@@ -221,11 +270,16 @@ object ExchangeClass {
       arguments: FieldTable
   ) extends ExchangeClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(10)
   }
 
-  case object DeclareOk extends ExchangeClass with Sync with ServerMethod {
+  case object DeclareOk
+      extends ExchangeClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(11)
   }
 
@@ -235,11 +289,16 @@ object ExchangeClass {
       noWait: NoWait
   ) extends ExchangeClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(20)
   }
 
-  case object DeleteOk extends ExchangeClass with Sync with ServerMethod {
+  case object DeleteOk
+      extends ExchangeClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(21)
   }
 
@@ -251,11 +310,16 @@ object ExchangeClass {
       arguments: FieldTable
   ) extends ExchangeClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(30)
   }
 
-  case object BindOk extends ExchangeClass with Sync with ServerMethod {
+  case object BindOk
+      extends ExchangeClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(31)
   }
 
@@ -267,11 +331,16 @@ object ExchangeClass {
       arguments: FieldTable
   ) extends ExchangeClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(40)
   }
 
-  case object UnbindOk extends ExchangeClass with Sync with ServerMethod {
+  case object UnbindOk
+      extends ExchangeClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(51)
   }
 }
@@ -292,7 +361,8 @@ object QueueClass {
       arguments: FieldTable
   ) extends QueueClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(10)
   }
 
@@ -302,7 +372,8 @@ object QueueClass {
       consumerCount: Int
   ) extends QueueClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(11)
   }
 
@@ -314,11 +385,16 @@ object QueueClass {
       arguments: FieldTable
   ) extends QueueClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(20)
   }
 
-  case object BindOk extends QueueClass with Sync with ServerMethod {
+  case object BindOk
+      extends QueueClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(21)
   }
 
@@ -329,25 +405,32 @@ object QueueClass {
       arguments: FieldTable
   ) extends QueueClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(50)
   }
 
-  case object UnbindOk extends QueueClass with Sync with ServerMethod {
+  case object UnbindOk
+      extends QueueClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(51)
   }
 
   final case class Purge(queue: QueueName, noWait: NoWait)
       extends QueueClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(30)
   }
 
   final case class PurgeOk(messageCount: MessageCount)
       extends QueueClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(31)
   }
 
@@ -358,14 +441,16 @@ object QueueClass {
       noWait: NoWait
   ) extends QueueClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(40)
   }
 
   final case class DeleteOk(messageCount: MessageCount)
       extends QueueClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(41)
   }
 }
@@ -379,11 +464,16 @@ object BasicClass {
   final case class Qos(prefetchSize: Int, prefetchCount: Short, global: Boolean)
       extends BasicClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(10)
   }
 
-  case object QosOk extends BasicClass with Sync with ServerMethod {
+  case object QosOk
+      extends BasicClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(11)
   }
 
@@ -397,28 +487,32 @@ object BasicClass {
       arguments: FieldTable
   ) extends BasicClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(20)
   }
 
   final case class ConsumeOk(consumerTag: ConsumerTag)
       extends BasicClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(21)
   }
 
   final case class Cancel(consumerTag: ConsumerTag, noWait: NoWait)
       extends BasicClass
       with Sync
-      with DualMethod {
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(30)
   }
 
   final case class CancelOk(consumerTag: ConsumerTag)
       extends BasicClass
       with Sync
-      with DualMethod {
+      with DualMethod
+      with Response {
     override val _methodId = MethodId(31)
   }
 
@@ -429,7 +523,8 @@ object BasicClass {
       immediate: Boolean
   ) extends BasicClass
       with Async
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(40)
   }
 
@@ -440,7 +535,8 @@ object BasicClass {
       routingKey: ShortString
   ) extends BasicClass
       with Async
-      with ServerMethod {
+      with ServerMethod
+      with Request {
     override val _methodId = MethodId(50)
   }
 
@@ -452,14 +548,16 @@ object BasicClass {
       routingKey: ShortString
   ) extends BasicClass
       with Async
-      with ServerMethod {
+      with ServerMethod
+      with Request {
     override val _methodId = MethodId(60)
   }
 
   final case class Get(queue: QueueName, noAck: NoAck)
       extends BasicClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(70)
   }
 
@@ -471,43 +569,56 @@ object BasicClass {
       messageCount: MessageCount
   ) extends BasicClass
       with Sync
-      with ServerMethod {
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(71)
   }
 
-  case object GetEmpty extends BasicClass with Sync with ServerMethod {
+  case object GetEmpty
+      extends BasicClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(72)
   }
 
   final case class Ack(deliveryTag: DeliveryTag, multiple: Boolean)
       extends BasicClass
       with Async
-      with DualMethod {
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(80)
   }
 
   final case class Reject(deliveryTag: DeliveryTag, requeue: Boolean)
       extends BasicClass
       with Async
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(90)
   }
 
   final case class RecoverAsync(requeue: Boolean)
       extends BasicClass
       with Async
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(100)
   }
 
   final case class Recover(requeue: Boolean)
       extends BasicClass
       with Async
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(110)
   }
 
-  case object RecoverOk extends BasicClass with Sync with ServerMethod {
+  case object RecoverOk
+      extends BasicClass
+      with Sync
+      with ServerMethod
+      with Request {
     override val _methodId = MethodId(111)
   }
 
@@ -517,7 +628,8 @@ object BasicClass {
       requeue: Boolean
   ) extends BasicClass
       with Async
-      with DualMethod {
+      with DualMethod
+      with Request {
     override val _methodId = MethodId(120)
   }
 }
@@ -528,27 +640,43 @@ sealed trait TxClass extends Method {
 
 object TxClass {
 
-  case object Select extends TxClass with Sync with ClientMethod {
+  case object Select extends TxClass with Sync with ClientMethod with Request {
     override val _methodId = MethodId(10)
   }
 
-  case object SelectOk extends TxClass with Sync with ServerMethod {
+  case object SelectOk
+      extends TxClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(11)
   }
 
-  case object Commit extends TxClass with Sync with ClientMethod {
+  case object Commit extends TxClass with Sync with ClientMethod with Request {
     override val _methodId = MethodId(20)
   }
 
-  case object CommitOk extends TxClass with Sync with ServerMethod {
+  case object CommitOk
+      extends TxClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(21)
   }
 
-  case object Rollback extends TxClass with Sync with ClientMethod {
+  case object Rollback
+      extends TxClass
+      with Sync
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(30)
   }
 
-  case object RollbackOk extends TxClass with Sync with ServerMethod {
+  case object RollbackOk
+      extends TxClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(31)
   }
 }
@@ -562,11 +690,16 @@ object ConfirmClass {
   final case class Select(noWait: NoWait)
       extends ConfirmClass
       with Sync
-      with ClientMethod {
+      with ClientMethod
+      with Request {
     override val _methodId = MethodId(10)
   }
 
-  case object SelectOk extends ConfirmClass with Sync with ServerMethod {
+  case object SelectOk
+      extends ConfirmClass
+      with Sync
+      with ServerMethod
+      with Response {
     override val _methodId = MethodId(11)
   }
 }
