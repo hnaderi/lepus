@@ -16,15 +16,38 @@
 
 package lepus.client
 
-import lepus.protocol.frame.*
+import cats.MonadError
 import cats.effect.Concurrent
-import cats.effect.Resource
+import cats.effect.std.Queue
+import cats.implicits.*
 import fs2.Stream
-import fs2.Pipe
+import lepus.client.internal.*
+import lepus.protocol.*
+import lepus.protocol.frame.Frame
 
 trait Channel[F[_]] {
-  def consume: Stream[F, Byte]
-  def publish: Pipe[F, Byte, Nothing]
-  def deliveries: Stream[F, Unit]
-  def returns: Stream[F, Unit]
+  def listen: Stream[F, ClientEvent]
+  def exchange: ExchangeAPI[F]
+  def queue: QueueAPI[F]
+  def basic: BasicAPI[F]
+  def tx: TxAPI[F]
+  def confirm: ConfirmAPI[F]
+}
+
+object Channel {
+
+  def apply[F[_]](
+      rpc: RPCChannel[F],
+      q: Queue[F, ClientEvent],
+      bufferSize: Int = 100
+  )(using MonadError[F, Throwable]): Channel[F] = new {
+    def exchange: ExchangeAPI[F] = ExchangeAPI(rpc)
+    def queue: QueueAPI[F] = QueueAPI(rpc)
+    def basic: BasicAPI[F] = BasicAPI(rpc)
+    def tx: TxAPI[F] = TxAPI(rpc)
+    def confirm: ConfirmAPI[F] = ConfirmAPI(rpc)
+    def listen: Stream[F, ClientEvent] =
+      Stream.fromQueueUnterminated(q, bufferSize)
+  }
+
 }

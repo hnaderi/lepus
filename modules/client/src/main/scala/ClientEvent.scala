@@ -16,16 +16,8 @@
 
 package lepus.client
 
-import lepus.protocol.*
-
-trait RPCChannel[F[_]] {
-  def sendWait(m: Method): F[Method]
-  def sendNoWait(m: Method): F[Unit]
-  def recv(m: Method): F[Unit]
-}
-
-trait DataChannel[F[_]] {
-  def start(): F[Unit]
-  def recvHeader(): F[Unit]
-  def recvBody(): F[Unit]
+enum ClientEvent {
+  case Received()
+  case ServerConfirmed()
+  case ServerReturned()
 }
