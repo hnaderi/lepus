@@ -24,11 +24,15 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
+import lepus.client.Connection.Status
 import lepus.protocol.*
 import lepus.protocol.frame.*
 
 trait Connection[F[_]] {
-  def openChannel: Resource[F, Channel[F]]
+  def apiChannel: Resource[F, APIChannel[F]]
+  def channel: Resource[F, MessagingChannel[F]]
+  def reliableChannel: Resource[F, ReliableMessagingChannel[F]]
+
   def status: Signal[F, Connection.Status]
 }
 
@@ -39,37 +43,27 @@ object Connection {
   ): Resource[F, Connection[F]] = for {
     _status <- Resource.eval(SignallingRef[F].of(Status.New))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    con = ConnectionImpl[F](???)
-    _ <- Stream
-      .fromQueueUnterminated(sendQ, bufferSize)
-      .through(transport)
-      .evalMap {
-        case Frame.Heartbeat              => sendQ.offer(Frame.Heartbeat)
-        case Frame.Method(ch, m)          => con.handleMethod(m)
-        case Frame.Header(ch, cl, bs, ps) => ???
-        case Frame.Body(ch, pl)           => ???
-      }
-      .onFinalize(_status.set(Status.Closed))
-      .compile
-      .drain
-      .background
-  } yield new {
-    def openChannel: Resource[F, Channel[F]] = ???
-    def status: Signal[F, Connection.Status] = _status
-
-  }
+    con = ConnectionImpl(???, sendQ, _status, bufferSize)
+    _ <- con.run(transport).compile.drain.background
+  } yield con
 
   enum Status {
     case New, Connecting, Connected, Closed
   }
 }
 
-private final class ConnectionImpl[F[_]](rpc: RPCChannel[F])
-    extends Connection[F] {
-  def openChannel: Resource[F, Channel[F]] = ???
+private final class ConnectionImpl[F[_]: Concurrent](
+    rpc: RPCChannel[F],
+    sendQ: Queue[F, Frame],
+    _status: SignallingRef[F, Status],
+    bufferSize: Int
+) extends Connection[F] {
+  def apiChannel: Resource[F, APIChannel[F]] = ???
+  def channel: Resource[F, MessagingChannel[F]] = ???
+  def reliableChannel: Resource[F, ReliableMessagingChannel[F]] = ???
   def status: Signal[F, Connection.Status] = ???
 
-  def handleAsync: Metadata.Async => F[Unit] = {
+  private def handleAsync: Metadata.Async => F[Unit] = {
     case _: BasicClass.Deliver          => ???
     case ConnectionClass.Blocked(_)     => ???
     case ConnectionClass.Unblocked      => ???
@@ -83,21 +77,35 @@ private final class ConnectionImpl[F[_]](rpc: RPCChannel[F])
     case BasicClass.Nack(_, _, _)       => ???
   }
 
-  def handleMethod: Method => F[Unit] = {
+  private def handleMethod: Method => F[Unit] = {
     case m: (Metadata.ServerMethod & Metadata.Response) => rpc.recv(m)
-    case m: Metadata.Async                              => ???
-    case ConnectionClass.Start(_, _, _, _, _)           => ???
-    case ConnectionClass.Secure(_)                      => ???
-    case ConnectionClass.Tune(_, _, _)                  => ???
-    case ConnectionClass.Close(_, _, _, _)              => ???
+    case m: Metadata.Async                              => handleAsync(m)
+    case m: ConnectionClass.Start                       => ???
+    case m: ConnectionClass.Secure                      => ???
+    case m: ConnectionClass.Tune                        => ???
+    case m: ConnectionClass.Close                       => ???
     case ConnectionClass.CloseOk                        => ???
-    case ConnectionClass.UpdateSecret(_, _)             => ???
-    case ChannelClass.Flow(_)                           => ???
-    case ChannelClass.Close(_, _, _, _)                 => ???
+    case m: ConnectionClass.UpdateSecret                => ???
+    case m: ChannelClass.Flow                           => ???
+    case m: ChannelClass.Close                          => ???
     case ChannelClass.CloseOk                           => ???
-    case BasicClass.Cancel(_, _)                        => ???
-    case BasicClass.CancelOk(_)                         => ???
+    case m: BasicClass.Cancel                           => ???
+    case m: BasicClass.CancelOk                         => ???
     case BasicClass.RecoverOk                           => ???
     case m: Metadata.ClientMethod                       => ???
   }
+
+  private[client] def run(transport: Transport[F]): Stream[F, Nothing] =
+    Stream
+      .fromQueueUnterminated(sendQ, bufferSize)
+      .through(transport)
+      .evalMap {
+        case Frame.Heartbeat              => sendQ.offer(Frame.Heartbeat)
+        case Frame.Method(ch, m)          => handleMethod(m)
+        case Frame.Header(ch, cl, bs, ps) => ???
+        case Frame.Body(ch, pl)           => ???
+      }
+      .onFinalize(_status.set(Status.Closed))
+      .drain
+
 }

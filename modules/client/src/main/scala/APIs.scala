@@ -15,7 +15,6 @@
  */
 
 package lepus.client
-package internal
 
 import cats.MonadError
 import cats.implicits.*
@@ -23,121 +22,85 @@ import lepus.protocol.*
 import lepus.protocol.classes.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
+import fs2.Stream
+import fs2.Pipe
 
-private[client] final class ConnectionAPI[F[_]](rpc: RPCChannel[F])(using
-    F: MonadError[F, Throwable]
-) {
+trait ExchangeAPI[F[_]] {
 
-  def startOk(
-      clientProperties: PeerProperties,
-      mechanism: ShortString,
-      response: LongString,
-      locale: ShortString
-  ): F[Unit] = {
-    val msg =
-      ConnectionClass.StartOk(clientProperties, mechanism, response, locale)
-    rpc.sendNoWait(msg)
-  }
+  def declare(
+      exchange: ExchangeName,
+      `type`: ShortString,
+      passive: Boolean,
+      durable: Boolean,
+      autoDelete: Boolean,
+      internal: Boolean,
+      noWait: NoWait,
+      arguments: FieldTable
+  ): F[Option[ExchangeClass.DeclareOk.type]]
 
-  def secureOk(response: LongString): F[Unit] = {
-    val msg = ConnectionClass.SecureOk(response)
-    rpc.sendNoWait(msg)
-  }
+  def delete(
+      exchange: ExchangeName,
+      ifUnused: Boolean,
+      noWait: NoWait
+  ): F[Option[ExchangeClass.DeleteOk.type]]
 
-  def tuneOk(channelMax: Short, frameMax: Int, heartbeat: Short): F[Unit] = {
-    val msg = ConnectionClass.TuneOk(channelMax, frameMax, heartbeat)
-    rpc.sendNoWait(msg)
-  }
+  def bind(
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: ShortString,
+      noWait: NoWait,
+      arguments: FieldTable
+  ): F[Option[ExchangeClass.BindOk.type]]
 
-  def open(virtualHost: Path): F[ConnectionClass.OpenOk.type] = {
-    val msg = ConnectionClass.Open(virtualHost)
-    rpc.sendWait(msg).flatMap {
-      case m: ConnectionClass.OpenOk.type => m.pure
-      case _                              => F.raiseError(???)
-    }
-  }
-
-  def close(
-      replyCode: ReplyCode,
-      replyText: ReplyText,
-      classId: ClassId,
-      methodId: MethodId
-  ): F[ConnectionClass.CloseOk.type] = {
-    val msg = ConnectionClass.Close(replyCode, replyText, classId, methodId)
-    rpc.sendWait(msg).flatMap {
-      case m: ConnectionClass.CloseOk.type => m.pure
-      case _                               => F.raiseError(???)
-    }
-  }
-
-  def closeOk: F[Unit] = {
-    val msg = ConnectionClass.CloseOk
-    rpc.sendNoWait(msg)
-  }
-
-  def blocked(reason: ShortString): F[Unit] = {
-    val msg = ConnectionClass.Blocked(reason)
-    rpc.sendNoWait(msg)
-  }
-
-  def unblocked: F[Unit] = {
-    val msg = ConnectionClass.Unblocked
-    rpc.sendNoWait(msg)
-  }
-
-  def updateSecretOk: F[Unit] = {
-    val msg = ConnectionClass.UpdateSecretOk
-    rpc.sendNoWait(msg)
-  }
+  def unbind(
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: ShortString,
+      noWait: NoWait,
+      arguments: FieldTable
+  ): F[Option[ExchangeClass.UnbindOk.type]]
 
 }
-private[client] final class ChannelAPI[F[_]](rpc: RPCChannel[F])(using
-    F: MonadError[F, Throwable]
-) {
+trait QueueAPI[F[_]] {
 
-  def open: F[ChannelClass.OpenOk.type] = {
-    val msg = ChannelClass.Open
-    rpc.sendWait(msg).flatMap {
-      case m: ChannelClass.OpenOk.type => m.pure
-      case _                           => F.raiseError(???)
-    }
-  }
+  def declare(
+      queue: QueueName,
+      passive: Boolean,
+      durable: Boolean,
+      exclusive: Boolean,
+      autoDelete: Boolean,
+      noWait: NoWait,
+      arguments: FieldTable
+  ): F[Option[QueueClass.DeclareOk]]
 
-  def flow(active: Boolean): F[ChannelClass.FlowOk] = {
-    val msg = ChannelClass.Flow(active)
-    rpc.sendWait(msg).flatMap {
-      case m: ChannelClass.FlowOk => m.pure
-      case _                      => F.raiseError(???)
-    }
-  }
+  def bind(
+      queue: QueueName,
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      noWait: NoWait,
+      arguments: FieldTable
+  ): F[Option[QueueClass.BindOk.type]]
 
-  def flowOk(active: Boolean): F[Unit] = {
-    val msg = ChannelClass.FlowOk(active)
-    rpc.sendNoWait(msg)
-  }
+  def unbind(
+      queue: QueueName,
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      arguments: FieldTable
+  ): F[QueueClass.UnbindOk.type]
 
-  def close(
-      replyCode: ReplyCode,
-      replyText: ReplyText,
-      classId: ClassId,
-      methodId: MethodId
-  ): F[ChannelClass.CloseOk.type] = {
-    val msg = ChannelClass.Close(replyCode, replyText, classId, methodId)
-    rpc.sendWait(msg).flatMap {
-      case m: ChannelClass.CloseOk.type => m.pure
-      case _                            => F.raiseError(???)
-    }
-  }
+  def purge(queue: QueueName, noWait: NoWait): F[Option[QueueClass.PurgeOk]]
 
-  def closeOk: F[Unit] = {
-    val msg = ChannelClass.CloseOk
-    rpc.sendNoWait(msg)
-  }
-
+  def delete(
+      queue: QueueName,
+      ifUnused: Boolean,
+      ifEmpty: Boolean,
+      noWait: NoWait
+  ): F[Option[QueueClass.DeleteOk]]
 }
-private[client] final class ExchangeAPI[F[_]](rpc: RPCChannel[F])(using
+
+private[client] final class ExchangeAPIImpl[F[_]](rpc: RPCChannel[F])(using
     F: MonadError[F, Throwable]
-) {
+) extends ExchangeAPI[F] {
 
   def declare(
       exchange: ExchangeName,
@@ -228,9 +191,10 @@ private[client] final class ExchangeAPI[F[_]](rpc: RPCChannel[F])(using
   }
 
 }
-private[client] final class QueueAPI[F[_]](rpc: RPCChannel[F])(using
+
+private[client] final class QueueAPIImpl[F[_]](rpc: RPCChannel[F])(using
     F: MonadError[F, Throwable]
-) {
+) extends QueueAPI[F] {
 
   def declare(
       queue: QueueName,
@@ -320,171 +284,6 @@ private[client] final class QueueAPI[F[_]](rpc: RPCChannel[F])(using
         .flatMap {
           case m: QueueClass.DeleteOk => m.pure
           case _                      => F.raiseError(???)
-        }
-        .map(_.some)
-  }
-
-}
-private[client] final class BasicAPI[F[_]](rpc: RPCChannel[F])(using
-    F: MonadError[F, Throwable]
-) {
-
-  def qos(
-      prefetchSize: Int,
-      prefetchCount: Short,
-      global: Boolean
-  ): F[BasicClass.QosOk.type] = {
-    val msg = BasicClass.Qos(prefetchSize, prefetchCount, global)
-    rpc.sendWait(msg).flatMap {
-      case m: BasicClass.QosOk.type => m.pure
-      case _                        => F.raiseError(???)
-    }
-  }
-
-  def consume(
-      queue: QueueName,
-      consumerTag: ConsumerTag,
-      noLocal: NoLocal,
-      noAck: NoAck,
-      exclusive: Boolean,
-      noWait: NoWait,
-      arguments: FieldTable
-  ): F[Option[BasicClass.ConsumeOk]] = {
-    val msg = BasicClass.Consume(
-      queue,
-      consumerTag,
-      noLocal,
-      noAck,
-      exclusive,
-      noWait,
-      arguments
-    )
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: BasicClass.ConsumeOk => m.pure
-          case _                       => F.raiseError(???)
-        }
-        .map(_.some)
-  }
-
-  def cancel(
-      consumerTag: ConsumerTag,
-      noWait: NoWait
-  ): F[Option[BasicClass.CancelOk]] = {
-    val msg = BasicClass.Cancel(consumerTag, noWait)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: BasicClass.CancelOk => m.pure
-          case _                      => F.raiseError(???)
-        }
-        .map(_.some)
-  }
-
-  def cancelOk(consumerTag: ConsumerTag): F[Unit] = {
-    val msg = BasicClass.CancelOk(consumerTag)
-    rpc.sendNoWait(msg)
-  }
-
-  def publish(
-      exchange: ExchangeName,
-      routingKey: ShortString,
-      mandatory: Boolean,
-      immediate: Boolean
-  ): F[Unit] = {
-    val msg = BasicClass.Publish(exchange, routingKey, mandatory, immediate)
-    rpc.sendNoWait(msg)
-  }
-
-  def get(
-      queue: QueueName,
-      noAck: NoAck
-  ): F[BasicClass.GetOk | BasicClass.GetEmpty.type] = {
-    val msg = BasicClass.Get(queue, noAck)
-    rpc.sendWait(msg).flatMap {
-      case m: BasicClass.GetOk         => m.pure
-      case m: BasicClass.GetEmpty.type => m.pure
-      case _                           => F.raiseError(???)
-    }
-  }
-
-  def ack(deliveryTag: DeliveryTag, multiple: Boolean): F[Unit] = {
-    val msg = BasicClass.Ack(deliveryTag, multiple)
-    rpc.sendNoWait(msg)
-  }
-
-  def reject(deliveryTag: DeliveryTag, requeue: Boolean): F[Unit] = {
-    val msg = BasicClass.Reject(deliveryTag, requeue)
-    rpc.sendNoWait(msg)
-  }
-
-  def recoverAsync(requeue: Boolean): F[Unit] = {
-    val msg = BasicClass.RecoverAsync(requeue)
-    rpc.sendNoWait(msg)
-  }
-
-  def recover(requeue: Boolean): F[Unit] = {
-    val msg = BasicClass.Recover(requeue)
-    rpc.sendNoWait(msg)
-  }
-
-  def nack(
-      deliveryTag: DeliveryTag,
-      multiple: Boolean,
-      requeue: Boolean
-  ): F[Unit] = {
-    val msg = BasicClass.Nack(deliveryTag, multiple, requeue)
-    rpc.sendNoWait(msg)
-  }
-
-}
-private[client] final class TxAPI[F[_]](rpc: RPCChannel[F])(using
-    F: MonadError[F, Throwable]
-) {
-
-  def select: F[TxClass.SelectOk.type] = {
-    val msg = TxClass.Select
-    rpc.sendWait(msg).flatMap {
-      case m: TxClass.SelectOk.type => m.pure
-      case _                        => F.raiseError(???)
-    }
-  }
-
-  def commit: F[TxClass.CommitOk.type] = {
-    val msg = TxClass.Commit
-    rpc.sendWait(msg).flatMap {
-      case m: TxClass.CommitOk.type => m.pure
-      case _                        => F.raiseError(???)
-    }
-  }
-
-  def rollback: F[TxClass.RollbackOk.type] = {
-    val msg = TxClass.Rollback
-    rpc.sendWait(msg).flatMap {
-      case m: TxClass.RollbackOk.type => m.pure
-      case _                          => F.raiseError(???)
-    }
-  }
-
-}
-private[client] final class ConfirmAPI[F[_]](rpc: RPCChannel[F])(using
-    F: MonadError[F, Throwable]
-) {
-
-  def select(noWait: NoWait): F[Option[ConfirmClass.SelectOk.type]] = {
-    val msg = ConfirmClass.Select(noWait)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: ConfirmClass.SelectOk.type => m.pure
-          case _                             => F.raiseError(???)
         }
         .map(_.some)
   }

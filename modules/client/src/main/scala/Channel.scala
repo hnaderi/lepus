@@ -25,29 +25,38 @@ import lepus.client.internal.*
 import lepus.protocol.*
 import lepus.protocol.frame.Frame
 
-trait Channel[F[_]] {
-  def listen: Stream[F, ClientEvent]
+import internal.RPCCallDef
+import lepus.client.apis.Messaging
+import lepus.client.apis.DefaultMessaging
+
+trait LowLevelChannel[F[_]] {
+  def rpc: RPCChannel[F]
+}
+
+trait APIChannel[F[_]] {
   def exchange: ExchangeAPI[F]
   def queue: QueueAPI[F]
-  def basic: BasicAPI[F]
-  def tx: TxAPI[F]
-  def confirm: ConfirmAPI[F]
+}
+
+trait MessagingChannel[F[_]] extends APIChannel[F] {
+  def messaging: DefaultMessaging[F]
+}
+
+trait ReliableMessagingChannel[F[_]] extends APIChannel[F] {
+  def messaging: ReliableMessagingChannel[F]
 }
 
 object Channel {
-
-  def apply[F[_]](
-      rpc: RPCChannel[F],
-      q: Queue[F, ClientEvent],
-      bufferSize: Int = 100
-  )(using MonadError[F, Throwable]): Channel[F] = new {
-    def exchange: ExchangeAPI[F] = ExchangeAPI(rpc)
-    def queue: QueueAPI[F] = QueueAPI(rpc)
-    def basic: BasicAPI[F] = BasicAPI(rpc)
-    def tx: TxAPI[F] = TxAPI(rpc)
-    def confirm: ConfirmAPI[F] = ConfirmAPI(rpc)
-    def listen: Stream[F, ClientEvent] =
-      Stream.fromQueueUnterminated(q, bufferSize)
+  extension [M <: Method](m: M) {
+    def call[F[_], O](rpc: RPCChannel[F])(using r: RPCCallDef[F, M, O]): F[O] =
+      r.call(rpc)(m)
+    def call[F[_], O](ch: LowLevelChannel[F])(using
+        r: RPCCallDef[F, M, O]
+    ): F[O] =
+      r.call(ch.rpc)(m)
   }
 
+  // val c1 :Channel[List] = ???
+  // val r = BasicClass.Qos(1, 1, true).call(c1)
+  // val r2 = call(BasicClass.QosOk)
 }

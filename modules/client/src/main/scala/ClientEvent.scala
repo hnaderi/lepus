@@ -16,8 +16,45 @@
 
 package lepus.client
 
-enum ClientEvent {
-  case Received()
-  case ServerConfirmed()
-  case ServerReturned()
+import lepus.protocol.constants.*
+import lepus.protocol.domains.*
+import scodec.bits.ByteVector
+import fs2.concurrent.Signal
+
+final case class ReturnedMessage(
+    replyCode: ReplyCode,
+    replyText: ReplyText,
+    exchange: ExchangeName,
+    routingKey: ShortString,
+    message: Message
+)
+
+final case class Envelope(
+    exchange: ExchangeName,
+    routingKey: ShortString,
+    mandatory: Boolean,
+    // immediate: Boolean, // RabbitMQ does not implement immediate flag
+    message: Message
+)
+
+final case class ReliableEnvelope[F[_]](
+    envelope: Envelope,
+    status: Signal[F, EnvelopeStatus]
+)
+
+enum EnvelopeStatus {
+  case InMail, Posted, Delivered, Rejected, Returned
 }
+
+final case class Message(
+    payload: ByteVector
+)
+
+final case class SynchronousGet(
+    deliveryTag: DeliveryTag,
+    redelivered: Redelivered,
+    exchange: ExchangeName,
+    routingKey: ShortString,
+    messageCount: MessageCount,
+    message: Message
+)
