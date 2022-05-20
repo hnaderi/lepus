@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package lepus.protocol.frame
+package lepus.protocol
 
 import lepus.protocol.classes.basic.Properties
 import lepus.protocol.domains.*

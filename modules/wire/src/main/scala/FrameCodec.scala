@@ -18,7 +18,6 @@ package lepus.wire
 
 import lepus.protocol.*
 import lepus.protocol.domains.*
-import lepus.protocol.frame.*
 import scodec.Codec
 import scodec.Decoder
 import scodec.Encoder

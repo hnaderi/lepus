@@ -20,7 +20,6 @@ import lepus.protocol.*
 import lepus.protocol.classes.basic
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import lepus.protocol.frame.*
 import scodec.*
 import scodec.bits.*
 import scodec.codecs.*

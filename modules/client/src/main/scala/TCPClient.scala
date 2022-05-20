@@ -40,7 +40,7 @@ import fs2.text
 import lepus.client.DecodeTest
 import lepus.client.Transport
 import lepus.protocol.ProtocolVersion
-import lepus.protocol.frame.Frame
+import lepus.protocol.Frame
 import lepus.wire.FrameCodec
 import scodec.Attempt
 import scodec.Encoder

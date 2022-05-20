@@ -26,7 +26,6 @@ import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
 import lepus.protocol.*
-import lepus.protocol.frame.*
 
 import internal.*
 

@@ -24,7 +24,6 @@ import fs2.Stream
 import lepus.client.apis.*
 import lepus.client.internal.*
 import lepus.protocol.*
-import lepus.protocol.frame.Frame
 
 trait LowLevelChannel[F[_]] {
   def rpc: RPCChannel[F]
