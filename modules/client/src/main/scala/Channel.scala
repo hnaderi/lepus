@@ -21,13 +21,10 @@ import cats.effect.Concurrent
 import cats.effect.std.Queue
 import cats.implicits.*
 import fs2.Stream
+import lepus.client.apis.*
 import lepus.client.internal.*
 import lepus.protocol.*
 import lepus.protocol.frame.Frame
-
-import internal.RPCCallDef
-import lepus.client.apis.Messaging
-import lepus.client.apis.DefaultMessaging
 
 trait LowLevelChannel[F[_]] {
   def rpc: RPCChannel[F]

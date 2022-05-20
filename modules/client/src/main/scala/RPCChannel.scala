@@ -15,6 +15,7 @@
  */
 
 package lepus.client
+package internal
 
 import lepus.protocol.*
 
@@ -24,8 +25,7 @@ trait RPCChannel[F[_]] {
   def recv(m: Method): F[Unit]
 }
 
-trait DataChannel[F[_]] {
-  def start(): F[Unit]
-  def recvHeader(): F[Unit]
-  def recvBody(): F[Unit]
+trait ContentChannel[F[_]] {
+  def send(msg: Message): F[Unit]
+  def recv: F[Message]
 }

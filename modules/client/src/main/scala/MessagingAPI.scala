@@ -19,12 +19,12 @@ package apis
 
 import cats.MonadError
 import cats.implicits.*
+import fs2.Pipe
+import fs2.Stream
 import lepus.protocol.*
 import lepus.protocol.classes.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
-import fs2.Stream
-import fs2.Pipe
 
 sealed trait Messaging[F[_]]
 

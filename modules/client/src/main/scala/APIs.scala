@@ -22,8 +22,8 @@ import lepus.protocol.*
 import lepus.protocol.classes.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
-import fs2.Stream
-import fs2.Pipe
+
+import internal.*
 
 trait ExchangeAPI[F[_]] {
 

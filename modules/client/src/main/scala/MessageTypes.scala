@@ -16,18 +16,11 @@
 
 package lepus.client
 
+import fs2.concurrent.Signal
+import lepus.protocol.classes.basic.Properties
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
-import fs2.concurrent.Signal
-
-final case class ReturnedMessage(
-    replyCode: ReplyCode,
-    replyText: ReplyText,
-    exchange: ExchangeName,
-    routingKey: ShortString,
-    message: Message
-)
 
 final case class Envelope(
     exchange: ExchangeName,
@@ -47,7 +40,25 @@ enum EnvelopeStatus {
 }
 
 final case class Message(
-    payload: ByteVector
+    payload: ByteVector,
+    properties: Properties = Properties()
+)
+
+final case class ReturnedMessage(
+    replyCode: ReplyCode,
+    replyText: ReplyText,
+    exchange: ExchangeName,
+    routingKey: ShortString,
+    message: Message
+)
+
+final case class DeliveredMessage(
+    consumerTag: ConsumerTag,
+    deliveryTag: DeliveryTag,
+    redelivered: Redelivered,
+    exchange: ExchangeName,
+    routingKey: ShortString,
+    message: Message
 )
 
 final case class SynchronousGet(

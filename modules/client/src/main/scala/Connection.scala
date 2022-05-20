@@ -28,6 +28,8 @@ import lepus.client.Connection.Status
 import lepus.protocol.*
 import lepus.protocol.frame.*
 
+import internal.*
+
 trait Connection[F[_]] {
   def apiChannel: Resource[F, APIChannel[F]]
   def channel: Resource[F, MessagingChannel[F]]
