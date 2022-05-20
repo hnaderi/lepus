@@ -18,21 +18,16 @@ package lepus.protocol.gen
 
 import cats.effect.*
 import cats.implicits.*
-import fs2.Pipe
 import fs2.Stream
-import fs2.io.file.Files
-import fs2.io.file.Path
-import fs2.io.file.writeAll
 import fs2.text.utf8
 
-import scala.xml.NodeSeq
 import scala.xml.*
 
 def gen: IO[Unit] = for {
   protocol <- IO(XML.load("amqp0-9-1.extended.xml"))
   classes = Extractors.classes(protocol)
   generation = Stream(
-    APIDefs.generate(classes),
+    CallDefs.generate(classes),
     ClassDefs.generate(classes),
     ClassCodecs.generate(classes),
     MethodCodecs.generate(classes),

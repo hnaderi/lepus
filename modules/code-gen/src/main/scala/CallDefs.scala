@@ -23,7 +23,7 @@ import fs2.io.file.Path
 
 import Helpers.*
 
-object APIDefs {
+object CallDefs {
   private def header = headers(
     "package lepus.client",
     "package internal",
@@ -34,19 +34,27 @@ object APIDefs {
     "import lepus.protocol.classes.*",
     "import lepus.protocol.constants.*",
     "import lepus.protocol.domains.*",
-    "\n"
+    "\n",
+    "import scala.annotation.implicitNotFound"
   )
 
-  private def requestsBody(cls: Class): Stream[IO, String] =
-    val tpe = idName(cls.name) + "API"
-    (Stream(
-      s"private[client] final class $tpe[F[_]](rpc: RPCChannel[F])(using F:MonadError[F, Throwable]) {"
+  private def genBody(clss: Seq[Class]): Stream[IO, String] =
+    Stream(
+      """
+@implicitNotFound(
+  "${M} is not a client side method, or you can't use ${F} as an effect for rpc calls"
+)
+sealed trait RPCCallDef[F[_], M <: Method, O] {
+  def call(rpc: RPCChannel[F])(i: M): F[O]
+}
+"""
     ) ++
-      Stream
-        .emits(cls.methods.filter(_.receiver.isRequest))
-        .map(methodCodeGen(cls, _)) ++
-      Stream("}"))
-      .intersperse("\n")
+      obj("RPCCallDef")(
+        for {
+          cls <- clss
+          m <- cls.methods if m.receiver.isRequest
+        } yield methodCodeGen(cls, m)
+      )
 
   private def methodCodeGen(cls: Class, method: Method): String =
     val caseName = valName(method.name)
@@ -69,8 +77,8 @@ object APIDefs {
       .getOrElse("Unit")
 
     val finalReturnType = if noWait then s"Option[$returnType]" else returnType
-
-    val signature = s"  def $caseName$fieldsStr : F[$finalReturnType] = "
+    val fullTypeName = method.fullTypeName(cls)
+    val givenName = fullTypeName.replace(".", "_")
 
     val msg = s"$className.$methodName$valuesStr"
 
@@ -86,13 +94,12 @@ object APIDefs {
 
     val body =
       if noWait then
-        s"if noWait then $noWaitBody.as(None) else $waitBody.map(_.some)"
+        s"if msg.noWait then $noWaitBody.as(None) else $waitBody.map(_.some)"
       else if returnType == "Unit" then noWaitBody
       else waitBody
 
-    s"""$signature {
-val msg = $msg
-$body
+    s"""given $givenName[F[_]](using F:MonadError[F, Throwable]) : RPCCallDef[F, $fullTypeName, $finalReturnType] = new {
+  def call(rpc: RPCChannel[F])(msg: $fullTypeName): F[$finalReturnType] = $body
 }
 """
 
@@ -117,9 +124,9 @@ $body
   }
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =
-    (header ++ Stream.emits(clss).flatMap(requestsBody))
+    (header ++ genBody(clss))
       .through(
-        srcFile("client", Path(s"APIs.scala"))
+        srcFile("client", Path(s"RPCCallDefs.scala"))
       )
 
   extension (self: Method) {

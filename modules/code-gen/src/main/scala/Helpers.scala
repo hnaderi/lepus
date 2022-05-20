@@ -66,5 +66,8 @@ object Helpers {
   def obj(name: String)(lines: Lines): Lines =
     (Stream(s"object ${idName(name)} {") ++ lines ++ Stream("}"))
 
+  def obj(name: String)(lines: Seq[String]): Lines =
+    obj(name)(Stream.emits(lines))
+
   def headers(hs: String*): Lines = Stream.emits(hs)
 }
