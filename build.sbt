@@ -41,7 +41,9 @@ def module(module: String): Project = {
     )
 }
 
-val protocol = module("protocol")
+val protocol = module("protocol").settings(
+  libraryDependencies += "org.scodec" %% "scodec-bits" % "1.1.31"
+)
 
 val codeGen = module("code-gen")
   .settings(
@@ -77,7 +79,9 @@ val client = module("client")
   .dependsOn(core, wire, protocol)
   .dependsOn(protocolTestkit % Test)
   .settings(
-    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ fs2scodec
+    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ fs2scodec ++ Seq(
+      "org.typelevel" %% "scalacheck-effect-munit" % Versions.scalacheckEffectVersion
+    )
   )
 
 val std = module("std")

@@ -38,9 +38,6 @@ object FrameCodec {
 
   lazy val frameEnd: Codec[Unit] = constant(hex"CE")
 
-  private lazy val byteArray: Codec[ByteBuffer] =
-    bytes.xmap(_.toByteBuffer, ByteVector(_))
-
   private val methodFP: Codec[Frame.Method] =
     (channelNumber :: sized(MethodCodec.all)).as
 
@@ -50,7 +47,7 @@ object FrameCodec {
     )).as
 
   private val bodyFP: Codec[Frame.Body] =
-    (channelNumber :: sized(byteArray)).as
+    (channelNumber :: sized(bytes)).as
 
   private val heartbeat: Codec[Frame.Heartbeat.type] =
     channelNumber.unit(ChannelNumber(0)) ~> codecs.provide(Frame.Heartbeat)

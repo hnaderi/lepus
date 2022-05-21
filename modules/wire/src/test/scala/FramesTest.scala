@@ -16,13 +16,14 @@
 
 package lepus.codecs
 
+import cats.kernel.Eq
 import lepus.protocol.Frame
 import lepus.protocol.domains.*
 import lepus.wire.FrameCodec
+import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Prop.*
-
-import java.nio.ByteBuffer
+import scodec.bits.ByteVector
 
 import DomainGenerators.*
 
@@ -47,8 +48,8 @@ class FramesTest extends CodecTest {
 
   val body: Gen[Frame.Body] = for {
     ch <- channelNumber
-    pl <- Gen.asciiStr.map(_.getBytes).map(ByteBuffer.wrap)
-  } yield Frame.Body(ch, pl)
+    pl <- Gen.containerOf[Array, Byte](Arbitrary.arbitrary[Byte])
+  } yield Frame.Body(ch, ByteVector(pl))
 
   val heartbeat: Gen[Frame.Heartbeat.type] =
     Gen.const(Frame.Heartbeat)

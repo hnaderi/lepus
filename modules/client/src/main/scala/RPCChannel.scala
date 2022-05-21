@@ -17,11 +17,12 @@
 package lepus.client
 package internal
 
-import lepus.protocol.*
 import cats.effect.Concurrent
-import cats.implicits.*
 import cats.effect.std.Queue
+import cats.implicits.*
 import lepus.protocol.Frame
+import lepus.protocol.*
+import lepus.protocol.domains.*
 
 trait RPCChannel[F[_]] {
   def sendWait(m: Method): F[Method]
@@ -35,12 +36,23 @@ trait ContentChannel[F[_]] {
 }
 
 object ContentChannel {
-  def apply[F[_]](maxSize: Long, q: Queue[F, Frame])(using
+  def apply[F[_]](
+      channelNumber: ChannelNumber,
+      maxSize: Long,
+      q: Queue[F, Frame]
+  )(using
       F: Concurrent[F]
   ): F[ContentChannel[F]] =
     F.unit.map(_ =>
       new {
-        def send(msg: Message): F[Unit] = ???
+        def send(msg: Message): F[Unit] = q.offer(
+          Frame.Header(
+            channelNumber,
+            ClassId(10),
+            msg.payload.size,
+            msg.properties
+          )
+        ) >> q.offer(Frame.Body(channelNumber, msg.payload))
         def recv: F[Message] = ???
       }
     )

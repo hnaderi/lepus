@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package lepus.protocol
+package lepus.client
+package internal
 
-import lepus.protocol.classes.basic.Properties
-import lepus.protocol.domains.*
-import scodec.bits.ByteVector
+import cats.effect.IO
+import cats.implicits.*
+import munit.CatsEffectSuite
 
-enum Frame {
-  case Method(channel: ChannelNumber, value: lepus.protocol.Method)
-  case Header(
-      channel: ChannelNumber,
-      classId: ClassId,
-      bodySize: Long,
-      props: Properties
-  )
-  case Body(channel: ChannelNumber, payload: ByteVector)
-  case Heartbeat
+class RPCChannelSuite extends CatsEffectSuite {
+  test("") {}
 }
