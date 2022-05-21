@@ -16,15 +16,15 @@
 
 package lepus.protocol.constants
 
+import scodec.bits.ByteVector
+
 val FrameMethod: Short = 1
 val FrameHeader: Short = 2
 val FrameBody: Short = 3
 val FrameHeartbeat: Short = 8
 val FrameMinSize: Short = 4096
 val FrameEnd: Short = 206
-val ProtocolHeader: String = new String(
-  Array[Byte]('A', 'M', 'Q', 'P', 0, 0, 9, 1)
-)
+val ProtocolHeader: ByteVector = ByteVector('A', 'M', 'Q', 'P', 0, 0, 9, 1)
 
 enum ReplyCode(val code: Short) {
   case ReplySuccess extends ReplyCode(200)

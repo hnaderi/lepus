@@ -35,8 +35,6 @@ import lepus.protocol.constants.ProtocolHeader
 import lepus.wire.FrameCodec
 import scodec.codecs.logFailuresToStdOut
 
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
 import scala.{Console => SCon}
 
 type Transport[F[_]] = Pipe[F, Frame, Frame]
@@ -60,9 +58,7 @@ object Transport {
   ): Pipe[F, Frame, Byte] =
     StreamEncoder.many(logFailuresToStdOut(FrameCodec.frame)).toPipeByte
 
-  private val protocolHeader = chunk(
-    Chunk.array(ProtocolHeader.getBytes(StandardCharsets.US_ASCII))
-  )
+  private val protocolHeader = chunk(Chunk.byteVector(ProtocolHeader))
 
   inline def debug[F[_]: Functor](
       send: Boolean
