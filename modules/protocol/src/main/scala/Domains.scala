@@ -27,9 +27,12 @@ opaque type ChannelNumber <: Short = Short
 object ChannelNumber extends TaggedOpaqueComp[Short, ChannelNumber]
 
 opaque type ShortString <: String = String
-object ShortString {
+object ShortString extends Literally[String, ShortString] {
+
+  inline def apply(t: String): ShortString = ${ build('t) }
+
   def empty: ShortString = ""
-  def apply(str: String): Either[String, ShortString] =
+  def from(str: String): Either[String, ShortString] =
     Either.cond(
       str.length <= 255,
       str,
@@ -39,9 +42,12 @@ object ShortString {
 
 opaque type LongString <: String = String
 private inline val LongStringSize = 4294967296L // 2 ^ 32
-object LongString {
+object LongString extends Literally[String, LongString] {
+
+  inline def apply(t: String): LongString = ${ build('t) }
+
   def empty: LongString = ""
-  def apply(str: String): Either[String, LongString] =
+  def from(str: String): Either[String, LongString] =
     Either.cond(
       str.length <= LongStringSize,
       str,
@@ -74,7 +80,9 @@ object ClassId extends TaggedOpaqueComp[Short, ClassId]
 /** Identifier for the consumer, valid within the current c hannel.
   */
 opaque type ConsumerTag <: ShortString = ShortString
-object ConsumerTag extends TaggedOpaqueComp[ShortString, ConsumerTag]
+object ConsumerTag extends TaggedOpaqueComp[ShortString, ConsumerTag] {
+  def empty: ConsumerTag = ShortString.empty
+}
 
 /** The server-assigned and channel-specific delivery tag
   */
@@ -95,8 +103,11 @@ private def validateNameSize(name: String): Either[String, String] =
   * for publish methods.
   */
 opaque type ExchangeName <: ShortString = String
-object ExchangeName {
-  def apply(name: String): Either[String, ExchangeName] =
+object ExchangeName extends Literally[String, ExchangeName] {
+
+  inline def apply(t: String): ExchangeName = ${ build('t) }
+
+  def from(name: String): Either[String, ExchangeName] =
     validateName(name).flatMap(validateNameSize)
 }
 
@@ -126,8 +137,11 @@ type NoWait = Boolean
 /** Unconstrained.
   */
 opaque type Path <: ShortString = String
-object Path {
-  def apply(str: String): Either[String, Path] =
+object Path extends Literally[String, Path] {
+
+  inline def apply(t: String): Path = ${ build('t) }
+
+  def from(str: String): Either[String, Path] =
     Either.cond(str.length <= 127, str, "Maximum length is 127 characters!")
 }
 
@@ -144,8 +158,11 @@ type PeerProperties = FieldTable
   * channel exception.
   */
 opaque type QueueName <: ShortString = String
-object QueueName {
-  def apply(name: String): Either[String, QueueName] =
+object QueueName extends Literally[String, QueueName] {
+
+  inline def apply(t: String): QueueName = ${ build('t) }
+
+  def from(name: String): Either[String, QueueName] =
     validateName(name).flatMap(validateNameSize)
 }
 
@@ -160,8 +177,11 @@ type Redelivered = Boolean
   * waiting acknowledgement.
   */
 opaque type MessageCount <: Long = Long
-object MessageCount {
-  def apply(count: Long): Either[String, MessageCount] =
+object MessageCount extends Literally[Long, MessageCount] {
+
+  inline def apply(t: Long): MessageCount = ${ build('t) }
+
+  def from(count: Long): Either[String, MessageCount] =
     Either.cond(count >= 0, count, "Count cannot be negative!")
 }
 
@@ -176,8 +196,11 @@ enum DeliveryMode(val value: Byte) {
 }
 
 type Priority = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-object Priority {
-  def apply(b: Int): Either[String, Priority] = b match {
+object Priority extends Literally[Int, Priority] {
+
+  inline def apply(t: Int): Priority = ${ build('t) }
+
+  def from(b: Int): Either[String, Priority] = b match {
     case p: Priority => Right(p)
     case _           => Left("Valid priorities are 0-9")
   }

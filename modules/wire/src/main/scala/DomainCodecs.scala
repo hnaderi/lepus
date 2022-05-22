@@ -43,11 +43,17 @@ object DomainCodecs {
   lazy val deliveryTag: Codec[DeliveryTag] =
     int64.xmap(DeliveryTag(_), identity)
   lazy val shortString: Codec[ShortString] =
-    variableSizeBytes(uint8, ascii).exmap(ShortString(_).asAttempt, success)
+    variableSizeBytes(uint8, ascii).exmap(
+      ShortString.from(_).asAttempt,
+      success
+    )
   lazy val emptyShortString: Codec[Unit] = shortString.unit(ShortString.empty)
 
   lazy val longString: Codec[LongString] =
-    variableSizeBytesLong(uint32, ascii).exmap(LongString(_).asAttempt, success)
+    variableSizeBytesLong(uint32, ascii).exmap(
+      LongString.from(_).asAttempt,
+      success
+    )
   lazy val emptyLongString: Codec[Unit] = longString.unit(LongString.empty)
 
   lazy val timestamp: Codec[Timestamp] = long(64).xmap(Timestamp(_), identity)
@@ -85,7 +91,7 @@ object DomainCodecs {
     .xmap(FieldTable(_), _.values)
 
   lazy val priority: Codec[Priority] =
-    int8.exmap(Priority(_).asAttempt, success)
+    int8.exmap(Priority.from(_).asAttempt, success)
 
   lazy val deliveryMode: Codec[DeliveryMode] =
     int8
@@ -133,10 +139,11 @@ object DomainCodecs {
       .appended(false) // So far we have 14 flags total, so add an empty flag
 
   lazy val exchangeName: Codec[ExchangeName] =
-    shortString.exmap(ExchangeName(_).asAttempt, success)
+    shortString.exmap(ExchangeName.from(_).asAttempt, success)
   lazy val queueName: Codec[QueueName] =
-    shortString.exmap(QueueName(_).asAttempt, success)
-  lazy val path: Codec[Path] = shortString.exmap(Path(_).asAttempt, success)
+    shortString.exmap(QueueName.from(_).asAttempt, success)
+  lazy val path: Codec[Path] =
+    shortString.exmap(Path.from(_).asAttempt, success)
 
   lazy val noAck: Codec[NoAck] = bool
   lazy val noLocal: Codec[NoLocal] = bool
@@ -144,7 +151,7 @@ object DomainCodecs {
   lazy val redelivered: Codec[Redelivered] = bool
   lazy val peerProperties: Codec[PeerProperties] = fieldTable
   lazy val messageCount: Codec[MessageCount] =
-    uint32.exmap(MessageCount(_).asAttempt, success)
+    uint32.exmap(MessageCount.from(_).asAttempt, success)
   lazy val replyText: Codec[ReplyText] = shortString
   lazy val replyCode: Codec[ReplyCode] =
     short16.exmap(

@@ -14,28 +14,22 @@
  * limitations under the License.
  */
 
-package lepus.client
+package lepus.protocol.domains
 
-import cats.MonadError
-import cats.effect.Concurrent
-import cats.effect.std.Queue
-import cats.implicits.*
-import fs2.Stream
-import lepus.client.apis.*
-import lepus.client.internal.*
-import lepus.protocol.*
+import scala.compiletime.*
+import scala.quoted.*
+import scala.reflect.*
 
-trait APIChannel[F[_]] {
-  def exchange: ExchangeAPI[F]
-  def queue: QueueAPI[F]
+private abstract class Literally[T, R](using FromExpr[T], ToExpr[R]) {
+  private def validate(t: T)(using Quotes): Either[String, Expr[R]] =
+    from(t).map(Expr(_))
+
+  protected final def build(t: Expr[T])(using ctx: Quotes): Expr[R] =
+    import ctx.reflect.report
+    t.value match {
+      case Some(v) => validate(v).fold(report.errorAndAbort, identity)
+      case None    => report.errorAndAbort("Not a literal value!")
+    }
+
+  def from(str: T): Either[String, R]
 }
-
-trait MessagingChannel[F[_]] extends APIChannel[F] {
-  def messaging: DefaultMessaging[F]
-}
-
-trait ReliableMessagingChannel[F[_]] extends APIChannel[F] {
-  def messaging: ReliableMessagingChannel[F]
-}
-
-object Channel {}

@@ -36,24 +36,26 @@ object DomainGenerators {
   val channelNumber: Gen[ChannelNumber] =
     Arbitrary.arbitrary[Short].map(ChannelNumber(_))
 
-  val exchangeName: Gen[ExchangeName] = Gen.alphaNumStr.emap(ExchangeName(_))
-  val queueName: Gen[QueueName] = Gen.alphaNumStr.emap(QueueName(_))
+  val exchangeName: Gen[ExchangeName] =
+    Gen.alphaNumStr.emap(ExchangeName.from(_))
+  val queueName: Gen[QueueName] = Gen.alphaNumStr.emap(QueueName.from(_))
 
   val methodIds: Gen[MethodId] = Arbitrary.arbitrary[Short].map(MethodId(_))
   val classIds: Gen[ClassId] = Arbitrary.arbitrary[Short].map(ClassId(_))
 
   val shortString: Gen[ShortString] = Gen
     .choose(0, 255)
-    .flatMap(n => Gen.stringOfN(n, Gen.alphaNumChar).emap(ShortString(_)))
+    .flatMap(n => Gen.stringOfN(n, Gen.alphaNumChar).emap(ShortString.from(_)))
 
   val longString: Gen[LongString] =
-    Gen.alphaNumStr.emap(LongString(_))
+    Gen.alphaNumStr.emap(LongString.from(_))
 
   val timestamp: Gen[Timestamp] = Arbitrary.arbitrary[Long].map(Timestamp(_))
 
-  val messageCount: Gen[MessageCount] = Gen.posNum[Long].emap(MessageCount(_))
+  val messageCount: Gen[MessageCount] =
+    Gen.posNum[Long].emap(MessageCount.from(_))
   val consumerTag: Gen[ConsumerTag] = shortString.map(ConsumerTag(_))
-  val path: Gen[Path] = shortString.emap(Path(_))
+  val path: Gen[Path] = shortString.emap(Path.from(_))
   val deliveryTag: Gen[DeliveryTag] =
     Arbitrary.arbitrary[Long].map(DeliveryTag(_))
 

@@ -38,13 +38,13 @@ trait Consuming[F[_]] extends Messaging[F] {
 
   def consume(
       queue: QueueName,
-      consumerTag: ConsumerTag,
-      noLocal: NoLocal,
-      noAck: NoAck,
-      exclusive: Boolean,
-      noWait: NoWait,
-      arguments: FieldTable
-  ): Stream[F, Message]
+      consumerTag: ConsumerTag = ConsumerTag.empty,
+      noLocal: NoLocal = false,
+      noAck: NoAck = true,
+      exclusive: Boolean = false,
+      noWait: NoWait = false,
+      arguments: FieldTable = FieldTable.empty
+  ): Stream[F, DeliveredMessage]
 
   def get(
       queue: QueueName,
