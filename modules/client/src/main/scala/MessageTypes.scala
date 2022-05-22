@@ -44,6 +44,8 @@ final case class Message(
     properties: Properties = Properties()
 )
 
+type AsyncContent = ReturnedMessage | DeliveredMessage
+
 final case class ReturnedMessage(
     replyCode: ReplyCode,
     replyText: ReplyText,

@@ -18,42 +18,20 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
+import cats.effect.kernel.Deferred
 import cats.effect.std.Queue
+import cats.effect.std.QueueSink
+import cats.effect.std.QueueSource
 import cats.implicits.*
+import fs2.Stream
+import lepus.protocol.ConnectionClass.Start
 import lepus.protocol.Frame
 import lepus.protocol.*
 import lepus.protocol.domains.*
+import scodec.bits.ByteVector
 
 trait RPCChannel[F[_]] {
   def sendWait(m: Method): F[Method]
   def sendNoWait(m: Method): F[Unit]
   def recv(m: Method): F[Unit]
-}
-
-trait ContentChannel[F[_]] {
-  def send(msg: Message): F[Unit]
-  def recv: F[Message]
-}
-
-object ContentChannel {
-  def apply[F[_]](
-      channelNumber: ChannelNumber,
-      maxSize: Long,
-      q: Queue[F, Frame]
-  )(using
-      F: Concurrent[F]
-  ): F[ContentChannel[F]] =
-    F.unit.map(_ =>
-      new {
-        def send(msg: Message): F[Unit] = q.offer(
-          Frame.Header(
-            channelNumber,
-            ClassId(10),
-            msg.payload.size,
-            msg.properties
-          )
-        ) >> q.offer(Frame.Body(channelNumber, msg.payload))
-        def recv: F[Message] = ???
-      }
-    )
 }
