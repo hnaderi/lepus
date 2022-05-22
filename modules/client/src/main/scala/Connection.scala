@@ -20,6 +20,7 @@ import cats.effect.Concurrent
 import cats.effect.Resource
 import cats.effect.implicits.*
 import cats.effect.std.Queue
+import cats.implicits.*
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
@@ -79,7 +80,7 @@ private final class ConnectionImpl[F[_]: Concurrent](
   }
 
   private def handleMethod: Method => F[Unit] = {
-    case m: (Metadata.ServerMethod & Metadata.Response) => rpc.recv(m)
+    case m: (Metadata.ServerMethod & Metadata.Response) => rpc.recv(m).as(???)
     case m: Metadata.Async                              => handleAsync(m)
     case m: ConnectionClass.Start                       => ???
     case m: ConnectionClass.Secure                      => ???
