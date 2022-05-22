@@ -37,7 +37,6 @@ import fs2.io.file.WriteCursor
 import fs2.io.net.Network
 import fs2.io.net.Socket
 import fs2.text
-import lepus.client.DecodeTest
 import lepus.client.Transport
 import lepus.protocol.ProtocolVersion
 import lepus.protocol.Frame
