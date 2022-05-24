@@ -27,8 +27,10 @@ import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
 import lepus.protocol.*
+import lepus.protocol.domains.ChannelNumber
 
 import internal.*
+import cats.effect.kernel.Ref
 
 trait Connection[F[_]] {
   def apiChannel: Resource[F, APIChannel[F]]
@@ -45,7 +47,7 @@ object Connection {
   ): Resource[F, Connection[F]] = for {
     _status <- Resource.eval(SignallingRef[F].of(Status.New))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    con = ConnectionImpl(???, sendQ, _status, bufferSize)
+    con = ConnectionImpl(sendQ, _status, bufferSize, ???)
     _ <- con.run(transport).compile.drain.background
   } yield con
 
@@ -55,33 +57,36 @@ object Connection {
 }
 
 private final class ConnectionImpl[F[_]: Concurrent](
-    rpc: RPCChannel[F],
     sendQ: Queue[F, Frame],
     _status: SignallingRef[F, Status],
-    bufferSize: Int
+    bufferSize: Int,
+    channels: Ref[F, Map[ChannelNumber, ChannelReceiver[F]]]
 ) extends Connection[F] {
   def apiChannel: Resource[F, APIChannel[F]] = ???
   def channel: Resource[F, MessagingChannel[F]] = ???
   def reliableChannel: Resource[F, ReliableMessagingChannel[F]] = ???
   def status: Signal[F, Connection.Status] = ???
 
-  private def handleAsync: Metadata.Async => F[Unit] = {
-    case _: BasicClass.Deliver          => ???
+  private def getChannel(ch: ChannelNumber): F[ChannelReceiver[F]] =
+    channels.get.flatMap(_.get(ch).fold(???)(_.pure))
+
+  private def handleAsync(ch: ChannelReceiver[F]): Metadata.Async => F[Unit] = {
+    case m: BasicClass.Deliver          => ch.asyncNotify(m).flatMap(???)
     case ConnectionClass.Blocked(_)     => ???
     case ConnectionClass.Unblocked      => ???
     case ChannelClass.FlowOk(_)         => ???
-    case BasicClass.Publish(_, _, _, _) => ???
-    case BasicClass.Return(_, _, _, _)  => ???
+    case m: BasicClass.Return           => ch.asyncNotify(m).flatMap(???)
     case BasicClass.Ack(_, _)           => ???
     case BasicClass.Reject(_, _)        => ???
     case BasicClass.RecoverAsync(_)     => ???
     case BasicClass.Recover(_)          => ???
     case BasicClass.Nack(_, _, _)       => ???
+    case BasicClass.Publish(_, _, _, _) => ??? // won't happen
   }
 
-  private def handleMethod: Method => F[Unit] = {
-    case m: (Metadata.ServerMethod & Metadata.Response) => rpc.recv(m).as(???)
-    case m: Metadata.Async                              => handleAsync(m)
+  private def handleMethod(ch: ChannelReceiver[F]): Method => F[Unit] = {
+    case m: (Metadata.ServerMethod & Metadata.Response) => ch.recv(m).as(???)
+    case m: Metadata.Async                              => handleAsync(ch)(m)
     case m: ConnectionClass.Start                       => ???
     case m: ConnectionClass.Secure                      => ???
     case m: ConnectionClass.Tune                        => ???
@@ -102,10 +107,12 @@ private final class ConnectionImpl[F[_]: Concurrent](
       .fromQueueUnterminated(sendQ, bufferSize)
       .through(transport)
       .evalMap {
-        case Frame.Heartbeat              => sendQ.offer(Frame.Heartbeat)
-        case Frame.Method(ch, m)          => handleMethod(m)
-        case Frame.Header(ch, cl, bs, ps) => ???
-        case Frame.Body(ch, pl)           => ???
+        case f @ Frame.Body(ch, _) =>
+          getChannel(ch).flatMap(_.recv(f)).flatMap(???)
+        case f @ Frame.Header(ch, _, _, _) =>
+          getChannel(ch).flatMap(_.recv(f)).flatMap(???)
+        case Frame.Method(ch, m) => getChannel(ch).flatMap(handleMethod(_)(m))
+        case Frame.Heartbeat     => sendQ.offer(Frame.Heartbeat)
       }
       .onFinalize(_status.set(Status.Closed))
       .drain

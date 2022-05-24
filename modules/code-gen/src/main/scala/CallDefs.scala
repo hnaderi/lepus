@@ -45,7 +45,7 @@ object CallDefs {
   "${M} is not a client side method, or you can't use ${F} as an effect for rpc calls"
 )
 sealed trait RPCCallDef[F[_], M <: Method, O] {
-  def call(rpc: RPCChannel[F])(i: M): F[O]
+  def call(rpc: ChannelTransmitter[F])(i: M): F[O]
 }
 """
     ) ++
@@ -99,7 +99,7 @@ sealed trait RPCCallDef[F[_], M <: Method, O] {
       else waitBody
 
     s"""given $givenName[F[_]](using F:MonadError[F, Throwable]) : RPCCallDef[F, $fullTypeName, $finalReturnType] = new {
-  def call(rpc: RPCChannel[F])(msg: $fullTypeName): F[$finalReturnType] = $body
+  def call(rpc: ChannelTransmitter[F])(msg: $fullTypeName): F[$finalReturnType] = $body
 }
 """
 

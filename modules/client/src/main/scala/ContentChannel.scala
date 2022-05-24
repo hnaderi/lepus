@@ -36,20 +36,25 @@ import scodec.bits.ByteVector
 import ContentChannel.*
 
 private[client] trait ContentChannel[F[_]] {
-  def send(msg: Message): F[Unit]
-  def startAsync(m: ContentMethod): F[Unit | ErrorCode]
+  def send(method: BasicClass.Publish, msg: Message): F[Unit]
+  def asyncNotify(m: ContentMethod): F[Unit | ErrorCode]
   def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode]
   def consume: QueueSource[F, AsyncContent]
   def get(m: BasicClass.GetOk): F[DeferredSource[F, SynchronousGet]]
+
+  def get_(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]] =
+    ???
+  def syncNotify(
+      m: BasicClass.GetOk | BasicClass.GetEmpty.type
+  ): F[Unit | ErrorCode] = ???
 }
 
 private[client] object ContentChannel {
-  type ContentMethod = BasicClass.Deliver | BasicClass.Return
 
   def apply[F[_]](
       channelNumber: ChannelNumber,
       maxSize: Long,
-      publisher: QueueSink[F, Frame]
+      publisher: SequentialOutput[F, Frame]
   )(using
       F: Concurrent[F]
   ): F[ContentChannel[F]] =
@@ -60,21 +65,25 @@ private[client] object ContentChannel {
     } yield new {
       private val idle = State.Idle[F]()
 
-      def send(msg: Message): F[Unit] = publisher.offer(
-        Frame.Header(
-          channelNumber,
-          ClassId(10),
-          msg.payload.size,
-          msg.properties
+      def send(method: BasicClass.Publish, msg: Message): F[Unit] =
+        publisher.writeAll(
+          List
+            .range(0L, msg.payload.size, maxSize)
+            .map(i =>
+              Frame.Body(channelNumber, msg.payload.slice(i, i + maxSize))
+            )
+            .prepended(
+              Frame.Header(
+                channelNumber,
+                ClassId(10),
+                msg.payload.size,
+                msg.properties
+              )
+            )
+            .prepended(Frame.Method(channelNumber, method)): _*
         )
-      ) >> Range
-        .Long(0L, msg.payload.size, maxSize)
-        .map(i => msg.payload.slice(i, i + maxSize))
-        .toList
-        .traverse(f => publisher.offer(Frame.Body(channelNumber, f)))
-        .void
 
-      def startAsync(m: ContentMethod): F[Unit | ErrorCode] =
+      def asyncNotify(m: ContentMethod): F[Unit | ErrorCode] =
         state.set(State.AsyncStarted(m)).widen
       def consume: QueueSource[F, AsyncContent] = q
       def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode] =

@@ -41,26 +41,24 @@ private[client] trait RPCChannel[F[_]] {
 
 private[client] object RPCChannel {
   def apply[F[_]](
-      publisher: QueueSink[F, Frame],
+      publisher: SequentialOutput[F, Frame],
       channelNumber: ChannelNumber,
       maxMethods: Int = 10
   )(using F: Concurrent[F]): F[RPCChannel[F]] =
     for {
-      waiting <- Queue.bounded[F, Deferred[F, Method]](maxMethods)
-      sem <- Semaphore[F](1)
+      waitlist <- Waitlist[F, Method](maxMethods)
     } yield new {
+
       def sendWait(m: Method): F[Method] = for {
-        d <- Deferred[F, Method]
-        _ <- sem.permit.use(_ => waiting.offer(d) >> sendNoWait(m))
+        d <- waitlist.checkinAnd(sendNoWait(m))
         out <- d.get
       } yield out
 
       def sendNoWait(m: Method): F[Unit] =
-        publisher.offer(Frame.Method(channelNumber, m))
-      def recv(m: Method): F[Unit | ErrorCode] = waiting.tryTake.flatMap {
-        case Some(d) => d.complete(m).ifM(unit, syntaxError)
-        case None    => syntaxError
-      }
+        publisher.writeOne(Frame.Method(channelNumber, m))
+
+      def recv(m: Method): F[Unit | ErrorCode] =
+        waitlist.nextTurn(m).ifM(unit, syntaxError)
 
       private val syntaxError: F[Unit | ErrorCode] = ReplyCode.SyntaxError.pure
       private val unit: F[Unit | ErrorCode] = ().pure

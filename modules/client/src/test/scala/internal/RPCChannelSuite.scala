@@ -24,6 +24,7 @@ import lepus.codecs.AllClassesDataGenerator.methods
 import lepus.codecs.DomainGenerators.channelNumber
 import lepus.protocol.Frame
 import lepus.protocol.constants.ReplyCode
+import lepus.protocol.domains.ChannelNumber
 import munit.CatsEffectSuite
 import munit.ScalaCheckEffectSuite
 import org.scalacheck.Gen
@@ -35,12 +36,11 @@ class RPCChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
   test("send no wait") {
     forAllF(methods, channelNumber) { (m, ch) =>
       for {
-        q <- Queue.bounded[IO, Frame](1)
-        rpc <- RPCChannel(q, ch)
-        _ <- q.size.assertEquals(0)
-        _ <- rpc.sendNoWait(m)
-        _ <- q.size.assertEquals(1)
-        _ <- q.take.assertEquals(Frame.Method(ch, m))
+        sut <- newSut(ch)
+        _ <- sut.q.size.assertEquals(0)
+        _ <- sut.rpc.sendNoWait(m)
+        _ <- sut.q.size.assertEquals(1)
+        _ <- sut.q.take.assertEquals(Frame.Method(ch, m))
       } yield ()
 
     }
@@ -49,12 +49,13 @@ class RPCChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
   test("send wait") {
     forAllF(methods, methods, channelNumber) { (m1, m2, ch) =>
       for {
-        q <- Queue.bounded[IO, Frame](1)
-        rpc <- RPCChannel(q, ch)
-        _ <- q.size.assertEquals(0)
-        _ <- rpc
+        sut <- newSut(ch)
+        _ <- sut.q.size.assertEquals(0)
+        _ <- sut.rpc
           .sendWait(m1)
-          .both(q.take.assertEquals(Frame.Method(ch, m1)) >> rpc.recv(m2))
+          .both(
+            sut.q.take.assertEquals(Frame.Method(ch, m1)) >> sut.rpc.recv(m2)
+          )
           .map(_._1)
           .assertEquals(m2)
       } yield ()
@@ -65,19 +66,18 @@ class RPCChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
   test("send wait ordering") {
     forAllF(methodPairs, channelNumber) { (mps, ch) =>
       for {
-        q <- Queue.bounded[IO, Frame](mps.size)
-        rpc <- RPCChannel(q, ch)
-        _ <- q.size.assertEquals(0)
+        sut <- newSut(ch, mps.size)
+        _ <- sut.q.size.assertEquals(0)
         pairs = mps.toList.unzip
         requests = pairs._1
         responses = pairs._2
         out <- requests
-          .parTraverse(rpc.sendWait)
+          .parTraverse(sut.rpc.sendWait)
           .both(
             responses.traverse(resp =>
-              q.take.flatMap {
+              sut.q.take.flatMap {
                 case Frame.Method(chNum, m) if chNum == ch =>
-                  IO(m, resp) <* rpc.recv(resp)
+                  IO(m, resp) <* sut.rpc.recv(resp)
                 case other => fail(s"Invalid frame sent! $other")
               }
             )
@@ -95,10 +95,9 @@ class RPCChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
   test("fails on recv when no one is waiting") {
     forAllF(methods, channelNumber) { (m, ch) =>
       for {
-        q <- Queue.bounded[IO, Frame](1)
-        rpc <- RPCChannel(q, ch)
-        _ <- rpc.recv(m).assertEquals(ReplyCode.SyntaxError)
-        _ <- q.size.assertEquals(0)
+        sut <- newSut(ch)
+        _ <- sut.rpc.recv(m).assertEquals(ReplyCode.SyntaxError)
+        _ <- sut.q.size.assertEquals(0)
       } yield ()
 
     }
@@ -106,6 +105,17 @@ class RPCChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
 }
 
 object RPCChannelSuite {
+  final case class SUT(
+      q: Queue[IO, Frame],
+      rpc: RPCChannel[IO]
+  )
+
+  def newSut(ch: ChannelNumber, size: Int = 1) = for {
+    q <- Queue.bounded[IO, Frame](size)
+    p <- SequentialOutput(q, size)
+    rpc <- RPCChannel(p, ch)
+  } yield SUT(q, rpc)
+
   private val methodPair = for {
     m1 <- methods
     m2 <- methods

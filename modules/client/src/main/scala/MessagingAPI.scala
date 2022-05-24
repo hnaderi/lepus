@@ -38,7 +38,6 @@ trait Consuming[F[_]] extends Messaging[F] {
 
   def consume(
       queue: QueueName,
-      consumerTag: ConsumerTag = ConsumerTag.empty,
       noLocal: NoLocal = false,
       noAck: NoAck = true,
       exclusive: Boolean = false,

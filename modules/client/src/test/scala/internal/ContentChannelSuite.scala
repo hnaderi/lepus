@@ -22,11 +22,7 @@ import cats.effect.std.Queue
 import cats.implicits.*
 import lepus.codecs.BasicDataGenerator
 import lepus.codecs.DomainGenerators
-import lepus.protocol.BasicClass
-import lepus.protocol.Frame
-import lepus.protocol.Metadata.Async
-import lepus.protocol.Metadata.Request
-import lepus.protocol.Metadata.ServerMethod
+import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
@@ -34,7 +30,8 @@ import munit.CatsEffectSuite
 import munit.ScalaCheckEffectSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
-import org.scalacheck.effect.PropF.forAllF
+import org.scalacheck.effect.PropF
+import org.scalacheck.effect.PropF.*
 import scodec.bits.ByteVector
 
 import scala.concurrent.duration.*
@@ -46,13 +43,22 @@ class ContentChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
   override def munitTimeout = 5.second
 
   test("Must split publish data to frames with maximum permitted size") {
-    forAllF(channel, maxSize, binary, props) { (ch, size, data, props) =>
+    forAllNoShrinkF(
+      BasicDataGenerator.publishGen,
+      channel,
+      maxSize,
+      binary,
+      props
+    ) { (publishMethod, ch, size, data, props) =>
+      val frameCount = Math.ceil(data.size.toDouble / size.toDouble).toInt
       for {
-        pq <- Queue.bounded[IO, Frame](1000)
-        cc <- ContentChannel[IO](ch, maxSize = size, publisher = pq)
-        _ <- cc.send(Message(data, props))
+        sut <- newChannel(ch, size, 1000)
+        _ <- sut.cc.send(publishMethod, Message(data, props))
 
-        _ <- pq.take.assertEquals(
+        _ <- sut.pq.size.assertEquals(frameCount + 2)
+
+        _ <- sut.pq.take.assertEquals(Frame.Method(ch, publishMethod))
+        _ <- sut.pq.take.assertEquals(
           Frame.Header(
             ch,
             ClassId(10),
@@ -60,10 +66,9 @@ class ContentChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
             props
           )
         )
-        frameCount = Math.ceil(data.size.toDouble / size.toDouble).toInt
-        _ <- pq.size.assertEquals(frameCount)
+        _ <- sut.pq.size.assertEquals(frameCount)
 
-        all <- (1 to frameCount).toList.traverse(_ => pq.take)
+        all <- (1 to frameCount).toList.traverse(_ => sut.pq.take)
 
         expected = Range
           .Long(0, data.size, size)
@@ -88,7 +93,7 @@ class ContentChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
       cc: ContentChannel[IO]
   ) = for {
     _ <- cc.consume.size.assertEquals(0)
-    _ <- cc.startAsync(method)
+    _ <- cc.asyncNotify(method)
     _ <- cc.recv(content.header)
     _ <- content.bodies.traverse(cc.recv)
     _ <- cc.consume.size.assertEquals(1)
@@ -115,31 +120,27 @@ class ContentChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
     _ <- cc.consume.take.assertEquals(expected)
   } yield ()
 
-  private val newChannel = for {
-    pq <- Queue.bounded[IO, Frame](0)
-    cc <- ContentChannel[IO](ChannelNumber(1), maxSize = 10, publisher = pq)
-  } yield cc
-
   test("Must fail when receives header before starting") {
     forAllF(incomingContent) { content =>
       for {
-        cc <- newChannel
-        _ <- cc
+        sut <- newChannel()
+        _ <- sut.cc
           .recv(content.header)
           .assertEquals(ReplyCode.UnexpectedFrame)
       } yield ()
     }
   }
+
   test("Must fail when receives header before content") {
     forAllF(anyMethod, incomingContent.suchThat(!_.bodies.isEmpty)) {
       (m, content) =>
         for {
-          cc <- newChannel
+          sut <- newChannel()
           _ <- m match {
-            case m: ContentMethod    => cc.startAsync(m)
-            case m: BasicClass.GetOk => cc.get(m).void
+            case m: ContentMethod    => sut.cc.asyncNotify(m)
+            case m: BasicClass.GetOk => sut.cc.get(m).void
           }
-          _ <- cc
+          _ <- sut.cc
             .recv(content.bodies.head)
             .assertEquals(ReplyCode.UnexpectedFrame)
         } yield ()
@@ -149,11 +150,12 @@ class ContentChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
   test("Must recieve and merge all deliveries") {
     forAllF(anyContents) { contents =>
       for {
-        cc <- newChannel
+        sut <- newChannel()
         _ <- contents.traverse {
-          case (m: ContentMethod, content) => assertAsyncContent(m, content, cc)
+          case (m: ContentMethod, content) =>
+            assertAsyncContent(m, content, sut.cc)
           case (m: BasicClass.GetOk, content) =>
-            assertSyncContent(m, content, cc)
+            assertSyncContent(m, content, sut.cc)
         }
       } yield ()
     }
@@ -182,6 +184,26 @@ class ContentChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
 }
 
 object ContentChannelSuite {
+
+  final case class SUT(
+      pq: Queue[IO, Frame],
+      cc: ContentChannel[IO]
+  )
+
+  private def newChannel(
+      ch: ChannelNumber = ChannelNumber(1),
+      maxFrameSize: Long = 10L,
+      size: Int = 0
+  ) = for {
+    pq <- Queue.bounded[IO, Frame](size)
+    s <- SequentialOutput(pq)
+    cc <- ContentChannel[IO](
+      ch,
+      maxSize = maxFrameSize,
+      publisher = s
+    )
+  } yield SUT(pq, cc)
+
   val channel = DomainGenerators.channelNumber
   val binary = Gen
     .choose(0, 1000)
