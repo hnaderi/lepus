@@ -23,10 +23,7 @@ import munit.CatsEffectSuite
 abstract class ConnectionSuite extends CatsEffectSuite {
   test("") {
     val con: Connection[IO] = ???
-    val app1 = con.apiChannel.use(ch =>
-      ch.queue.declare(???, ???, ???, ???, ???, ???, ???)
-    )
-    val app2 = con.channel.use(ch =>
+    val app1 = con.channel.use(ch =>
       ch.messaging
         .consume(QueueName("abc"))
         .evalMap(msg => IO.println(msg.routingKey))
@@ -34,7 +31,17 @@ abstract class ConnectionSuite extends CatsEffectSuite {
         .drain
     )
 
-    val app3 = con.reliableChannel.use(ch => ???)
+    val app2 = con.reliableChannel.use(ch => ???)
+    val app3 = con.transactionalChannel.use(ch =>
+      ch.messaging.transaction.use(trx =>
+        ch.messaging
+          .publish(
+            ExchangeName("hello"),
+            ShortString("havij"),
+            ???
+          ) >> trx.commit
+      )
+    )
 
     val ss = ShortString.from("abs")
     val qn = QueueName("abs")

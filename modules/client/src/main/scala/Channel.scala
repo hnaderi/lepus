@@ -27,25 +27,19 @@ import lepus.client.internal.*
 import lepus.protocol.*
 import lepus.protocol.domains.*
 
-trait APIChannel[F[_]] {
+trait Channel[F[_], M <: MessagingChannel] {
   def exchange: ExchangeAPI[F]
   def queue: QueueAPI[F]
-}
-
-trait MessagingChannel[F[_]] extends APIChannel[F] {
-  def messaging: DefaultMessaging[F]
-}
-
-trait ReliableMessagingChannel[F[_]] extends APIChannel[F] {
-  def messaging: ReliableMessagingChannel[F]
+  def messaging: M
 }
 
 object Channel {
   private trait APIChannelImpl[F[_]](rpc: RPCChannel[F])(using
       F: MonadError[F, Throwable]
-  ) extends APIChannel[F] {
+  ) extends Channel[F, NormalMessagingChannel[F]] {
     final def exchange: ExchangeAPI[F] = ExchangeAPIImpl(rpc)
     final def queue: QueueAPI[F] = QueueAPIImpl(rpc)
+    final def messaging: NormalMessagingChannel[F] = ???
   }
   extension [F[_]](rpc: ChannelTransmitter[F]) {
     def call[M <: Method, O](m: M)(using d: RPCCallDef[F, M, O]): F[O] =

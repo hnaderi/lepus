@@ -18,6 +18,7 @@ package lepus.client
 package apis
 
 import cats.MonadError
+import cats.effect.kernel.Resource
 import cats.implicits.*
 import fs2.Pipe
 import fs2.Stream
@@ -26,9 +27,9 @@ import lepus.protocol.classes.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 
-sealed trait Messaging[F[_]]
+sealed trait MessagingChannel
 
-trait Consuming[F[_]] extends Messaging[F] {
+trait Consuming[F[_]] {
 
   def qos(
       prefetchSize: Int,
@@ -66,7 +67,7 @@ trait Consuming[F[_]] extends Messaging[F] {
 
 }
 
-trait Publishing[F[_]] extends Messaging[F] {
+trait Publishing[F[_]] {
   def publish(
       exchange: ExchangeName,
       routingKey: ShortString,
@@ -76,9 +77,28 @@ trait Publishing[F[_]] extends Messaging[F] {
   def publisher: Pipe[F, Envelope, ReturnedMessage]
 }
 
-trait ReliablePublishing[F[_]] extends Messaging[F] {
+trait ReliablePublishing[F[_]] {
   def publish(env: Envelope): F[ReliableEnvelope[F]]
 }
 
-trait DefaultMessaging[F[_]] extends Consuming[F], Publishing[F]
-trait ReliableMessaging[F[_]] extends Consuming[F], ReliablePublishing[F]
+trait Transaction[F[_]] {
+  def commit: F[Unit]
+  def rollback: F[Unit]
+}
+
+trait TransactionalMessaging[F[_]] {
+  def transaction: Resource[F, Transaction[F]]
+}
+
+trait NormalMessagingChannel[F[_]]
+    extends MessagingChannel,
+      Consuming[F],
+      Publishing[F]
+trait ReliablePublishingMessagingChannel[F[_]]
+    extends MessagingChannel,
+      Consuming[F],
+      ReliablePublishing[F]
+trait TransactionalMessagingChannel[F[_]]
+    extends MessagingChannel,
+      NormalMessagingChannel[F],
+      TransactionalMessaging[F]

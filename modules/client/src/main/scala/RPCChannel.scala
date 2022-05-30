@@ -18,20 +18,13 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import cats.effect.kernel.Deferred
-import cats.effect.std.Queue
-import cats.effect.std.QueueSink
-import cats.effect.std.QueueSource
-import cats.effect.std.Semaphore
 import cats.implicits.*
 import fs2.Stream
-import lepus.protocol.ConnectionClass.Start
 import lepus.protocol.Frame
 import lepus.protocol.*
 import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import scodec.bits.ByteVector
 
 private[client] trait RPCChannel[F[_]] {
   def sendWait(m: Method): F[Method]

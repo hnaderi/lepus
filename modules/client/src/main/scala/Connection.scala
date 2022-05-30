@@ -19,6 +19,7 @@ package lepus.client
 import cats.effect.Concurrent
 import cats.effect.Resource
 import cats.effect.implicits.*
+import cats.effect.kernel.Ref
 import cats.effect.std.Queue
 import cats.implicits.*
 import fs2.Pipe
@@ -26,18 +27,23 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
+import lepus.client.apis.NormalMessagingChannel
+import lepus.client.apis.ReliablePublishingMessagingChannel
+import lepus.client.apis.TransactionalMessagingChannel
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 
 import internal.*
-import cats.effect.kernel.Ref
 
 trait Connection[F[_]] {
-  def apiChannel: Resource[F, APIChannel[F]]
-  def channel: Resource[F, MessagingChannel[F]]
-  def reliableChannel: Resource[F, ReliableMessagingChannel[F]]
+  def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]]
+  def reliableChannel
+      : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]]
+  def transactionalChannel
+      : Resource[F, Channel[F, TransactionalMessagingChannel[F]]]
 
   def status: Signal[F, Connection.Status]
+  def channels: Signal[F, List[ChannelNumber]]
 }
 
 object Connection {
@@ -47,7 +53,8 @@ object Connection {
   ): Resource[F, Connection[F]] = for {
     _status <- Resource.eval(SignallingRef[F].of(Status.New))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    con = ConnectionImpl(sendQ, _status, bufferSize, ???)
+    counter <- Resource.eval(Ref[F].of(1))
+    con = ConnectionImpl(sendQ, _status, bufferSize, ???, counter)
     _ <- con.run(transport).compile.drain.background
   } yield con
 
@@ -60,15 +67,19 @@ private final class ConnectionImpl[F[_]: Concurrent](
     sendQ: Queue[F, Frame],
     _status: SignallingRef[F, Status],
     bufferSize: Int,
-    channels: Ref[F, Map[ChannelNumber, ChannelReceiver[F]]]
+    _channels: Ref[F, Map[ChannelNumber, ChannelReceiver[F]]],
+    channelCounter: Ref[F, Int]
 ) extends Connection[F] {
-  def apiChannel: Resource[F, APIChannel[F]] = ???
-  def channel: Resource[F, MessagingChannel[F]] = ???
-  def reliableChannel: Resource[F, ReliableMessagingChannel[F]] = ???
+  def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] = ???
+  def reliableChannel
+      : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] = ???
+  def transactionalChannel
+      : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] = ???
   def status: Signal[F, Connection.Status] = ???
+  def channels: Signal[F, List[ChannelNumber]] = ???
 
   private def getChannel(ch: ChannelNumber): F[ChannelReceiver[F]] =
-    channels.get.flatMap(_.get(ch).fold(???)(_.pure))
+    _channels.get.flatMap(_.get(ch).fold(???)(_.pure))
 
   private def handleAsync(ch: ChannelReceiver[F]): Metadata.Async => F[Unit] = {
     case m: BasicClass.Deliver          => ch.asyncNotify(m).flatMap(???)
