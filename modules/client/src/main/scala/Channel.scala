@@ -18,6 +18,7 @@ package lepus.client
 
 import cats.MonadError
 import cats.effect.Concurrent
+import cats.effect.kernel.Resource
 import cats.effect.std.Queue
 import cats.implicits.*
 import fs2.Pipe
@@ -34,19 +35,21 @@ trait Channel[F[_], M <: MessagingChannel] {
 }
 
 object Channel {
-  private trait APIChannelImpl[F[_]](rpc: RPCChannel[F])(using
-      F: MonadError[F, Throwable]
-  ) extends Channel[F, NormalMessagingChannel[F]] {
+  private final class ChannelImpl[F[_], M <: MessagingChannel](
+      rpc: ChannelTransmitter[F],
+      val messaging: M
+  )(using MonadError[F, Throwable])
+      extends Channel[F, M] {
     final def exchange: ExchangeAPI[F] = ExchangeAPIImpl(rpc)
     final def queue: QueueAPI[F] = QueueAPIImpl(rpc)
-    final def messaging: NormalMessagingChannel[F] = ???
   }
+
   extension [F[_]](rpc: ChannelTransmitter[F]) {
     def call[M <: Method, O](m: M)(using d: RPCCallDef[F, M, O]): F[O] =
       d.call(rpc)(m)
   }
 
-  private trait ConsumingImpl[F[_]: Concurrent](
+  private abstract class ConsumingImpl[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
   ) extends Consuming[F] {
 
@@ -120,9 +123,10 @@ object Channel {
 
   }
 
-  private trait PublishingImpl[F[_]: Concurrent](
+  private class NormalPublishingImpl[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ) extends Publishing[F] {
+  ) extends ConsumingImpl[F](channel),
+        NormalMessagingChannel[F] {
     def publish(
         exchange: ExchangeName,
         routingKey: ShortString,
@@ -152,4 +156,19 @@ object Channel {
       send.mergeHaltBoth(channel.returned)
 
   }
+
+  private final class ReliablePublishingImpl[F[_]: Concurrent](
+      channel: ChannelTransmitter[F]
+  ) extends ConsumingImpl(channel),
+        ReliablePublishingMessagingChannel[F] {
+    def publish(env: Envelope): F[ReliableEnvelope[F]] = ???
+  }
+
+  private final class TransactionalMessagingImpl[F[_]: Concurrent](
+      channel: ChannelTransmitter[F]
+  ) extends NormalPublishingImpl(channel),
+        TransactionalMessagingChannel[F] {
+    def transaction: Resource[F, Transaction[F]] = ???
+  }
+
 }

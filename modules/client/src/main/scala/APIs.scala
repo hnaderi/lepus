@@ -98,8 +98,8 @@ trait QueueAPI[F[_]] {
   ): F[Option[QueueClass.DeleteOk]]
 }
 
-private[client] final class ExchangeAPIImpl[F[_]](rpc: RPCChannel[F])(using
-    F: MonadError[F, Throwable]
+private[client] final class ExchangeAPIImpl[F[_]](rpc: ChannelTransmitter[F])(
+    using F: MonadError[F, Throwable]
 ) extends ExchangeAPI[F] {
 
   def declare(
@@ -192,7 +192,7 @@ private[client] final class ExchangeAPIImpl[F[_]](rpc: RPCChannel[F])(using
 
 }
 
-private[client] final class QueueAPIImpl[F[_]](rpc: RPCChannel[F])(using
+private[client] final class QueueAPIImpl[F[_]](rpc: ChannelTransmitter[F])(using
     F: MonadError[F, Throwable]
 ) extends QueueAPI[F] {
 
