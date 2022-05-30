@@ -53,79 +53,43 @@ object Connection {
   ): Resource[F, Connection[F]] = for {
     _status <- Resource.eval(SignallingRef[F].of(Status.New))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    counter <- Resource.eval(Ref[F].of(1))
-    con = ConnectionImpl(sendQ, _status, bufferSize, ???, counter)
+    con = ConnectionImpl(sendQ, 100, _status, ???)
     _ <- con.run(transport).compile.drain.background
   } yield con
 
   enum Status {
     case New, Connecting, Connected, Closed
   }
-}
 
-private final class ConnectionImpl[F[_]: Concurrent](
-    sendQ: Queue[F, Frame],
-    _status: SignallingRef[F, Status],
-    bufferSize: Int,
-    _channels: Ref[F, Map[ChannelNumber, ChannelReceiver[F]]],
-    channelCounter: Ref[F, Int]
-) extends Connection[F] {
-  def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] = ???
-  def reliableChannel
-      : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] = ???
-  def transactionalChannel
-      : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] = ???
-  def status: Signal[F, Connection.Status] = ???
-  def channels: Signal[F, List[ChannelNumber]] = ???
-
-  private def getChannel(ch: ChannelNumber): F[ChannelReceiver[F]] =
-    _channels.get.flatMap(_.get(ch).fold(???)(_.pure))
-
-  private def handleAsync(ch: ChannelReceiver[F]): Metadata.Async => F[Unit] = {
-    case m: BasicClass.Deliver          => ch.asyncNotify(m).flatMap(???)
-    case ConnectionClass.Blocked(_)     => ???
-    case ConnectionClass.Unblocked      => ???
-    case ChannelClass.FlowOk(_)         => ???
-    case m: BasicClass.Return           => ch.asyncNotify(m).flatMap(???)
-    case BasicClass.Ack(_, _)           => ???
-    case BasicClass.Reject(_, _)        => ???
-    case BasicClass.RecoverAsync(_)     => ???
-    case BasicClass.Recover(_)          => ???
-    case BasicClass.Nack(_, _, _)       => ???
-    case BasicClass.Publish(_, _, _, _) => ??? // won't happen
+  private[client] enum State[F[_]] {
+    case New()
+    case Connected(
+        nextChannel: Int,
+        channels: Map[ChannelNumber, ChannelReceiver[F]]
+    )
   }
 
-  private def handleMethod(ch: ChannelReceiver[F]): Method => F[Unit] = {
-    case m: (Metadata.ServerMethod & Metadata.Response) => ch.recv(m).as(???)
-    case m: Metadata.Async                              => handleAsync(ch)(m)
-    case m: ConnectionClass.Start                       => ???
-    case m: ConnectionClass.Secure                      => ???
-    case m: ConnectionClass.Tune                        => ???
-    case m: ConnectionClass.Close                       => ???
-    case ConnectionClass.CloseOk                        => ???
-    case m: ConnectionClass.UpdateSecret                => ???
-    case m: ChannelClass.Flow                           => ???
-    case m: ChannelClass.Close                          => ???
-    case ChannelClass.CloseOk                           => ???
-    case m: BasicClass.Cancel                           => ???
-    case m: BasicClass.CancelOk                         => ???
-    case BasicClass.RecoverOk                           => ???
-    case m: Metadata.ClientMethod                       => ???
+  private[client] final class ConnectionImpl[F[_]: Concurrent](
+      sendQ: Queue[F, Frame],
+      bufferSize: Int,
+      _status: SignallingRef[F, Status],
+      handler: ConnectionHandler[F]
+  ) extends Connection[F] {
+    def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] = ???
+    def reliableChannel
+        : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] = ???
+    def transactionalChannel
+        : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] = ???
+    def status: Signal[F, Connection.Status] = ???
+    def channels: Signal[F, List[ChannelNumber]] = ???
+
+    private[client] def run(transport: Transport[F]): Stream[F, Nothing] =
+      Stream
+        .fromQueueUnterminated(sendQ, bufferSize)
+        .through(transport)
+        .evalScan(handler)((h, f) => h.handle(f))
+        .onFinalize(_status.set(Status.Closed))
+        .drain
+
   }
-
-  private[client] def run(transport: Transport[F]): Stream[F, Nothing] =
-    Stream
-      .fromQueueUnterminated(sendQ, bufferSize)
-      .through(transport)
-      .evalMap {
-        case f @ Frame.Body(ch, _) =>
-          getChannel(ch).flatMap(_.recv(f)).flatMap(???)
-        case f @ Frame.Header(ch, _, _, _) =>
-          getChannel(ch).flatMap(_.recv(f)).flatMap(???)
-        case Frame.Method(ch, m) => getChannel(ch).flatMap(handleMethod(_)(m))
-        case Frame.Heartbeat     => sendQ.offer(Frame.Heartbeat)
-      }
-      .onFinalize(_status.set(Status.Closed))
-      .drain
-
 }

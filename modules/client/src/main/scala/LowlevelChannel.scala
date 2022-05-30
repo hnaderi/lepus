@@ -27,13 +27,15 @@ import lepus.protocol.domains.ConsumerTag
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
-type ContentFrame = Frame.Header | Frame.Body
 
 private[client] trait ChannelReceiver[F[_]] {
-  def asyncNotify(m: ContentMethod): F[Unit | ErrorCode]
-  def syncNotify(m: ContentSyncResponse): F[Unit | ErrorCode]
-  def recv(f: ContentFrame): F[Unit | ErrorCode]
-  def recv(m: Method): F[Unit | ErrorCode]
+  def asyncContent(m: ContentMethod): F[Unit | ErrorCode]
+  def syncContent(m: ContentSyncResponse): F[Unit | ErrorCode]
+  def header(h: Frame.Header): F[Unit | ErrorCode]
+  def body(h: Frame.Body): F[Unit | ErrorCode]
+  def method(m: Method): F[Unit | ErrorCode]
+  def flow(enable: Boolean): F[Unit]
+  def cancel: F[Unit]
 }
 
 private[client] trait ChannelTransmitter[F[_]] {
