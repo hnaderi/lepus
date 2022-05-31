@@ -171,4 +171,16 @@ object Channel {
     def transaction: Resource[F, Transaction[F]] = ???
   }
 
+  private[client] def normal[F[_]: Concurrent](
+      channel: ChannelTransmitter[F]
+  ): Resource[F, Channel[F, NormalMessagingChannel[F]]] = ???
+
+  private[client] def reliable[F[_]: Concurrent](
+      channel: ChannelTransmitter[F]
+  ): Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] = ???
+
+  private[client] def transactional[F[_]: Concurrent](
+      channel: ChannelTransmitter[F]
+  ): Resource[F, Channel[F, TransactionalMessagingChannel[F]]] = ???
+
 }

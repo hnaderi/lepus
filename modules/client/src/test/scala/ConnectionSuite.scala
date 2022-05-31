@@ -17,6 +17,8 @@
 package lepus.client
 
 import cats.effect.IO
+import cats.effect.std.Queue
+import lepus.protocol.*
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite
 
@@ -47,4 +49,51 @@ abstract class ConnectionSuite extends CatsEffectSuite {
     val qn = QueueName("abs")
     val p = MessageCount(10)
   }
+
+  private def method(m: Method) = Frame.Method(ChannelNumber(0), m)
+
+  test("Sanity") {
+    for {
+      fs <- FakeServer()
+      con <- Connection
+        .from(fs.transport)
+        .use(_ =>
+          fs.send(
+            method(
+              ConnectionClass.Start(
+                0,
+                9,
+                FieldTable.empty,
+                LongString(""),
+                locales = LongString("")
+              )
+            )
+          ) >>
+            fs.recv.assertEquals(
+              method(
+                ConnectionClass.StartOk(
+                  FieldTable.empty,
+                  mechanism = ShortString(""),
+                  response = LongString(""),
+                  locale = ShortString("")
+                )
+              )
+            )
+        )
+    } yield ()
+  }
+}
+
+final class FakeServer(sendQ: Queue[IO, Frame], recvQ: Queue[IO, Frame]) {
+  def send(f: Frame): IO[Unit] = sendQ.offer(f)
+  def recv: IO[Frame] = recvQ.take
+  def transport: Transport[IO] = _.foreach(recvQ.offer).mergeHaltBoth(
+    fs2.Stream.fromQueueUnterminated(sendQ)
+  )
+}
+object FakeServer {
+  def apply(): IO[FakeServer] = for {
+    sQ <- Queue.unbounded[IO, Frame]
+    rQ <- Queue.unbounded[IO, Frame]
+  } yield new FakeServer(sQ, rQ)
 }

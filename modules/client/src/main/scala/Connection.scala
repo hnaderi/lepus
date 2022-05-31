@@ -47,13 +47,13 @@ trait Connection[F[_]] {
 }
 
 object Connection {
-  def apply[F[_]: Concurrent](
+  def from[F[_]: Concurrent](
       transport: Transport[F],
       bufferSize: Int = 100
   ): Resource[F, Connection[F]] = for {
     _status <- Resource.eval(SignallingRef[F].of(Status.New))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    con = ConnectionImpl(sendQ, 100, _status, ???)
+    con = ConnectionImpl(sendQ, 100, _status, ???, ???)
     _ <- con.run(transport).compile.drain.background
   } yield con
 
@@ -61,25 +61,28 @@ object Connection {
     case New, Connecting, Connected, Closed
   }
 
-  private[client] enum State[F[_]] {
-    case New()
-    case Connected(
-        nextChannel: Int,
-        channels: Map[ChannelNumber, ChannelReceiver[F]]
-    )
-  }
-
   private[client] final class ConnectionImpl[F[_]: Concurrent](
       sendQ: Queue[F, Frame],
       bufferSize: Int,
       _status: SignallingRef[F, Status],
-      handler: ConnectionHandler[F]
+      handler: FrameDispatcher[F],
+      mkCh: F[LowlevelChannel[F]]
   ) extends Connection[F] {
-    def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] = ???
+
+    def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] = for {
+      ch <- Resource.eval(mkCh)
+      chNr <- handler.add(ch)
+      out <- Channel.normal(ch)
+    } yield out
+
     def reliableChannel
-        : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] = ???
+        : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
+      Channel.reliable(???)
+
     def transactionalChannel
-        : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] = ???
+        : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
+      Channel.transactional(???)
+
     def status: Signal[F, Connection.Status] = ???
     def channels: Signal[F, List[ChannelNumber]] = ???
 
@@ -87,7 +90,14 @@ object Connection {
       Stream
         .fromQueueUnterminated(sendQ, bufferSize)
         .through(transport)
-        .evalScan(handler)((h, f) => h.handle(f))
+        .evalMap {
+          case f: Frame.Body   => handler.body(f).void
+          case f: Frame.Header => handler.header(f).void
+          case m: Frame.Method if m.channel != ChannelNumber(0) =>
+            handler.invoke(m).void
+          case m: Frame.Method => ???
+          case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
+        }
         .onFinalize(_status.set(Status.Closed))
         .drain
 

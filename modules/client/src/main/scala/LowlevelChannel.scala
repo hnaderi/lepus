@@ -34,8 +34,6 @@ private[client] trait ChannelReceiver[F[_]] {
   def header(h: Frame.Header): F[Unit | ErrorCode]
   def body(h: Frame.Body): F[Unit | ErrorCode]
   def method(m: Method): F[Unit | ErrorCode]
-  def flow(enable: Boolean): F[Unit]
-  def cancel: F[Unit]
 }
 
 private[client] trait ChannelTransmitter[F[_]] {
