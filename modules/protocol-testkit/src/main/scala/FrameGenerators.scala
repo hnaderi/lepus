@@ -16,33 +16,34 @@
 
 package lepus.codecs
 
-import cats.kernel.Eq
-import lepus.protocol.Frame
-import lepus.protocol.domains.*
-import lepus.wire.FrameCodec
+import lepus.protocol.*
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
-import org.scalacheck.Prop.*
 import scodec.bits.ByteVector
 
 import DomainGenerators.*
 
-class FramesTest extends CodecTest {
+object FrameGenerators {
+  val method: Gen[Frame.Method] = for {
+    ch <- channelNumber
+    vl <- AllClassesDataGenerator.methods
+  } yield Frame.Method(ch, vl)
 
-  override def scalaCheckTestParameters =
-    super.scalaCheckTestParameters
-      .withMinSuccessfulTests(2000)
-      .withMaxDiscardRatio(10)
+  val header: Gen[Frame.Header] = for {
+    ch <- channelNumber
+    cls <- classIds
+    size <- Gen.posNum[Long]
+    props <- properties
+  } yield Frame.Header(ch, cls, size, props)
 
-  property("All frame codecs must be reversible") {
-    forAll(FrameGenerators.frames) { f =>
-      val res = for {
-        enc <- FrameCodec.frame.encode(f)
-        dec <- FrameCodec.frame.decode(enc)
-      } yield dec
+  val body: Gen[Frame.Body] = for {
+    ch <- channelNumber
+    pl <- Gen.containerOf[Array, Byte](Arbitrary.arbitrary[Byte])
+  } yield Frame.Body(ch, ByteVector(pl))
 
-      assertReversed(f, res)
-    }
-  }
+  val heartbeat: Gen[Frame.Heartbeat.type] =
+    Gen.const(Frame.Heartbeat)
 
+  val frames: Gen[Frame] =
+    Gen.oneOf(method, header, body, header)
 }
