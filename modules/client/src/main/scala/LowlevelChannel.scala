@@ -18,7 +18,7 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import cats.effect.std.*
+import cats.effect.std.Queue
 import cats.implicits.*
 import fs2.Stream
 import lepus.protocol.*
@@ -38,9 +38,12 @@ private[client] trait ChannelReceiver[F[_]] {
 
 private[client] trait ChannelTransmitter[F[_]] {
   def publish(method: BasicClass.Publish, msg: Message): F[Unit]
+
   def sendWait(m: Method): F[Method]
   def sendNoWait(m: Method): F[Unit]
+
   def get(m: BasicClass.Get): F[Option[SynchronousGet]]
+
   def delivered(ctag: ConsumerTag): Stream[F, DeliveredMessage]
   def returned: Stream[F, ReturnedMessage]
 }
@@ -49,12 +52,42 @@ private[client] trait LowlevelChannel[F[_]]
     extends ChannelReceiver[F],
       ChannelTransmitter[F]
 
+/** Facade over other small components */
 private[client] object LowlevelChannel {
-  sealed trait State[F[_]]
-  object State {
-    final case class Idle[F[_]]() extends State[F]
-    final case class ReceivingAsync[F[_]]() extends State[F]
-    final case class ReceivingSync[F[_]]() extends State[F]
+  def apply[F[_]: Concurrent](
+      content: ContentChannel[F],
+      rpc: RPCChannel[F],
+      pub: ChannelPublisher[F],
+      disp: Dispatcher[F],
+      out: ChannelOutput[F]
+  ): F[LowlevelChannel[F]] = for {
+    q <- Queue.bounded[F, Frame](10)
+  } yield new LowlevelChannel[F] {
+    def asyncContent(m: ContentMethod): F[Unit | ErrorCode] =
+      content.asyncNotify(m)
+    def syncContent(m: ContentSyncResponse): F[Unit | ErrorCode] =
+      content.syncNotify(m)
+    def header(h: Frame.Header): F[Unit | ErrorCode] = content.recv(h)
+    def body(h: Frame.Body): F[Unit | ErrorCode] = content.recv(h)
+    def method(m: Method): F[Unit | ErrorCode] =
+      //TODO match based on method
+      m match {
+        case ChannelClass.Flow(e) => out.block.widen
+        case _                    => content.abort >> rpc.recv(m)
+      }
+
+    def publish(method: BasicClass.Publish, msg: Message): F[Unit] =
+      pub.send(method, msg)
+
+    def sendWait(m: Method): F[Method] = rpc.sendWait(m)
+    def sendNoWait(m: Method): F[Unit] = rpc.sendNoWait(m)
+    def get(m: BasicClass.Get): F[Option[SynchronousGet]] =
+      content.get(m).flatMap(_.get)
+    def delivered(ctag: ConsumerTag): Stream[F, DeliveredMessage] = Stream
+      .resource(disp.deliveryQ(ctag))
+      .flatMap(Stream.fromQueueUnterminated(_, 100))
+    def returned: Stream[F, ReturnedMessage] =
+      Stream.fromQueueUnterminated(disp.returnQ, 100)
   }
 
 }

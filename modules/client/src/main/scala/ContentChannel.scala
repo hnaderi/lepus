@@ -36,56 +36,32 @@ import scodec.bits.ByteVector
 import ContentChannel.*
 
 private[client] trait ContentChannel[F[_]] {
-  def send(method: BasicClass.Publish, msg: Message): F[Unit]
   def asyncNotify(m: ContentMethod): F[Unit | ErrorCode]
-  def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode]
-  def consume: QueueSource[F, AsyncContent]
-  def get(m: BasicClass.GetOk): F[DeferredSource[F, SynchronousGet]]
+  def syncNotify(m: ContentSyncResponse): F[Unit | ErrorCode]
 
-  def get_(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]] =
-    ???
-  def syncNotify(
-      m: BasicClass.GetOk | BasicClass.GetEmpty.type
-  ): F[Unit | ErrorCode] = ???
+  def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode]
+  def abort: F[Unit]
+
+  def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]]
 }
 
 private[client] object ContentChannel {
 
   def apply[F[_]](
       channelNumber: ChannelNumber,
-      maxSize: Long,
-      publisher: SequentialOutput[F, Frame]
+      publisher: SequentialOutput[F, Frame],
+      dispatcher: Dispatcher[F],
+      getList: Waitlist[F, Option[SynchronousGet]]
   )(using
       F: Concurrent[F]
   ): F[ContentChannel[F]] =
-    assert(maxSize > 0)
     for {
       state <- F.ref[State[F]](State.Idle[F]())
-      q <- Queue.bounded[F, AsyncContent](10)
     } yield new {
       private val idle = State.Idle[F]()
 
-      def send(method: BasicClass.Publish, msg: Message): F[Unit] =
-        publisher.writeAll(
-          List
-            .range(0L, msg.payload.size, maxSize)
-            .map(i =>
-              Frame.Body(channelNumber, msg.payload.slice(i, i + maxSize))
-            )
-            .prepended(
-              Frame.Header(
-                channelNumber,
-                ClassId(10),
-                msg.payload.size,
-                msg.properties
-              )
-            )
-            .prepended(Frame.Method(channelNumber, method)): _*
-        )
-
       def asyncNotify(m: ContentMethod): F[Unit | ErrorCode] =
         state.set(State.AsyncStarted(m)).widen
-      def consume: QueueSource[F, AsyncContent] = q
       def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode] =
         state.get.flatMap {
           case State.AsyncStarted(m, acc) =>
@@ -112,6 +88,8 @@ private[client] object ContentChannel {
           case _ => unexpected
         }
 
+      def abort: F[Unit] = ???
+
       private val unexpected: F[Unit | ErrorCode] =
         ReplyCode.UnexpectedFrame.pure
 
@@ -121,7 +99,11 @@ private[client] object ContentChannel {
           m: ContentMethod,
           nacc: Accumulator.Started
       ): F[Unit] =
-        if nacc.isCompleted then q.offer(build(m, nacc))
+        if nacc.isCompleted then
+          build(m, nacc) match {
+            case d: DeliveredMessage => dispatcher.deliver(d)
+            case r: ReturnedMessage  => dispatcher.`return`(r)
+          }
         else state.set(State.AsyncStarted(m, nacc))
 
       private def build(
@@ -147,10 +129,10 @@ private[client] object ContentChannel {
           )
       }
 
-      def get(m: BasicClass.GetOk): F[DeferredSource[F, SynchronousGet]] = for {
-        d <- F.deferred[SynchronousGet]
-        _ <- state.set(State.SyncStarted(d, m))
-      } yield d
+      def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]] =
+        getList.checkinAnd(publisher.writeOne(Frame.Method(channelNumber, m)))
+
+      def syncNotify(m: ContentSyncResponse): F[Unit | ErrorCode] = ???
     }
 
   private sealed trait State[F[_]]

@@ -47,3 +47,7 @@ private[client] object SequentialOutput {
         writer.use(_ => fs.traverse(q.offer).void)
     }
 }
+
+private[client] trait ChannelOutput[F[_]] extends SequentialOutput[F, Frame] {
+  def block: F[Unit]
+}

@@ -18,12 +18,17 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
+import cats.effect.kernel.Resource
 import cats.effect.std.*
 import cats.implicits.*
 import fs2.Stream
 import lepus.protocol.domains.ConsumerTag
 
 private[client] trait Dispatcher[F[_]] {
-  def deliveryQ(ctag: ConsumerTag): F[QueueSource[F, DeliveredMessage]]
+  def deliver(msg: DeliveredMessage): F[Unit]
+  def `return`(msg: ReturnedMessage): F[Unit]
+  def deliveryQ(
+      ctag: ConsumerTag
+  ): Resource[F, QueueSource[F, DeliveredMessage]]
   def returnQ: QueueSource[F, ReturnedMessage]
 }

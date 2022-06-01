@@ -34,6 +34,7 @@ import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 
 import internal.*
+import cats.effect.std.QueueSource
 
 trait Connection[F[_]] {
   def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]]
@@ -53,8 +54,8 @@ object Connection {
   ): Resource[F, Connection[F]] = for {
     _status <- Resource.eval(SignallingRef[F].of(Status.New))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    con = ConnectionImpl(sendQ, 100, _status, ???, ???)
-    _ <- con.run(transport).compile.drain.background
+    con = ConnectionImpl[F](???, ???)
+    _ <- run(transport, ???, sendQ, _status, 100).compile.drain.background
   } yield con
 
   enum Status {
@@ -62,9 +63,6 @@ object Connection {
   }
 
   private[client] final class ConnectionImpl[F[_]: Concurrent](
-      sendQ: Queue[F, Frame],
-      bufferSize: Int,
-      _status: SignallingRef[F, Status],
       handler: FrameDispatcher[F],
       mkCh: F[LowlevelChannel[F]]
   ) extends Connection[F] {
@@ -85,21 +83,26 @@ object Connection {
 
     def status: Signal[F, Connection.Status] = ???
     def channels: Signal[F, List[ChannelNumber]] = ???
-
-    private[client] def run(transport: Transport[F]): Stream[F, Nothing] =
-      Stream
-        .fromQueueUnterminated(sendQ, bufferSize)
-        .through(transport)
-        .evalMap {
-          case f: Frame.Body   => handler.body(f).void
-          case f: Frame.Header => handler.header(f).void
-          case m: Frame.Method if m.channel != ChannelNumber(0) =>
-            handler.invoke(m).void
-          case m: Frame.Method => ???
-          case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
-        }
-        .onFinalize(_status.set(Status.Closed))
-        .drain
-
   }
+
+  private[client] def run[F[_]: Concurrent](
+      transport: Transport[F],
+      handler: FrameDispatcher[F],
+      sendQ: Queue[F, Frame],
+      status: SignallingRef[F, Status],
+      bufferSize: Int
+  ): Stream[F, Nothing] =
+    Stream
+      .fromQueueUnterminated(sendQ, bufferSize)
+      .through(transport)
+      .evalMap {
+        case f: Frame.Body   => handler.body(f).void
+        case f: Frame.Header => handler.header(f).void
+        case m: Frame.Method if m.channel != ChannelNumber(0) =>
+          handler.invoke(m).void
+        case m: Frame.Method => ???
+        case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
+      }
+      .onFinalize(status.set(Status.Closed))
+      .drain
 }
