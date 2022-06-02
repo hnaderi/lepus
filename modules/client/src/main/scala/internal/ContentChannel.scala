@@ -56,55 +56,57 @@ private[client] object ContentChannel {
       F: Concurrent[F]
   ): F[ContentChannel[F]] =
     for {
-      state <- F.ref[State[F]](State.Idle[F]())
+      state <- F.ref(State.Idle)
     } yield new {
-      private val idle = State.Idle[F]()
 
       def asyncNotify(m: ContentMethod): F[Unit | ErrorCode] =
         state.set(State.AsyncStarted(m)).widen
+
       def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode] =
         state.get.flatMap {
           case State.AsyncStarted(m, acc) =>
             acc
               .add(h)
               .fold(unexpected)(checkAsync(m, _).widen)
-          case State.SyncStarted(d, m, acc) =>
-            acc.add(h) match {
-              case Some(nacc) =>
-                if nacc.isCompleted then
-                  d.complete(
-                    SynchronousGet(
-                      m.deliveryTag,
-                      m.redelivered,
-                      m.exchange,
-                      m.routingKey,
-                      m.messageCount,
-                      Message(nacc.content, nacc.header.props)
-                    )
-                  ).as(())
-                else state.set(State.SyncStarted(d, m, nacc)).widen
-              case None => unexpected
-            }
+          case State.SyncStarted(m, acc) =>
+            acc.add(h).fold(unexpected)(checkSync(m, _))
           case _ => unexpected
         }
 
-      def abort: F[Unit] = ???
+      def abort: F[Unit] = reset
 
       private val unexpected: F[Unit | ErrorCode] =
         ReplyCode.UnexpectedFrame.pure
 
-      private def reset = state.set(idle)
+      private def reset = state.set(State.Idle)
 
       private def checkAsync(
           m: ContentMethod,
           nacc: Accumulator.Started
-      ): F[Unit] =
+      ) =
         if nacc.isCompleted then
           build(m, nacc) match {
             case d: DeliveredMessage => dispatcher.deliver(d)
             case r: ReturnedMessage  => dispatcher.`return`(r)
           }
         else state.set(State.AsyncStarted(m, nacc))
+
+      private def checkSync(
+          m: BasicClass.GetOk,
+          nacc: Accumulator.Started
+      ): F[Unit | ErrorCode] =
+        if nacc.isCompleted then
+          respond(
+            SynchronousGet(
+              m.deliveryTag,
+              m.redelivered,
+              m.exchange,
+              m.routingKey,
+              m.messageCount,
+              Message(nacc.content, nacc.header.props)
+            ).some
+          )
+        else state.set(State.SyncStarted(m, nacc)).widen
 
       private def build(
           m: ContentMethod,
@@ -132,21 +134,25 @@ private[client] object ContentChannel {
       def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]] =
         getList.checkinAnd(publisher.writeOne(Frame.Method(channelNumber, m)))
 
-      def syncNotify(m: ContentSyncResponse): F[Unit | ErrorCode] = ???
+      private def respond(o: Option[SynchronousGet]): F[Unit | ErrorCode] =
+        getList.nextTurn(o).map(if _ then () else ReplyCode.SyntaxError)
+
+      def syncNotify(m: ContentSyncResponse): F[Unit | ErrorCode] = m match {
+        case m: BasicClass.GetOk => state.set(State.SyncStarted(m)).widen
+        case BasicClass.GetEmpty => respond(None)
+      }
     }
 
-  private sealed trait State[F[_]]
-  private object State {
-    final case class Idle[F[_]]() extends State[F]
-    final case class AsyncStarted[F[_]](
+  private enum State {
+    case Idle
+    case AsyncStarted(
         method: ContentMethod,
         acc: Accumulator = Accumulator.New
-    ) extends State[F]
-    final case class SyncStarted[F[_]](
-        out: Deferred[F, SynchronousGet],
+    )
+    case SyncStarted(
         method: BasicClass.GetOk,
         acc: Accumulator = Accumulator.New
-    ) extends State[F]
+    )
   }
 
   private enum Accumulator {

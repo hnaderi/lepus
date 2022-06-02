@@ -14,255 +14,285 @@
  * limitations under the License.
  */
 
-// package lepus.client
-// package internal
+package lepus.client
+package internal
 
-// import cats.effect.IO
-// import cats.effect.std.Queue
-// import cats.implicits.*
-// import lepus.codecs.BasicDataGenerator
-// import lepus.codecs.DomainGenerators
-// import lepus.protocol.*
-// import lepus.protocol.classes.basic.Properties
-// import lepus.protocol.constants.ReplyCode
-// import lepus.protocol.domains.*
-// import munit.CatsEffectSuite
-// import munit.ScalaCheckEffectSuite
-// import org.scalacheck.Arbitrary
-// import org.scalacheck.Gen
-// import org.scalacheck.effect.PropF
-// import org.scalacheck.effect.PropF.*
-// import scodec.bits.ByteVector
+import cats.effect.IO
+import cats.effect.std.Queue
+import cats.effect.std.QueueSource
+import cats.effect.std.Random
+import cats.effect.testkit.TestControl
+import cats.implicits.*
+import lepus.codecs.BasicDataGenerator
+import lepus.codecs.DomainGenerators
+import lepus.protocol.*
+import lepus.protocol.classes.basic.Properties
+import lepus.protocol.constants.ErrorCode
+import lepus.protocol.constants.ReplyCode
+import lepus.protocol.domains.*
+import munit.CatsEffectSuite
+import munit.ScalaCheckEffectSuite
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
+import org.scalacheck.effect.PropF
+import org.scalacheck.effect.PropF.*
+import scodec.bits.ByteVector
 
-// import scala.concurrent.duration.*
+import scala.concurrent.duration.*
 
-// import ContentChannel.*
-// import ContentChannelSuite.*
+import ContentChannel.*
+import ContentChannelSuite.*
 
-// class ContentChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
-//   override def munitTimeout = 5.second
+class ContentChannelSuite extends InternalTestSuite {
+  override def munitTimeout = 5.second
 
-//   test("Must split publish data to frames with maximum permitted size") {
-//     forAllNoShrinkF(
-//       BasicDataGenerator.publishGen,
-//       channel,
-//       maxSize,
-//       binary,
-//       props
-//     ) { (publishMethod, ch, size, data, props) =>
-//       val frameCount = Math.ceil(data.size.toDouble / size.toDouble).toInt
-//       for {
-//         sut <- newChannel(ch, size, 1000)
-//         _ <- sut.cc.send(publishMethod, Message(data, props))
+  test("Must fail when receives header before starting") {
+    forAllF(incomingContent) { content =>
+      for {
+        sut <- newChannel()
+        _ <- sut.cc
+          .recv(content.header)
+          .assertEquals(ReplyCode.UnexpectedFrame)
+      } yield ()
+    }
+  }
 
-//         _ <- sut.pq.size.assertEquals(frameCount + 2)
+  test("Must fail when receives header before content") {
+    forAllF(asyncNotifs, incomingContent.suchThat(!_.bodies.isEmpty)) {
+      (m, content) =>
+        for {
+          sut <- newChannel()
+          _ <- sut.cc.asyncNotify(m)
+          _ <- sut.cc
+            .recv(content.bodies.head)
+            .assertEquals(ReplyCode.UnexpectedFrame)
+        } yield ()
+    }
+  }
 
-//         _ <- sut.pq.take.assertEquals(Frame.Method(ch, publishMethod))
-//         _ <- sut.pq.take.assertEquals(
-//           Frame.Header(
-//             ch,
-//             ClassId(10),
-//             bodySize = data.size,
-//             props
-//           )
-//         )
-//         _ <- sut.pq.size.assertEquals(frameCount)
+  test("Must recieve and merge all async deliveries") {
+    forAllF(asyncContents) { contents =>
+      for {
+        sut <- newChannel()
+        _ <- contents.traverse((m, content) =>
+          assertAsyncContent(m, content, sut)
+        )
+      } yield ()
+    }
+  }
 
-//         all <- (1 to frameCount).toList.traverse(_ => sut.pq.take)
+  test("Must skip async deliveries on abort") {
+    val abortionScenario = for {
+      a <- asyncContent
+      totalActions = 2 + a._2.bodies.size
+      splittingSize <- Gen.chooseNum(1, totalActions - 1)
+      f = (cc: ContentChannel[IO]) => {
+        val acs = asyncActions(cc)(a._1, a._2)
+        val beforeAbort = acs.slice(0, splittingSize).map(_.assertEquals(()))
+        val afterAbort = acs
+          .slice(splittingSize, totalActions)
+          .map(_.assertEquals(ReplyCode.UnexpectedFrame))
 
-//         expected = Range
-//           .Long(0, data.size, size)
-//           .map(i => Frame.Body(ch, data.slice(i, i + size)))
-//           .toList
+        (beforeAbort ::: List(cc.abort) ::: afterAbort).sequence.void
+      }
+    } yield f
+    val abortionScenarios = list(abortionScenario)
 
-//       } yield {
-//         assertEquals(all, expected)
-//         val merged = all
-//           .collect { case Frame.Body(_, pl) =>
-//             pl
-//           }
-//           .foldLeft(ByteVector.empty)(_ ++ _)
-//         assertEquals(merged, data)
-//       }
-//     }
-//   }
+    forAllF(abortionScenarios) { scenarios =>
+      for {
+        sut <- newChannel()
+        _ <- scenarios.traverse(_(sut.cc))
+        _ <- sut.dispatcher.assertNoContent
+      } yield ()
+    }
+  }
 
-//   test("Must fail when receives header before starting") {
-//     forAllF(incomingContent) { content =>
-//       for {
-//         sut <- newChannel()
-//         _ <- sut.cc
-//           .recv(content.header)
-//           .assertEquals(ReplyCode.UnexpectedFrame)
-//       } yield ()
-//     }
-//   }
+  test("Must recieve and merge all sync deliveries") {
+    forAllF(syncContents) { contents =>
+      TestControl.executeEmbed(
+        for {
+          sut <- newChannel(size = 1)
+          _ <- contents.traverse((req, res, content) =>
+            assertSyncContent(req, res, content, sut.cc)
+          )
+        } yield ()
+      )
+    }
+  }
 
-//   test("Must fail when receives header before content") {
-//     forAllF(anyMethod, incomingContent.suchThat(!_.bodies.isEmpty)) {
-//       (m, content) =>
-//         for {
-//           sut <- newChannel()
-//           _ <- m match {
-//             case m: ContentMethod    => sut.cc.asyncNotify(m)
-//             case m: BasicClass.GetOk => sut.cc.get(m).void
-//           }
-//           _ <- sut.cc
-//             .recv(content.bodies.head)
-//             .assertEquals(ReplyCode.UnexpectedFrame)
-//         } yield ()
-//     }
-//   }
+  test(
+    "Must recieve None in synchronous get, when server responde with GetEmpty"
+  ) {
+    forAllF(list(BasicDataGenerator.getGen)) { ms =>
+      TestControl.executeEmbed(
+        for {
+          sut <- newChannel(size = 1)
+          _ <- ms.traverse(m =>
+            sut.cc
+              .get(m)
+              .flatMap(d =>
+                d.tryGet.assertEquals(None) >>
+                  sut.cc.syncNotify(BasicClass.GetEmpty) >>
+                  d.get.assertEquals(None)
+              )
+          )
+        } yield ()
+      )
+    }
+  }
 
-//   test("Must recieve and merge all deliveries") {
-//     forAllF(anyContents) { contents =>
-//       for {
-//         sut <- newChannel()
-//         _ <- contents.traverse {
-//           case (m: ContentMethod, content) =>
-//             assertAsyncContent(m, content, sut.cc)
-//           case (m: BasicClass.GetOk, content) =>
-//             assertSyncContent(m, content, sut.cc)
-//         }
-//       } yield ()
-//     }
-//   }
+  private def asyncActions(cc: ContentChannel[IO])(
+      method: ContentMethod,
+      content: IncomingContent
+  ): List[IO[Unit | ErrorCode]] =
+    List(cc.asyncNotify(method)) ::: contentActions(cc)(content)
 
-//   private def assertAsyncContent(
-//       method: ContentMethod,
-//       content: IncomingContent,
-//       cc: ContentChannel[IO]
-//   ) = for {
-//     _ <- cc.consume.size.assertEquals(0)
-//     _ <- cc.asyncNotify(method)
-//     _ <- cc.recv(content.header)
-//     _ <- content.bodies.traverse(cc.recv)
-//     _ <- cc.consume.size.assertEquals(1)
-//     msg = Message(content.payload, content.properties)
-//     expected = method match {
-//       case m: BasicClass.Deliver =>
-//         DeliveredMessage(
-//           consumerTag = m.consumerTag,
-//           deliveryTag = m.deliveryTag,
-//           redelivered = m.redelivered,
-//           exchange = m.exchange,
-//           routingKey = m.routingKey,
-//           msg
-//         )
-//       case m: BasicClass.Return =>
-//         ReturnedMessage(
-//           replyCode = m.replyCode,
-//           replyText = m.replyText,
-//           exchange = m.exchange,
-//           routingKey = m.routingKey,
-//           msg
-//         )
-//     }
-//     _ <- cc.consume.take.assertEquals(expected)
-//   } yield ()
-//   private def assertSyncContent(
-//       m: BasicClass.GetOk,
-//       content: IncomingContent,
-//       cc: ContentChannel[IO]
-//   ) = for {
-//     msgDef <- cc.get(m)
-//     _ <- msgDef.tryGet.assertEquals(None)
-//     _ <- cc.recv(content.header)
-//     _ <- content.bodies.traverse(cc.recv)
-//     _ <- msgDef.tryGet.assertEquals(
-//       SynchronousGet(
-//         deliveryTag = m.deliveryTag,
-//         redelivered = m.redelivered,
-//         exchange = m.exchange,
-//         routingKey = m.routingKey,
-//         messageCount = m.messageCount,
-//         message = content.message
-//       ).some
-//     )
-//   } yield ()
-// }
+  private def syncActions(cc: ContentChannel[IO])(
+      method: BasicClass.GetOk,
+      content: IncomingContent
+  ): List[IO[Unit | ErrorCode]] =
+    List(cc.syncNotify(method)) ::: contentActions(cc)(content)
 
-// object ContentChannelSuite {
+  private def contentActions(cc: ContentChannel[IO])(content: IncomingContent) =
+    List(cc.recv(content.header)) ::: content.bodies.map(cc.recv)
 
-//   final case class SUT(
-//       pq: Queue[IO, Frame],
-//       cc: ContentChannel[IO]
-//   )
+  private def assertAsyncContent(
+      method: ContentMethod,
+      content: IncomingContent,
+      cc: SUT
+  ) = for {
+    _ <- asyncActions(cc.cc)(method, content).traverse(_.assertEquals(()))
+    msg = Message(content.payload, content.properties)
+    _ <- method match {
+      case m: BasicClass.Deliver =>
+        cc.dispatcher.assertDelivered(
+          DeliveredMessage(
+            consumerTag = m.consumerTag,
+            deliveryTag = m.deliveryTag,
+            redelivered = m.redelivered,
+            exchange = m.exchange,
+            routingKey = m.routingKey,
+            msg
+          )
+        )
+      case m: BasicClass.Return =>
+        cc.dispatcher.assertReturned(
+          ReturnedMessage(
+            replyCode = m.replyCode,
+            replyText = m.replyText,
+            exchange = m.exchange,
+            routingKey = m.routingKey,
+            msg
+          )
+        )
+    }
+  } yield ()
 
-//   private def newChannel(
-//       ch: ChannelNumber = ChannelNumber(1),
-//       maxFrameSize: Long = 10L,
-//       size: Int = 0
-//   ) = for {
-//     pq <- Queue.bounded[IO, Frame](size)
-//     s <- SequentialOutput(pq)
-//     cc <- ContentChannel[IO](
-//       ch,
-//       maxSize = maxFrameSize,
-//       publisher = s
-//     )
-//   } yield SUT(pq, cc)
+  private def assertSyncContent(
+      m0: BasicClass.Get,
+      m: BasicClass.GetOk,
+      content: IncomingContent,
+      cc: ContentChannel[IO]
+  ) =
+    for {
+      msgDef <- cc.get(m0)
+      _ <- msgDef.tryGet.assertEquals(None)
+      _ <- syncActions(cc)(m, content).traverse(_.assertEquals(()))
+      _ <- msgDef.get.assertEquals(
+        SynchronousGet(
+          deliveryTag = m.deliveryTag,
+          redelivered = m.redelivered,
+          exchange = m.exchange,
+          routingKey = m.routingKey,
+          messageCount = m.messageCount,
+          message = content.message
+        ).some
+      )
+    } yield ()
+}
 
-//   val channel = DomainGenerators.channelNumber
-//   val binary = Gen
-//     .choose(0, 1000)
-//     .flatMap(n =>
-//       Gen
-//         .containerOfN[Array, Byte](n, Arbitrary.arbitrary[Byte])
-//         .map(ByteVector(_))
-//     )
-//   val maxSize = Gen.choose[Long](5, 100)
-//   val props = DomainGenerators.properties
+object ContentChannelSuite {
 
-//   final case class IncomingContent(
-//       header: Frame.Header,
-//       bodies: List[Frame.Body]
-//   ) {
-//     def payload: ByteVector =
-//       bodies.map(_.payload).foldLeft(ByteVector.empty)(_ ++ _)
-//     def properties: Properties = header.props
+  final case class SUT(
+      dispatcher: FakeMessageDispatcher,
+      cc: ContentChannel[IO],
+      pq: QueueSource[IO, Frame]
+  )
 
-//     def message: Message = Message(payload, properties)
-//   }
+  private def newChannel(
+      ch: ChannelNumber = ChannelNumber(1),
+      size: Int = 0
+  ) = for {
+    pq <- Queue.unbounded[IO, Frame]
+    s <- ChannelOutput(pq)
+    gl <- Waitlist[IO, Option[SynchronousGet]](size)
+    fd <- FakeMessageDispatcher()
+    cc <- ContentChannel[IO](
+      ch,
+      publisher = s,
+      dispatcher = fd,
+      gl
+    )
+  } yield SUT(fd, cc, pq)
 
-//   val incomingContent: Gen[IncomingContent] = for {
-//     ch <- channel
-//     p <- props
-//     ms <- maxSize
-//     data <- binary
-//   } yield IncomingContent(
-//     header = Frame.Header(ch, ClassId(10), data.size, p),
-//     bodies = List
-//       .range(0L, data.size, ms)
-//       .map(i => Frame.Body(ch, data.slice(i, i + ms)))
-//   )
+  val channel = DomainGenerators.channelNumber
+  val binary = Gen
+    .choose(0, 1000)
+    .flatMap(n =>
+      Gen
+        .containerOfN[Array, Byte](n, Arbitrary.arbitrary[Byte])
+        .map(ByteVector(_))
+    )
+  val maxSize = Gen.choose[Long](5, 100)
+  val props = DomainGenerators.properties
 
-//   val contentMethods: Gen[ContentMethod] =
-//     Gen.oneOf(BasicDataGenerator.deliverGen, BasicDataGenerator.returnGen)
+  final case class IncomingContent(
+      header: Frame.Header,
+      bodies: List[Frame.Body]
+  ) {
+    def payload: ByteVector =
+      bodies.map(_.payload).foldLeft(ByteVector.empty)(_ ++ _)
+    def properties: Properties = header.props
 
-//   val getMethod = BasicDataGenerator.getOkGen
+    def message: Message = Message(payload, properties)
+  }
 
-//   val anyMethod: Gen[ContentMethod | BasicClass.GetOk] =
-//     Gen.oneOf(contentMethods, getMethod)
+  val incomingContent: Gen[IncomingContent] = for {
+    ch <- channel
+    p <- props
+    ms <- maxSize
+    data <- binary
+  } yield IncomingContent(
+    header = Frame.Header(ch, ClassId(10), data.size, p),
+    bodies = List
+      .range(0L, data.size, ms)
+      .map(i => Frame.Body(ch, data.slice(i, i + ms)))
+  )
 
-//   val syncContent: Gen[(BasicClass.GetOk, IncomingContent)] = for {
-//     m <- getMethod
-//     c <- incomingContent
-//   } yield (m, c)
+  val asyncNotifs: Gen[ContentMethod] =
+    Gen.oneOf(BasicDataGenerator.deliverGen, BasicDataGenerator.returnGen)
 
-//   val asyncContent: Gen[(ContentMethod, IncomingContent)] = for {
-//     m <- contentMethods
-//     c <- incomingContent
-//   } yield (m, c)
+  val syncNotifs = BasicDataGenerator.getOkGen
 
-//   type AnyMethod = ContentMethod | BasicClass.GetOk
-//   val anyContent: Gen[(AnyMethod, IncomingContent)] = for {
-//     m <- Gen.oneOf[AnyMethod](contentMethods, getMethod)
-//     c <- incomingContent
-//   } yield (m, c)
+  val anyNotifs: Gen[ContentMethod | BasicClass.GetOk] =
+    Gen.oneOf(asyncNotifs, syncNotifs)
 
-//   val anyContents: Gen[List[(AnyMethod, IncomingContent)]] = for {
-//     n <- Gen.choose(1, 5)
-//     cs <- Gen.listOfN(n, anyContent)
-//   } yield cs
-// }
+  val syncContent: Gen[(BasicClass.Get, BasicClass.GetOk, IncomingContent)] =
+    for {
+      g <- BasicDataGenerator.getGen
+      m <- syncNotifs
+      c <- incomingContent
+    } yield (g, m, c)
+
+  val syncContents = list(syncContent)
+
+  val asyncContent: Gen[(ContentMethod, IncomingContent)] = for {
+    m <- asyncNotifs
+    c <- incomingContent
+  } yield (m, c)
+
+  val asyncContents = list(asyncContent)
+
+  private def list[T](g: Gen[T]) =
+    Gen.choose(1, 5).flatMap(n => Gen.listOfN(n, g))
+}
