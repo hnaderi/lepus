@@ -31,8 +31,9 @@ import munit.CatsEffectSuite
 import munit.ScalaCheckSuite
 import org.scalacheck.effect.PropF.forAllF
 import scodec.bits.ByteVector
+import org.scalacheck.Gen
 
-class FrameDispatcherSuite extends CatsEffectSuite, ScalaCheckSuite {
+class FrameDispatcherSuite extends InternalTestSuite {
   test("Must assign channel number") {
     for {
       fd <- FrameDispatcher[IO]
@@ -80,52 +81,23 @@ class FrameDispatcherSuite extends CatsEffectSuite, ScalaCheckSuite {
   }
 
   test("Must dispatch method frames") {
-    forAllF(FrameGenerators.method) { f =>
+    val methods: Gen[Frame.Method] =
+      FrameGenerators.method.map(_.copy(channel = ChannelNumber(1)))
+
+    forAllF(methods) { f =>
       for {
         fd <- FrameDispatcher[IO]
         fr <- FakeReceiver()
-        _ <- fd.add(fr).use(_ => fd.invoke(f))
-        _ <- fr.lastInteraction.assertEquals(Interaction.Method(f.value).some)
+        _ <- fd.add(fr).use(_ => fd.invoke(f)).assertEquals(())
+        expected = f.value match {
+          case m: (BasicClass.Deliver | BasicClass.Return) =>
+            Interaction.AsyncContent(m)
+          case m: (BasicClass.GetOk | BasicClass.GetEmpty.type) =>
+            Interaction.SyncContent(m)
+          case other => Interaction.Method(other)
+        }
+        _ <- fr.lastInteraction.assertEquals(expected.some)
       } yield ()
     }
   }
-}
-
-final class FakeReceiver(
-    interactionList: Ref[IO, List[FakeReceiver.Interaction]],
-    error: Ref[IO, Option[ErrorCode]]
-) extends ChannelReceiver[IO] {
-  def asyncContent(m: ContentMethod): IO[Unit | ErrorCode] = interact(
-    Interaction.AsyncContent(m)
-  )
-  def syncContent(m: ContentSyncResponse): IO[Unit | ErrorCode] = interact(
-    Interaction.SyncContent(m)
-  )
-  def header(h: Frame.Header): IO[Unit | ErrorCode] = interact(
-    Interaction.Header(h)
-  )
-  def body(h: Frame.Body): IO[Unit | ErrorCode] = interact(Interaction.Body(h))
-  def method(m: Method): IO[Unit | ErrorCode] = interact(Interaction.Method(m))
-
-  private def interact(i: Interaction): IO[Unit | ErrorCode] =
-    interactionList.update(_.prepended(i)) >> error.get.map(_.getOrElse(()))
-
-  def setError(ec: ErrorCode): IO[Unit] = error.set(ec.some)
-  def clearError: IO[Unit] = error.set(None)
-
-  def interactions: IO[List[Interaction]] = interactionList.get
-  def lastInteraction: IO[Option[Interaction]] = interactions.map(_.headOption)
-}
-
-object FakeReceiver {
-  enum Interaction {
-    case AsyncContent(m: ContentMethod)
-    case SyncContent(m: ContentSyncResponse)
-    case Header(h: Frame.Header)
-    case Body(h: Frame.Body)
-    case Method(m: lepus.protocol.Method)
-  }
-  def apply() =
-    (IO.ref(List.empty[Interaction]), IO.ref(Option.empty[ErrorCode]))
-      .mapN(new FakeReceiver(_, _))
 }

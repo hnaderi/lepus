@@ -32,7 +32,7 @@ import org.scalacheck.effect.PropF.forAllF
 
 import RPCChannelSuite.*
 
-class RPCChannelSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
+class RPCChannelSuite extends InternalTestSuite {
   test("send no wait") {
     forAllF(methods, channelNumber) { (m, ch) =>
       for {

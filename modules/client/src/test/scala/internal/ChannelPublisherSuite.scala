@@ -33,7 +33,7 @@ import scodec.bits.ByteVector
 
 import ChannelPublisherSuite.*
 
-class ChannelPublisherSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
+class ChannelPublisherSuite extends InternalTestSuite {
 
   test("Must split publish data to frames with maximum permitted size") {
     forAllNoShrinkF(
