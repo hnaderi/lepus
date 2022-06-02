@@ -46,7 +46,7 @@ class ChannelPublisherSuite extends InternalTestSuite {
       val frameCount = Math.ceil(data.size.toDouble / size.toDouble).toInt
       for {
         pq <- Queue.unbounded[IO, Frame]
-        sout <- SequentialOutput(pq, 1000)
+        sout <- ChannelOutput(pq, 1000)
         sut = ChannelPublisher[IO](ch, size, sout)
 
         _ <- sut.send(publishMethod, Message(data, props))

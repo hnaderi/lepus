@@ -19,4 +19,6 @@ package lepus.client.internal
 import munit.CatsEffectSuite
 import munit.ScalaCheckEffectSuite
 
-trait InternalTestSuite extends CatsEffectSuite, ScalaCheckEffectSuite
+trait InternalTestSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
+  export org.scalacheck.effect.PropF.forAllF
+}

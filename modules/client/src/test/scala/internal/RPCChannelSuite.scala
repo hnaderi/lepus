@@ -112,7 +112,7 @@ object RPCChannelSuite {
 
   def newSut(ch: ChannelNumber, size: Int = 1) = for {
     q <- Queue.bounded[IO, Frame](size)
-    p <- SequentialOutput(q, size)
+    p <- ChannelOutput(q, size)
     rpc <- RPCChannel(p, ch)
   } yield SUT(q, rpc)
 

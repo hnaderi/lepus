@@ -80,7 +80,8 @@ val client = module("client")
   .dependsOn(protocolTestkit % Test)
   .settings(
     libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ fs2scodec ++ Seq(
-      "org.typelevel" %% "scalacheck-effect-munit" % Versions.scalacheckEffectVersion
+      "org.typelevel" %% "scalacheck-effect-munit" % Versions.scalacheckEffectVersion % Test,
+      "org.typelevel" %% "cats-effect-testkit" % Versions.catsEffect % Test
     )
   )
 

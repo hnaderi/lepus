@@ -18,6 +18,7 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
+import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.std.QueueSink
 import cats.effect.std.Semaphore
@@ -29,25 +30,33 @@ private[client] trait SequentialOutput[F[_], T] {
   def writeAll(fs: T*): F[Unit]
 }
 
-private[client] object SequentialOutput {
-  def apply[F[_]: Concurrent, T](
+private[client] object ChannelOutput {
+  def apply[F[_], T](
       q: QueueSink[F, T],
       maxMethods: Int = 10
-  ): F[SequentialOutput[F, T]] =
+  )(using F: Concurrent[F]): F[ChannelOutput[F, T]] =
     for {
       sem <- Semaphore[F](maxMethods)
       writer = Resource.makeFull[F, Unit](poll =>
         poll(sem.acquireN(maxMethods))
       )(_ => sem.releaseN(maxMethods))
-
+      canWrite <- Semaphore[F](1)
     } yield new {
-      def writeOne(f: T): F[Unit] = sem.permit.use(_ => q.offer(f))
+
+      private def run(f: F[Unit]): F[Unit] =
+        canWrite.permit.use(_ => f)
+
+      def writeOne(f: T): F[Unit] = run(sem.permit.use(_ => q.offer(f)))
 
       def writeAll(fs: T*): F[Unit] =
-        writer.use(_ => fs.traverse(q.offer).void)
+        run(writer.use(_ => fs.traverse(q.offer).void))
+
+      def block: F[Unit] = canWrite.acquire
+      def unblock: F[Unit] = canWrite.release
     }
 }
 
-private[client] trait ChannelOutput[F[_]] extends SequentialOutput[F, Frame] {
+private[client] trait ChannelOutput[F[_], T] extends SequentialOutput[F, T] {
   def block: F[Unit]
+  def unblock: F[Unit]
 }

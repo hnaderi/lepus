@@ -59,7 +59,7 @@ private[client] object LowlevelChannel {
       rpc: RPCChannel[F],
       pub: ChannelPublisher[F],
       disp: MessageDispatcher[F],
-      out: ChannelOutput[F]
+      out: ChannelOutput[F, Frame]
   ): F[LowlevelChannel[F]] = for {
     q <- Queue.bounded[F, Frame](10)
   } yield new LowlevelChannel[F] {

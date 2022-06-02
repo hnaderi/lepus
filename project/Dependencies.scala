@@ -4,8 +4,8 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val cats = "2.6.1"
-    val catsEffect = "3.2.2"
+    val cats = "2.7.0"
+    val catsEffect = "3.3.12"
     val fs2 = "3.2.7"
     val scodec = "2.1.0"
     val scodecStream = "3.0.1"
