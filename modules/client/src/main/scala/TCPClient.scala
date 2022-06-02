@@ -38,8 +38,8 @@ import fs2.io.net.Network
 import fs2.io.net.Socket
 import fs2.text
 import lepus.client.Transport
-import lepus.protocol.ProtocolVersion
 import lepus.protocol.Frame
+import lepus.protocol.ProtocolVersion
 import lepus.wire.FrameCodec
 import scodec.Attempt
 import scodec.Encoder
