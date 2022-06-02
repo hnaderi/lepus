@@ -38,12 +38,15 @@ object FrameGenerators {
 
   val body: Gen[Frame.Body] = for {
     ch <- channelNumber
-    pl <- Gen.containerOf[Array, Byte](Arbitrary.arbitrary[Byte])
-  } yield Frame.Body(ch, ByteVector(pl))
+    pl <- blob
+  } yield Frame.Body(ch, pl)
 
   val heartbeat: Gen[Frame.Heartbeat.type] =
     Gen.const(Frame.Heartbeat)
 
   val frames: Gen[Frame] =
     Gen.oneOf(method, header, body, header)
+
+  val blob: Gen[ByteVector] =
+    Gen.containerOf[Array, Byte](Arbitrary.arbitrary[Byte]).map(ByteVector(_))
 }

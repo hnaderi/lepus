@@ -50,7 +50,7 @@ private[client] object ContentChannel {
   def apply[F[_]](
       channelNumber: ChannelNumber,
       publisher: SequentialOutput[F, Frame],
-      dispatcher: Dispatcher[F],
+      dispatcher: MessageDispatcher[F],
       getList: Waitlist[F, Option[SynchronousGet]]
   )(using
       F: Concurrent[F]
