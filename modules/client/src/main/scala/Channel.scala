@@ -171,16 +171,31 @@ object Channel {
     def transaction: Resource[F, Transaction[F]] = ???
   }
 
+  private def prepare[F[_]: Concurrent](
+      channel: ChannelTransmitter[F]
+  ): Resource[F, Unit] =
+    val prepare = channel.call(ChannelClass.Open).void
+    val destroy = channel.call(ChannelClass.Close(???, ???, ???, ???)).void
+
+    Resource.make(prepare)(_ => destroy)
+
   private[client] def normal[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ): Resource[F, Channel[F, NormalMessagingChannel[F]]] = ???
+  ): Resource[F, Channel[F, NormalMessagingChannel[F]]] =
+    prepare(channel).as(???)
 
   private[client] def reliable[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ): Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] = ???
+  ): Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
+    prepare(channel)
+      .evalMap(_ => channel.call(ConfirmClass.Select(true)))
+      .as(???)
 
   private[client] def transactional[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ): Resource[F, Channel[F, TransactionalMessagingChannel[F]]] = ???
+  ): Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
+    prepare(channel)
+      .evalMap(_ => channel.call(TxClass.Select))
+      .as(???)
 
 }

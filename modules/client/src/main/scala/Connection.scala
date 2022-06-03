@@ -35,6 +35,8 @@ import lepus.protocol.domains.ChannelNumber
 
 import internal.*
 import cats.effect.std.QueueSource
+import lepus.protocol.constants.ErrorCode
+import lepus.protocol.constants.ErrorType
 
 trait Connection[F[_]] {
   def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]]
@@ -92,15 +94,22 @@ object Connection {
       status: SignallingRef[F, Status],
       bufferSize: Int
   ): Stream[F, Nothing] =
+    def handleError(f: F[Unit | ErrorCode]) = f.flatMap {
+      case () => Concurrent[F].unit
+      case e: ErrorCode =>
+        if e.errorType == ErrorType.Connection then ???
+        else ???
+    }
     Stream
       .fromQueueUnterminated(sendQ, bufferSize)
       .through(transport)
       .evalMap {
-        case f: Frame.Body   => handler.body(f).void
-        case f: Frame.Header => handler.header(f).void
+        case f: Frame.Body   => handleError(handler.body(f))
+        case f: Frame.Header => handleError(handler.header(f))
         case m: Frame.Method if m.channel != ChannelNumber(0) =>
-          handler.invoke(m).void
-        case m: Frame.Method => ???
+          handleError(handler.invoke(m))
+        case m: Frame.Method => // Global methods like connection class
+          ???
         case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
       }
       .onFinalize(status.set(Status.Closed))
