@@ -18,12 +18,10 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.std.QueueSink
 import cats.effect.std.Semaphore
 import cats.implicits.*
-import lepus.protocol.Frame
 
 private[client] trait SequentialOutput[F[_], T] {
   def writeOne(f: T): F[Unit]
@@ -40,19 +38,16 @@ private[client] object ChannelOutput {
       writer = Resource.makeFull[F, Unit](poll =>
         poll(sem.acquireN(maxMethods))
       )(_ => sem.releaseN(maxMethods))
-      canWrite <- Semaphore[F](1)
+      lock <- ReusableLatch[F]
     } yield new {
 
-      private def run(f: F[Unit]): F[Unit] =
-        canWrite.permit.use(_ => f)
-
-      def writeOne(f: T): F[Unit] = run(sem.permit.use(_ => q.offer(f)))
+      def writeOne(f: T): F[Unit] = lock.run(sem.permit.use(_ => q.offer(f)))
 
       def writeAll(fs: T*): F[Unit] =
-        run(writer.use(_ => fs.traverse(q.offer).void))
+        lock.run(writer.use(_ => fs.traverse(q.offer).void))
 
-      def block: F[Unit] = canWrite.acquire
-      def unblock: F[Unit] = canWrite.release
+      def block: F[Unit] = lock.block
+      def unblock: F[Unit] = lock.unblock
     }
 }
 
