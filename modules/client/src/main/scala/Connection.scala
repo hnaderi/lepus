@@ -16,27 +16,22 @@
 
 package lepus.client
 
-import cats.effect.Concurrent
-import cats.effect.Resource
+import cats.effect.*
 import cats.effect.implicits.*
-import cats.effect.kernel.Ref
 import cats.effect.std.Queue
+import cats.effect.std.QueueSource
 import cats.implicits.*
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
-import lepus.client.Connection.Status
-import lepus.client.apis.NormalMessagingChannel
-import lepus.client.apis.ReliablePublishingMessagingChannel
-import lepus.client.apis.TransactionalMessagingChannel
+import lepus.client.apis.*
 import lepus.protocol.*
+import lepus.protocol.constants.ErrorCode
+import lepus.protocol.constants.ErrorType
 import lepus.protocol.domains.ChannelNumber
 
 import internal.*
-import cats.effect.std.QueueSource
-import lepus.protocol.constants.ErrorCode
-import lepus.protocol.constants.ErrorType
 
 trait Connection[F[_]] {
   def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]]
@@ -54,44 +49,72 @@ object Connection {
       transport: Transport[F],
       bufferSize: Int = 100
   ): Resource[F, Connection[F]] = for {
-    _status <- Resource.eval(SignallingRef[F].of(Status.New))
+    state <- Resource.eval(State[F].flatMap(SignallingRef[F].of))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    con = ConnectionImpl[F](???, ???)
-    _ <- run(transport, ???, sendQ, _status, 100).compile.drain.background
+    con = ConnectionImpl[F](state)
+    _ <- run(transport, state, bufferSize).compile.drain.background
   } yield con
 
   enum Status {
     case New, Connecting, Connected, Closed
   }
 
-  private[client] final class ConnectionImpl[F[_]: Concurrent](
-      handler: FrameDispatcher[F],
-      mkCh: F[LowlevelChannel[F]]
-  ) extends Connection[F] {
+  private[client] final class ConnectionImpl[F[_]](
+      state: Signal[F, State[F]]
+  )(using F: Concurrent[F])
+      extends Connection[F] {
 
-    def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] = for {
-      ch <- Resource.eval(mkCh)
-      chNr <- handler.add(ch)
-      out <- Channel.normal(ch)
-    } yield out
+    private def invalidState[T]: F[T] = F.raiseError(Exception())
+
+    private def expectOpen: F[State.Open[F]] =
+      state.get.flatMap {
+        case s: State.Open[F] => s.pure[F]
+        case State.New(w) =>
+          w.get.flatMap {
+            case s: State.Open[F] => s.pure[F]
+            case _                => invalidState
+          }
+        case _ => invalidState
+      }
+
+    private def addChannel[MC <: MessagingChannel](
+        f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
+    ): Resource[F, Channel[F, MC]] =
+      for {
+        s <- Resource.eval(expectOpen)
+        ch <- Resource.eval(s.mkCh)
+        chNr <- s.handler.add(ch)
+        out <- f(ch)
+      } yield out
+
+    def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] =
+      addChannel(Channel.normal)
 
     def reliableChannel
         : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
-      Channel.reliable(???)
+      addChannel(Channel.reliable)
 
     def transactionalChannel
         : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
-      Channel.transactional(???)
+      addChannel(Channel.transactional)
 
     def status: Signal[F, Connection.Status] = ???
     def channels: Signal[F, List[ChannelNumber]] = ???
   }
 
+  enum State[F[_]] {
+    case New(next: Deferred[F, State[F]])
+    case Open(handler: FrameDispatcher[F], mkCh: F[LowlevelChannel[F]])
+    case Closed()
+  }
+  object State {
+    def apply[F[_]](using F: Concurrent[F]): F[State[F]] =
+      F.deferred[State[F]].map(State.New(_))
+  }
+
   private[client] def run[F[_]: Concurrent](
       transport: Transport[F],
-      handler: FrameDispatcher[F],
-      sendQ: Queue[F, Frame],
-      status: SignallingRef[F, Status],
+      status: SignallingRef[F, State[F]],
       bufferSize: Int
   ): Stream[F, Nothing] =
     def handleError(f: F[Unit | ErrorCode]) = f.flatMap {
@@ -100,18 +123,26 @@ object Connection {
         if e.errorType == ErrorType.Connection then ???
         else ???
     }
-    Stream
-      .fromQueueUnterminated(sendQ, bufferSize)
-      .through(transport)
-      .evalMap {
-        case f: Frame.Body   => handleError(handler.body(f))
-        case f: Frame.Header => handleError(handler.header(f))
-        case m: Frame.Method if m.channel != ChannelNumber(0) =>
-          handleError(handler.invoke(m))
-        case m: Frame.Method => // Global methods like connection class
-          ???
-        case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
-      }
-      .onFinalize(status.set(Status.Closed))
-      .drain
+    val mkQ = Queue.bounded[F, Frame](bufferSize)
+    val process = for {
+      sendQ <- Stream.eval(mkQ)
+      handler <- Stream.eval(FrameDispatcher[F])
+      a <- Stream
+        .fromQueueUnterminated(sendQ, bufferSize)
+        .through(transport)
+        .foreach {
+          case f: Frame.Body   => handleError(handler.body(f))
+          case f: Frame.Header => handleError(handler.header(f))
+          case m: Frame.Method if m.channel != ChannelNumber(0) =>
+            handleError(handler.invoke(m))
+          case m: Frame.Method => // Global methods like connection class
+            ???
+          case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
+        }
+    } yield a
+
+    process.onFinalize(
+      status.set(State.Closed())
+    ) // TODO closing might need extra work
+
 }
