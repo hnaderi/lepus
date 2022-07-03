@@ -13,7 +13,7 @@ object Dependencies {
     val circe = "0.14.1"
     val rabbit = "5.13.0"
     val MUnit = "0.7.28"
-    val scalacheckEffectVersion = "1.0.3"
+    val scalacheckEffectVersion = "1.0.4"
   }
 
   object Libraries {
