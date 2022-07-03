@@ -70,7 +70,7 @@ private[client] object LowlevelChannel {
     def header(h: Frame.Header): F[Unit | ErrorCode] = content.recv(h)
     def body(h: Frame.Body): F[Unit | ErrorCode] = content.recv(h)
     def method(m: Method): F[Unit | ErrorCode] =
-      //TODO match based on method
+      // TODO match based on method
       m match {
         case ChannelClass.Flow(e) => out.block.widen
         case _                    => content.abort >> rpc.recv(m)

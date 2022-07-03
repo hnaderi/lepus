@@ -71,7 +71,7 @@ object DomainCodecs {
       .typecase("I", int32)
       .typecase("i", int32)
       .typecase("l", int64)
-      .typecase("L", int64) //Only when decoding
+      .typecase("L", int64) // Only when decoding
       .typecase("f", float)
       .typecase("d", double)
       .typecase("D", decimal)

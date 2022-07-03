@@ -61,8 +61,9 @@ object MethodCodecs {
       )
 
   private def tpeName(m: Method): String = if (
-    m.fields.filterNot(_.reserved).isEmpty
-  ) then idName(m.name) + ".type"
+      m.fields.filterNot(_.reserved).isEmpty
+    )
+  then idName(m.name) + ".type"
   else idName(m.name)
 
   private def codecFor(method: Method): String =
@@ -91,8 +92,8 @@ object MethodCodecs {
     List("bit", "no-wait", "no-local", "no-ack", "redelivered")
   private def isBit(f: Field) = bitTypes.contains(f.dataType)
 
-  //Generates codec for method data model,
-  //Considering bits packing
+  // Generates codec for method data model,
+  // Considering bits packing
   private def codecsFor(fields: Seq[Field]): String = {
     val bitFields = fields.takeWhile(isBit)
     if !bitFields.isEmpty then

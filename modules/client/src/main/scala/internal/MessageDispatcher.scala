@@ -36,7 +36,7 @@ private[client] trait MessageDispatcher[F[_]] {
 object MessageDispatcher {
   def apply[F[_]](using F: Concurrent[F]): F[MessageDispatcher[F]] = for {
     dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, DeliveredMessage]])
-    rq <- Queue.bounded[F, ReturnedMessage](1) //TODO queue size
+    rq <- Queue.bounded[F, ReturnedMessage](1) // TODO queue size
   } yield new {
     def deliver(msg: DeliveredMessage): F[Unit] =
       dqs.get.map(_.get(msg.consumerTag)).flatMap {
@@ -63,7 +63,7 @@ object MessageDispatcher {
         ctag: ConsumerTag
     ): Resource[F, QueueSource[F, DeliveredMessage]] = Resource.make(
       Queue
-        .bounded[F, DeliveredMessage](1) //TODO queue size
+        .bounded[F, DeliveredMessage](1) // TODO queue size
         .flatTap(q => dqs.update(_.updated(ctag, q)))
     )(_ => removeQ(ctag))
 
