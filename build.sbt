@@ -42,7 +42,7 @@ def module(module: String): Project = {
 }
 
 val protocol = module("protocol").settings(
-  libraryDependencies += "org.scodec" %% "scodec-bits" % "1.1.31"
+  libraryDependencies += "org.scodec" %% "scodec-bits" % "1.1.34"
 )
 
 val codeGen = module("code-gen")
@@ -58,8 +58,8 @@ val protocolTestkit = module("protocol-testkit")
   .settings(
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % Versions.MUnit,
-      "org.scalameta" %% "munit-scalacheck" % "0.7.29",
-      "org.typelevel" %% "munit-cats-effect-3" % "1.0.5"
+      "org.scalameta" %% "munit-scalacheck" % "0.7.27",
+      "org.typelevel" %% "munit-cats-effect-3" % "1.0.7"
     )
   )
 
