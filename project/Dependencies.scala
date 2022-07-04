@@ -6,7 +6,7 @@ object Dependencies {
   object Versions {
     val cats = "2.7.0"
     val catsEffect = "3.3.13"
-    val fs2 = "3.2.7"
+    val fs2 = "3.2.9"
     val scodec = "2.1.0"
     val scodecStream = "3.0.1"
     val scodecBit = "1.1.13"
