@@ -59,7 +59,7 @@ val protocolTestkit = module("protocol-testkit")
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % Versions.MUnit,
       "org.scalameta" %% "munit-scalacheck" % "0.7.27",
-      "org.typelevel" %% "munit-cats-effect-3" % "1.0.5"
+      "org.typelevel" %% "munit-cats-effect-3" % "1.0.7"
     )
   )
 
