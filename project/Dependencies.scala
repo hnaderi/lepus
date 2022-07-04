@@ -5,15 +5,15 @@ object Dependencies {
 
   object Versions {
     val cats = "2.7.0"
-    val catsEffect = "3.3.12"
-    val fs2 = "3.2.9"
+    val catsEffect = "3.3.13"
+    val fs2 = "3.2.7"
     val scodec = "2.1.0"
     val scodecStream = "3.0.1"
     val scodecBit = "1.1.13"
     val circe = "0.14.1"
     val rabbit = "5.13.0"
     val MUnit = "0.7.28"
-    val scalacheckEffectVersion = "1.0.3"
+    val scalacheckEffectVersion = "1.0.4"
   }
 
   object Libraries {
@@ -50,13 +50,13 @@ object Dependencies {
     )
 
     val scalaXml = Seq(
-      "org.scala-lang.modules" %% "scala-xml" % "2.0.1"
+      "org.scala-lang.modules" %% "scala-xml" % "2.1.0"
     )
 
     val munit = Seq(
       "org.scalameta" %% "munit" % Versions.MUnit % Test,
       "org.scalameta" %% "munit-scalacheck" % "0.7.27" % Test,
-      "org.typelevel" %% "munit-cats-effect-3" % "1.0.5" % Test
+      "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     )
   }
 }
