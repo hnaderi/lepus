@@ -42,7 +42,7 @@ def module(module: String): Project = {
 }
 
 val protocol = module("protocol").settings(
-  libraryDependencies += "org.scodec" %% "scodec-bits" % "1.1.31"
+  libraryDependencies += "org.scodec" %% "scodec-bits" % "1.1.34"
 )
 
 val codeGen = module("code-gen")
