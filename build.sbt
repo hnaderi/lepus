@@ -1,10 +1,10 @@
-import Dependencies.Libraries._
+import sbtcrossproject.CrossProject
 import Dependencies.Versions
 import sbt.ThisBuild
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-lazy val scala3 = "3.2.0"
+lazy val scala3 = "3.2.2"
 val PrimaryJava = JavaSpec.temurin("8")
 val LTSJava = JavaSpec.temurin("17")
 
@@ -36,63 +36,113 @@ inThisBuild(
 def module(module: String): Project = {
   val id = s"lepus-$module"
   Project(id, file(s"modules/$module"))
+}
+
+def module2(mname: String): CrossProject => CrossProject =
+  _.in(file(s"modules/$mname"))
     .settings(
-      libraryDependencies ++= (munit)
+      name := s"lepus-$mname",
+      libraryDependencies ++= Seq(
+        "org.scalameta" %%% "munit" % Versions.MUnit % Test,
+        "org.scalameta" %%% "munit-scalacheck" % Versions.MUnit % Test,
+        "org.typelevel" %%% "munit-cats-effect" % Versions.CatsEffectMunit % Test,
+        "org.typelevel" %%% "scalacheck-effect-munit" % Versions.scalacheckEffectVersion % Test,
+        "org.typelevel" %%% "cats-effect-testkit" % Versions.catsEffect % Test
+      )
+    )
+
+val protocol = module2("protocol") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .settings(
+      libraryDependencies += "org.scodec" %%% "scodec-bits" % "1.1.34"
     )
 }
 
-val protocol = module("protocol").settings(
-  libraryDependencies += "org.scodec" %% "scodec-bits" % "1.1.34"
-)
-
 val codeGen = module("code-gen")
   .settings(
-    libraryDependencies ++= fs2IO ++ fs2scodec ++ scalaXml,
+    libraryDependencies ++= Seq(
+      "co.fs2" %% "fs2-io" % Versions.fs2,
+      "co.fs2" %% "fs2-scodec" % Versions.fs2,
+      "org.scala-lang.modules" %% "scala-xml" % "2.1.0"
+    ),
     Compile / run / baseDirectory := file("."),
     description := "Lepus internal code generator based on AMQP spec"
   )
   .enablePlugins(NoPublishPlugin)
 
-val protocolTestkit = module("protocol-testkit")
-  .dependsOn(protocol)
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.scalameta" %% "munit" % Versions.MUnit,
-      "org.scalameta" %% "munit-scalacheck" % "0.7.29",
-      "org.typelevel" %% "munit-cats-effect-3" % "1.0.7"
+val protocolTestkit = module2("protocol-testkit") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .dependsOn(protocol)
+    .settings(
+      libraryDependencies ++= Seq(
+        "org.scalameta" %%% "munit" % Versions.MUnit,
+        "org.scalameta" %%% "munit-scalacheck" % Versions.MUnit,
+        "org.typelevel" %%% "munit-cats-effect" % Versions.CatsEffectMunit
+      )
     )
-  )
+}
 
-val wire = module("wire")
-  .dependsOn(protocol)
-  .dependsOn(protocolTestkit % Test)
-  .settings(libraryDependencies ++= scodec)
-
-val core = module("core")
-  .settings(libraryDependencies ++= cats ++ catsEffect ++ fs2)
-  .dependsOn(protocol)
-
-val data = module("data")
-  .dependsOn(core)
-
-val client = module("client")
-  .dependsOn(core, wire, protocol)
-  .dependsOn(protocolTestkit % Test)
-  .settings(
-    libraryDependencies ++= rabbit ++ scodec ++ fs2IO ++ fs2scodec ++ Seq(
-      "org.typelevel" %% "scalacheck-effect-munit" % Versions.scalacheckEffectVersion % Test,
-      "org.typelevel" %% "cats-effect-testkit" % Versions.catsEffect % Test
+val wire = module2("wire") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .dependsOn(protocol)
+    .dependsOn(protocolTestkit % Test)
+    .settings(
+      libraryDependencies += "org.scodec" %%% "scodec-core" % Versions.scodec
     )
-  )
+}
 
-val std = module("std")
-  .dependsOn(client)
-  .dependsOn(data)
+val core = module2("core") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .settings(
+      libraryDependencies ++= Seq(
+        "org.typelevel" %%% "cats-core" % Versions.cats,
+        "org.typelevel" %%% "cats-effect" % Versions.catsEffect,
+        "co.fs2" %%% "fs2-core" % Versions.fs2
+      )
+    )
+    .dependsOn(protocol)
+}
+
+val data = module2("data") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .dependsOn(core)
+}
+
+val client = module2("client") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .dependsOn(core, wire, protocol)
+    .dependsOn(protocolTestkit % Test)
+    .settings(
+      libraryDependencies ++= // rabbit ++
+        Seq(
+          "co.fs2" %%% "fs2-io" % Versions.fs2,
+          "co.fs2" %%% "fs2-scodec" % Versions.fs2,
+          "org.typelevel" %%% "scalacheck-effect-munit" % Versions.scalacheckEffectVersion % Test,
+          "org.typelevel" %%% "cats-effect-testkit" % Versions.catsEffect % Test
+        )
+    )
+    .jvmSettings(
+      libraryDependencies += "com.rabbitmq" % "amqp-client" % Versions.rabbit % Test
+    )
+}
+
+val std = module2("std") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .dependsOn(client)
+    .dependsOn(data)
+}
 
 val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
-  .dependsOn(core)
+  .dependsOn(core.jvm)
   .settings(
     tlSiteRelatedProjects := Seq(
       TypelevelProject.Cats,
@@ -102,11 +152,8 @@ val docs = project
     tlSiteHeliumConfig := SiteConfigs(mdocVariables.value)
   )
 
-val root = project
-  .in(file("."))
-  .settings(
-    name := "lepus"
-  )
+val root = tlCrossRootProject
+  .settings(name := "lepus")
   .aggregate(
     protocol,
     protocolTestkit,

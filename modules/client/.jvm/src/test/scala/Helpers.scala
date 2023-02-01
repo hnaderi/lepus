@@ -33,7 +33,7 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.OutputStream
 import java.util.{Map => JMap}
-import scala.collection.JavaConverters.*
+import scala.jdk.CollectionConverters.*
 
 final class JavaTroops {
   val os = ByteArrayOutputStream()

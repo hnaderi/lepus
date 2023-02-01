@@ -44,7 +44,7 @@ import ContentChannel.*
 import ContentChannelSuite.*
 
 class ContentChannelSuite extends InternalTestSuite {
-  override def munitTimeout = 5.second
+  override def munitIOTimeout = 5.second
 
   test("Must fail when receives header before starting") {
     forAllF(incomingContent) { content =>
