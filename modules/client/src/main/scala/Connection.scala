@@ -25,6 +25,7 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
+import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*
 import lepus.protocol.constants.ErrorCode
@@ -41,7 +42,7 @@ trait Connection[F[_]] {
       : Resource[F, Channel[F, TransactionalMessagingChannel[F]]]
 
   def status: Signal[F, Connection.Status]
-  def channels: Signal[F, List[ChannelNumber]]
+  def channels: Signal[F, Set[ChannelNumber]]
 }
 
 object Connection {
@@ -49,8 +50,8 @@ object Connection {
       transport: Transport[F],
       bufferSize: Int = 100
   ): Resource[F, Connection[F]] = for {
-    state <- Resource.eval(State[F].flatMap(SignallingRef[F].of))
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
+    state: ConnectionLowLevel[F] = ???
     con = ConnectionImpl[F](state)
     _ <- run(transport, state, bufferSize).compile.drain.background
   } yield con
@@ -60,61 +61,51 @@ object Connection {
   }
 
   private[client] final class ConnectionImpl[F[_]](
-      state: Signal[F, State[F]]
+      state: ConnectionLowLevel[F]
   )(using F: Concurrent[F])
       extends Connection[F] {
 
-    private def invalidState[T]: F[T] = F.raiseError(Exception())
+    // private def invalidState[T]: F[T] = F.raiseError(Exception())
 
-    private def expectOpen: F[State.Open[F]] =
-      state.get.flatMap {
-        case s: State.Open[F] => s.pure[F]
-        case State.New(w) =>
-          w.get.flatMap {
-            case s: State.Open[F] => s.pure[F]
-            case _                => invalidState
-          }
-        case _ => invalidState
-      }
+    // private def expectOpen: F[State.Open[F]] =
+    //   state.get.flatMap {
+    //     case s: State.Open[F] => s.pure[F]
+    //     case State.New(w) =>
+    //       w.get.flatMap {
+    //         case s: State.Open[F] => s.pure[F]
+    //         case _                => invalidState
+    //       }
+    //     case _ => invalidState
+    //   }
 
-    private def addChannel[MC <: MessagingChannel](
-        f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
-    ): Resource[F, Channel[F, MC]] =
-      for {
-        s <- Resource.eval(expectOpen)
-        ch <- Resource.eval(s.mkCh)
-        chNr <- s.handler.add(ch)
-        out <- f(ch)
-      } yield out
+    // private def addChannel[MC <: MessagingChannel](
+    //     f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
+    // ): Resource[F, Channel[F, MC]] =
+    //   for {
+    //     s <- Resource.eval(expectOpen)
+    //     ch <- Resource.eval(s.mkCh)
+    //     chNr <- s.handler.add(ch)
+    //     out <- f(ch)
+    //   } yield out
 
     def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] =
-      addChannel(Channel.normal)
+      state.addChannel(Channel.normal)
 
     def reliableChannel
         : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
-      addChannel(Channel.reliable)
+      state.addChannel(Channel.reliable)
 
     def transactionalChannel
         : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
-      addChannel(Channel.transactional)
+      state.addChannel(Channel.transactional)
 
-    def status: Signal[F, Connection.Status] = ???
-    def channels: Signal[F, List[ChannelNumber]] = ???
-  }
-
-  enum State[F[_]] {
-    case New(next: Deferred[F, State[F]])
-    case Open(handler: FrameDispatcher[F], mkCh: F[LowlevelChannel[F]])
-    case Closed()
-  }
-  object State {
-    def apply[F[_]](using F: Concurrent[F]): F[State[F]] =
-      F.deferred[State[F]].map(State.New(_))
+    def status: Signal[F, Connection.Status] = state.signal
+    def channels: Signal[F, Set[ChannelNumber]] = state.channels
   }
 
   private[client] def run[F[_]: Concurrent](
       transport: Transport[F],
-      status: SignallingRef[F, State[F]],
+      state: ConnectionLowLevel[F],
       bufferSize: Int
   ): Stream[F, Nothing] =
     def handleError(f: F[Unit | ErrorCode]) = f.flatMap {
@@ -126,23 +117,28 @@ object Connection {
     val mkQ = Queue.bounded[F, Frame](bufferSize)
     val process = for {
       sendQ <- Stream.eval(mkQ)
+      negotiation <- Stream.eval(StartupNegotiation(???))
       handler <- Stream.eval(FrameDispatcher[F])
-      a <- Stream
+      frames = Stream
         .fromQueueUnterminated(sendQ, bufferSize)
         .through(transport)
-        .foreach {
-          case f: Frame.Body   => handleError(handler.body(f))
-          case f: Frame.Header => handleError(handler.header(f))
-          case m: Frame.Method if m.channel != ChannelNumber(0) =>
-            handleError(handler.invoke(m))
-          case m: Frame.Method => // Global methods like connection class
-            ???
-          case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
-        }
+        .through(negotiation.pipe)
+
+      statusHandler = Stream.eval(negotiation.config).evalMap(state.onConnected)
+
+      frameHandler = frames.foreach {
+        case f: Frame.Body   => handleError(handler.body(f))
+        case f: Frame.Header => handleError(handler.header(f))
+        case m: Frame.Method if m.channel != ChannelNumber(0) =>
+          handleError(handler.invoke(m))
+        case m: Frame.Method => // Global methods like connection class
+          ???
+        case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
+      }
+
+      a <- frameHandler.concurrently(statusHandler)
     } yield a
 
-    process.onFinalize(
-      status.set(State.Closed())
-    ) // TODO closing might need extra work
+    process.onFinalize(state.onClosed) // TODO closing might need extra work
 
 }
