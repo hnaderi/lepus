@@ -19,13 +19,16 @@ package internal
 
 import cats.effect.*
 import cats.effect.implicits.*
+import cats.effect.std.Mutex
 import cats.effect.std.Queue
+import cats.effect.std.QueueSink
 import cats.effect.std.QueueSource
 import cats.implicits.*
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
+import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*
 import lepus.protocol.constants.ErrorCode
@@ -33,9 +36,7 @@ import lepus.protocol.constants.ErrorType
 import lepus.protocol.domains.ChannelNumber
 
 import internal.*
-import cats.effect.std.QueueSink
 import ConnectionLowLevel.*
-import cats.effect.std.Mutex
 
 private[client] trait ConnectionLowLevel[F[_]] {
   def onClosed: F[Unit]
@@ -49,7 +50,8 @@ private[client] trait ConnectionLowLevel[F[_]] {
       f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
   ): Resource[F, Channel[F, MC]]
 
-  def signal: Signal[F, Status]
+  def signal: Signal[F, Connection.Status]
+  def channels: Signal[F, Set[ChannelNumber]]
 }
 
 private[client] object ConnectionLowLevel {
@@ -94,26 +96,16 @@ private[client] object ConnectionLowLevel {
         .resource
         .drain
 
-    private val reserveNextChannelNumber = state
-      .modify {
-        case s @ Status.Connected(_, _, lastChannel) =>
-          val nextChNum = ChannelNumber((lastChannel + 1).toShort)
-          (s.copy(lastChannel = nextChNum), nextChNum.some)
-        case other => (other, None)
-      }
-      .flatMap(Concurrent[F].fromOption(_, ???))
-      .toResource
-
     def addChannel[MC <: MessagingChannel](
         f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
     ): Resource[F, Channel[F, MC]] = for {
       _ <- waitTilEstablished
-      newChNum <- reserveNextChannelNumber
       trm <- frameDispatcher.add(newChannel(_, send))
       ch <- f(trm)
     } yield ch
 
     def signal: Signal[F, Status] = state
+    def channels: Signal[F, Set[ChannelNumber]] = frameDispatcher.channels
 
     private def handleError(f: F[Unit | ErrorCode]) = f.flatMap {
       case () => Concurrent[F].unit
@@ -122,18 +114,12 @@ private[client] object ConnectionLowLevel {
         else ???
     }
 
-    def onHeader(h: Frame.Header): F[Unit] = ???
-    def onBody(b: Frame.Body): F[Unit] = ???
-    def onInvoke(m: Frame.Method): F[Unit] = ???
-  }
-
-  enum Status {
-    case Connecting
-    case Connected(
-        config: NegotiatedConfig,
-        channels: Set[ChannelNumber] = Set.empty,
-        lastChannel: ChannelNumber = ChannelNumber(0)
+    def onHeader(h: Frame.Header): F[Unit] = handleError(
+      frameDispatcher.header(h)
     )
-    case Closed
+    def onBody(b: Frame.Body): F[Unit] = handleError(frameDispatcher.body(b))
+    def onInvoke(m: Frame.Method): F[Unit] = handleError(
+      frameDispatcher.invoke(m)
+    )
   }
 }

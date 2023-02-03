@@ -17,16 +17,52 @@
 package lepus.client
 package internal
 
-import lepus.client.internal.ConnectionLowLevel
-import cats.effect.std.Queue
 import cats.effect.IO
+import cats.effect.std.Queue
+import lepus.client.internal.ConnectionLowLevel
 import lepus.protocol.*
 
+import Connection.Status
+
 class ConnectionLowLevelSuite extends InternalTestSuite {
-  test("".ignore) {
+  test("Connection is in connecting state when initiated") {
     for {
-      q <- Queue.bounded[IO, Frame](10)
-      con <- ConnectionLowLevel(q, ???)
+      q <- Queue.synchronous[IO, Frame]
+      fd <- FrameDispatcher[IO]
+      con <- ConnectionLowLevel(q, (_, _) => ???)
+      _ <- con.signal.get.assertEquals(Status.Connecting)
+    } yield ()
+  }
+
+  test("Connection become closed when onClosed is called") {
+    for {
+      q <- Queue.synchronous[IO, Frame]
+      fd <- FrameDispatcher[IO]
+      con <- ConnectionLowLevel(q, (_, _) => ???)
+      _ <- con.onClosed
+      _ <- con.signal.get.assertEquals(Status.Closed)
+    } yield ()
+  }
+
+  test("Connection become closed when negotiation fails") {
+    for {
+      q <- Queue.synchronous[IO, Frame]
+      fd <- FrameDispatcher[IO]
+      con <- ConnectionLowLevel(q, (_, _) => ???)
+      _ <- con.onConnected(None)
+      _ <- con.signal.get.assertEquals(Status.Closed)
+    } yield ()
+  }
+
+  test("Connection become connected when negotiation succeeds") {
+    for {
+      q <- Queue.synchronous[IO, Frame]
+      fd <- FrameDispatcher[IO]
+      con <- ConnectionLowLevel(q, (_, _) => ???)
+      _ <- con.onConnected(Some(NegotiatedConfig(1, 2, 3)))
+      _ <- con.signal.get.assertEquals(
+        Status.Connected(NegotiatedConfig(1, 2, 3))
+      )
     } yield ()
   }
 }

@@ -32,6 +32,8 @@ import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ErrorType
 import lepus.protocol.domains.ChannelNumber
 
+import scala.concurrent.duration.*
+
 import internal.*
 import internal.ConnectionLowLevel
 
@@ -47,72 +49,45 @@ trait Connection[F[_]] {
 }
 
 object Connection {
-  def from[F[_]: Concurrent](
+  def from[F[_]: Temporal](
       transport: Transport[F],
       bufferSize: Int = 100
   ): Resource[F, Connection[F]] = for {
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    state <- Resource.eval(ConnectionLowLevel(sendQ, ???))
+    state <- Resource.eval(
+      ConnectionLowLevel(sendQ, LowlevelChannel.from[F](_, _).toResource)
+    )
     con = ConnectionImpl[F](state)
     _ <- run(sendQ, transport, state, bufferSize).compile.drain.background
   } yield con
 
   enum Status {
-    case Connecting, Connected, Closed
+    case Connecting
+    case Connected(config: NegotiatedConfig)
+    case Closed
   }
 
   private[client] final class ConnectionImpl[F[_]](
-      state: ConnectionLowLevel[F]
+      underlying: ConnectionLowLevel[F]
   )(using F: Concurrent[F])
       extends Connection[F] {
 
-    // private def invalidState[T]: F[T] = F.raiseError(Exception())
-
-    // private def expectOpen: F[State.Open[F]] =
-    //   state.get.flatMap {
-    //     case s: State.Open[F] => s.pure[F]
-    //     case State.New(w) =>
-    //       w.get.flatMap {
-    //         case s: State.Open[F] => s.pure[F]
-    //         case _                => invalidState
-    //       }
-    //     case _ => invalidState
-    //   }
-
-    // private def addChannel[MC <: MessagingChannel](
-    //     f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
-    // ): Resource[F, Channel[F, MC]] =
-    //   for {
-    //     s <- Resource.eval(expectOpen)
-    //     ch <- Resource.eval(s.mkCh)
-    //     chNr <- s.handler.add(ch)
-    //     out <- f(ch)
-    //   } yield out
-
     def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] =
-      state.addChannel(Channel.normal)
+      underlying.addChannel(Channel.normal)
 
     def reliableChannel
         : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
-      state.addChannel(Channel.reliable)
+      underlying.addChannel(Channel.reliable)
 
     def transactionalChannel
         : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
-      state.addChannel(Channel.transactional)
+      underlying.addChannel(Channel.transactional)
 
-    final def status: Signal[F, Connection.Status] = state.signal.map {
-      case ConnectionLowLevel.Status.Connecting   => Status.Connecting
-      case _: ConnectionLowLevel.Status.Connected => Status.Connected
-      case ConnectionLowLevel.Status.Closed       => Status.Closed
-
-    }
-    final def channels: Signal[F, Set[ChannelNumber]] = state.signal.map {
-      case s: ConnectionLowLevel.Status.Connected => s.channels
-      case _                                      => Set.empty
-    }
+    final def status: Signal[F, Status] = underlying.signal
+    final def channels: Signal[F, Set[ChannelNumber]] = underlying.channels
   }
 
-  private[client] def run[F[_]: Concurrent](
+  private[client] def run[F[_]: Temporal](
       sendQ: Queue[F, Frame],
       transport: Transport[F],
       state: ConnectionLowLevel[F],
@@ -127,17 +102,35 @@ object Connection {
 
       statusHandler = Stream.eval(negotiation.config).evalMap(state.onConnected)
 
+      heartbeats = state.signal.discrete.flatMap {
+        case Status.Connected(config) =>
+          Stream
+            .awakeEvery[F](config.heartbeat.toInt.seconds)
+            .foreach(_ => sendQ.offer(Frame.Heartbeat))
+        case _ => Stream.empty
+      }
+
       frameHandler = frames.foreach {
         case f: Frame.Body   => state.onBody(f)
         case f: Frame.Header => state.onHeader(f)
         case m: Frame.Method if m.channel != ChannelNumber(0) =>
           state.onInvoke(m)
         case m: Frame.Method => // Global methods like connection class
-          ???
+          import lepus.protocol.ConnectionClass.*
+          m.value match {
+            case Close(replyCode, replyText, classId, methodId) =>
+              state.onClosed // TODO send close ok
+            case CloseOk                         => state.onClosed
+            case Blocked(reason)                 => ???
+            case Unblocked                       => ???
+            case UpdateSecret(newSecret, reason) => ???
+            case UpdateSecretOk                  => ???
+            case _                               => ??? // TODO unexpected frame
+          }
         case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
       }
 
-      a <- frameHandler.concurrently(statusHandler)
+      a <- frameHandler.concurrently(statusHandler).concurrently(heartbeats)
     } yield a
 
     process.onFinalize(state.onClosed) // TODO closing might need extra work
