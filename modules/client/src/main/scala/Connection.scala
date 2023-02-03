@@ -33,8 +33,8 @@ import lepus.protocol.constants.ErrorType
 import lepus.protocol.domains.ChannelNumber
 
 import internal.*
-
 import internal.ConnectionLowLevel
+
 trait Connection[F[_]] {
   def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]]
   def reliableChannel
@@ -52,13 +52,13 @@ object Connection {
       bufferSize: Int = 100
   ): Resource[F, Connection[F]] = for {
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    state: ConnectionLowLevel[F] = ???
+    state <- Resource.eval(ConnectionLowLevel(sendQ, ???))
     con = ConnectionImpl[F](state)
-    _ <- run(transport, state, bufferSize).compile.drain.background
+    _ <- run(sendQ, transport, state, bufferSize).compile.drain.background
   } yield con
 
   enum Status {
-    case New, Connecting, Connected, Closed
+    case Connecting, Connected, Closed
   }
 
   private[client] final class ConnectionImpl[F[_]](
@@ -100,26 +100,26 @@ object Connection {
         : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
       state.addChannel(Channel.transactional)
 
-    def status: Signal[F, Connection.Status] = state.signal
-    def channels: Signal[F, Set[ChannelNumber]] = state.channels
+    final def status: Signal[F, Connection.Status] = state.signal.map {
+      case ConnectionLowLevel.Status.Connecting   => Status.Connecting
+      case _: ConnectionLowLevel.Status.Connected => Status.Connected
+      case ConnectionLowLevel.Status.Closed       => Status.Closed
+
+    }
+    final def channels: Signal[F, Set[ChannelNumber]] = state.signal.map {
+      case s: ConnectionLowLevel.Status.Connected => s.channels
+      case _                                      => Set.empty
+    }
   }
 
   private[client] def run[F[_]: Concurrent](
+      sendQ: Queue[F, Frame],
       transport: Transport[F],
       state: ConnectionLowLevel[F],
       bufferSize: Int
   ): Stream[F, Nothing] =
-    def handleError(f: F[Unit | ErrorCode]) = f.flatMap {
-      case () => Concurrent[F].unit
-      case e: ErrorCode =>
-        if e.errorType == ErrorType.Connection then ???
-        else ???
-    }
-    val mkQ = Queue.bounded[F, Frame](bufferSize)
     val process = for {
-      sendQ <- Stream.eval(mkQ)
       negotiation <- Stream.eval(StartupNegotiation(???))
-      handler <- Stream.eval(FrameDispatcher[F])
       frames = Stream
         .fromQueueUnterminated(sendQ, bufferSize)
         .through(transport)
@@ -128,10 +128,10 @@ object Connection {
       statusHandler = Stream.eval(negotiation.config).evalMap(state.onConnected)
 
       frameHandler = frames.foreach {
-        case f: Frame.Body   => handleError(handler.body(f))
-        case f: Frame.Header => handleError(handler.header(f))
+        case f: Frame.Body   => state.onBody(f)
+        case f: Frame.Header => state.onHeader(f)
         case m: Frame.Method if m.channel != ChannelNumber(0) =>
-          handleError(handler.invoke(m))
+          state.onInvoke(m)
         case m: Frame.Method => // Global methods like connection class
           ???
         case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)

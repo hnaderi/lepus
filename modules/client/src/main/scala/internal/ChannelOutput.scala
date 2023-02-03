@@ -28,6 +28,11 @@ private[client] trait SequentialOutput[F[_], T] {
   def writeAll(fs: T*): F[Unit]
 }
 
+private[client] trait ChannelOutput[F[_], T] extends SequentialOutput[F, T] {
+  def block: F[Unit]
+  def unblock: F[Unit]
+}
+
 private[client] object ChannelOutput {
   def apply[F[_], T](
       q: QueueSink[F, T],
@@ -49,9 +54,4 @@ private[client] object ChannelOutput {
       def block: F[Unit] = lock.block
       def unblock: F[Unit] = lock.unblock
     }
-}
-
-private[client] trait ChannelOutput[F[_], T] extends SequentialOutput[F, T] {
-  def block: F[Unit]
-  def unblock: F[Unit]
 }

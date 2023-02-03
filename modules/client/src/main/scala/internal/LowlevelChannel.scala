@@ -24,6 +24,8 @@ import fs2.Stream
 import lepus.protocol.*
 import lepus.protocol.constants.ErrorCode
 import lepus.protocol.domains.ConsumerTag
+import lepus.protocol.domains.ChannelNumber
+import cats.effect.std.QueueSink
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
@@ -54,6 +56,19 @@ private[client] trait LowlevelChannel[F[_]]
 
 /** Facade over other small components */
 private[client] object LowlevelChannel {
+  def from[F[_]: Concurrent](
+      channelNumber: ChannelNumber,
+      disp: MessageDispatcher[F],
+      sendQ: QueueSink[F, Frame]
+  ): F[LowlevelChannel[F]] = for {
+    out <- ChannelOutput(sendQ)
+    wlist <- Waitlist[F, Option[SynchronousGet]]()
+    content <- ContentChannel(channelNumber, out, disp, wlist)
+    rpc <- RPCChannel(out, channelNumber, 10)
+    pub = ChannelPublisher(channelNumber, 100, out)
+    ch <- apply(content, rpc, pub, disp, out)
+  } yield ch
+
   def apply[F[_]: Concurrent](
       content: ContentChannel[F],
       rpc: RPCChannel[F],
@@ -61,7 +76,7 @@ private[client] object LowlevelChannel {
       disp: MessageDispatcher[F],
       out: ChannelOutput[F, Frame]
   ): F[LowlevelChannel[F]] = for {
-    q <- Queue.bounded[F, Frame](10)
+    _ <- Queue.bounded[F, Frame](10)
   } yield new LowlevelChannel[F] {
     def asyncContent(m: ContentMethod): F[Unit | ErrorCode] =
       content.asyncNotify(m)
