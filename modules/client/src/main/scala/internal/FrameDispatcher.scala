@@ -20,18 +20,25 @@ package internal
 import cats.Applicative
 import cats.Monad
 import cats.effect.Concurrent
+import cats.effect.syntax.all.*
 import cats.effect.kernel.Resource
 import cats.implicits.*
 import lepus.protocol.*
 import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.ChannelNumber
+import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
 
 sealed trait FrameDispatcher[F[_]] {
   def header(h: Frame.Header): F[Unit | ErrorCode]
   def body(b: Frame.Body): F[Unit | ErrorCode]
   def invoke(m: Frame.Method): F[Unit | ErrorCode]
-  def add(recvr: ChannelReceiver[F]): Resource[F, ChannelNumber]
+
+  def add[CHANNEL <: ChannelReceiver[F]](
+      build: ChannelNumber => Resource[F, CHANNEL]
+  ): Resource[F, CHANNEL]
+  def channels: Signal[F, Set[ChannelNumber]]
 }
 
 object FrameDispatcher {
@@ -42,7 +49,7 @@ object FrameDispatcher {
   )
 
   def apply[F[_]](using F: Concurrent[F]): F[FrameDispatcher[F]] = for {
-    state <- F.ref(State[F]())
+    state <- SignallingRef[F].of(State[F]())
   } yield new {
     def header(h: Frame.Header): F[Unit | ErrorCode] =
       call(h.channel)(_.header(h))
@@ -59,18 +66,13 @@ object FrameDispatcher {
       }
     )
 
-    def add(recvr: ChannelReceiver[F]): Resource[F, ChannelNumber] =
+    private def addRecvr(
+        chNum: ChannelNumber,
+        recvr: ChannelReceiver[F]
+    ): Resource[F, Unit] =
       Resource.make(
-        state.modify { s =>
-          val nc = ChannelNumber((s.nextChannel + 1).toShort)
-          val ns = s.copy(
-            nextChannel = nc,
-            channels = s.channels.updated(s.nextChannel, recvr)
-          )
-
-          (ns, s.nextChannel)
-        }
-      )(ch => state.update(s => s.copy(channels = s.channels.removed(ch))))
+        state.update(s => s.copy(channels = s.channels.updated(chNum, recvr)))
+      )(_ => state.update(s => s.copy(channels = s.channels.removed(chNum))))
 
     private def call(
         ch: ChannelNumber
@@ -79,5 +81,22 @@ object FrameDispatcher {
         case Some(r) => f(r)
         case None    => ReplyCode.ChannelError.pure
       }
+
+    private def getNextChannelNumber = state.modify { s =>
+      val nc = ChannelNumber((s.nextChannel + 1).toShort)
+      val ns = s.copy(nextChannel = nc)
+
+      (ns, s.nextChannel)
+    }
+
+    def channels: Signal[F, Set[ChannelNumber]] = state.map(_.channels.keySet)
+    def add[CHANNEL <: ChannelReceiver[F]](
+        build: ChannelNumber => Resource[F, CHANNEL]
+    ): Resource[F, CHANNEL] = for {
+      ch <- getNextChannelNumber.toResource
+      out <- build(ch)
+      _ <- addRecvr(ch, out)
+    } yield out
+
   }
 }

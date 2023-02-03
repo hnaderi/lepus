@@ -32,15 +32,23 @@ import munit.ScalaCheckSuite
 import org.scalacheck.effect.PropF.forAllF
 import scodec.bits.ByteVector
 import org.scalacheck.Gen
+import cats.effect.kernel.Resource
 
 class FrameDispatcherSuite extends InternalTestSuite {
   test("Must assign channel number") {
     for {
       fd <- FrameDispatcher[IO]
-      fr1 <- FakeReceiver()
-      _ <- fd.add(fr1).use(IO(_)).assertEquals(ChannelNumber(1))
-      fr2 <- FakeReceiver()
-      _ <- fd.add(fr2).use(IO(_)).assertEquals(ChannelNumber(2))
+      _ <- fd
+        .add(_ => Resource.eval(FakeReceiver()))
+        .use(_ => fd.channels.get.assertEquals(Set(ChannelNumber(1))))
+
+      _ <- fd.channels.get.assertEquals(Set())
+
+      _ <- fd
+        .add(_ => Resource.eval(FakeReceiver()))
+        .use(_ => fd.channels.get.assertEquals(Set(ChannelNumber(2))))
+
+      _ <- fd.channels.get.assertEquals(Set())
     } yield ()
   }
 
@@ -49,7 +57,7 @@ class FrameDispatcherSuite extends InternalTestSuite {
       fd <- FrameDispatcher[IO]
       fr <- FakeReceiver()
       frame: Frame.Body = Frame.Body(ChannelNumber(1), ByteVector(1, 2, 3))
-      _ <- fd.add(fr).use_
+      _ <- fd.add(_ => Resource.pure(fr)).use_
       _ <- fd.body(frame).assertEquals(ReplyCode.ChannelError)
       _ <- fr.interactions.assertEquals(Nil)
     } yield ()
@@ -60,7 +68,7 @@ class FrameDispatcherSuite extends InternalTestSuite {
       fd <- FrameDispatcher[IO]
       fr <- FakeReceiver()
       frame: Frame.Body = Frame.Body(ChannelNumber(1), ByteVector(1, 2, 3))
-      _ <- fd.add(fr).use(_ => fd.body(frame))
+      _ <- fd.add(_ => Resource.pure(fr)).use(_ => fd.body(frame))
       _ <- fr.lastInteraction.assertEquals(Interaction.Body(frame).some)
     } yield ()
   }
@@ -75,7 +83,7 @@ class FrameDispatcherSuite extends InternalTestSuite {
         bodySize = 2,
         Properties()
       )
-      _ <- fd.add(fr).use(_ => fd.header(frame))
+      _ <- fd.add(_ => Resource.pure(fr)).use(_ => fd.header(frame))
       _ <- fr.lastInteraction.assertEquals(Interaction.Header(frame).some)
     } yield ()
   }
@@ -88,7 +96,10 @@ class FrameDispatcherSuite extends InternalTestSuite {
       for {
         fd <- FrameDispatcher[IO]
         fr <- FakeReceiver()
-        _ <- fd.add(fr).use(_ => fd.invoke(f)).assertEquals(())
+        _ <- fd
+          .add(_ => Resource.pure(fr))
+          .use(_ => fd.invoke(f))
+          .assertEquals(())
         expected = f.value match {
           case m: (BasicClass.Deliver | BasicClass.Return) =>
             Interaction.AsyncContent(m)

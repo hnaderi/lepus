@@ -59,9 +59,18 @@ private[client] object ConnectionLowLevel {
           ChannelNumber,
           QueueSink[F, Frame]
       ) => Resource[F, LowlevelChannel[F]]
+  ): F[ConnectionLowLevel[F]] =
+    FrameDispatcher[F].flatMap(from(send, _, newChannel))
+
+  def from[F[_]: Concurrent](
+      send: QueueSink[F, Frame],
+      frameDispatcher: FrameDispatcher[F],
+      newChannel: (
+          ChannelNumber,
+          QueueSink[F, Frame]
+      ) => Resource[F, LowlevelChannel[F]]
   ): F[ConnectionLowLevel[F]] = for {
     state <- SignallingRef[F].of(Status.Connecting)
-    msgDispatch <- MessageDispatcher[F]
   } yield new ConnectionLowLevel[F] {
     def onClosed: F[Unit] = state.set(Status.Closed)
     def onConnected(config: Option[NegotiatedConfig]): F[Unit] = state.update {
@@ -100,7 +109,7 @@ private[client] object ConnectionLowLevel {
     ): Resource[F, Channel[F, MC]] = for {
       _ <- waitTilEstablished
       newChNum <- reserveNextChannelNumber
-      trm <- LowlevelChannel.from(newChNum, msgDispatch, send).toResource
+      trm <- frameDispatcher.add(newChannel(_, send))
       ch <- f(trm)
     } yield ch
 

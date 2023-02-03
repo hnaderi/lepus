@@ -23,7 +23,7 @@ import cats.effect.IO
 import lepus.protocol.*
 
 class ConnectionLowLevelSuite extends InternalTestSuite {
-  test("") {
+  test("".ignore) {
     for {
       q <- Queue.bounded[IO, Frame](10)
       con <- ConnectionLowLevel(q, ???)

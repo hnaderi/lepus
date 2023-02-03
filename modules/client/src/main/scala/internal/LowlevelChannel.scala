@@ -58,9 +58,9 @@ private[client] trait LowlevelChannel[F[_]]
 private[client] object LowlevelChannel {
   def from[F[_]: Concurrent](
       channelNumber: ChannelNumber,
-      disp: MessageDispatcher[F],
       sendQ: QueueSink[F, Frame]
   ): F[LowlevelChannel[F]] = for {
+    disp <- MessageDispatcher[F]
     out <- ChannelOutput(sendQ)
     wlist <- Waitlist[F, Option[SynchronousGet]]()
     content <- ContentChannel(channelNumber, out, disp, wlist)
