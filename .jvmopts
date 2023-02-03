@@ -1,3 +1,5 @@
 -Xms512M
--Xmx4G
+-Xmx7G
 -Xss2M
+-XX:+TieredCompilation
+-XX:+UseG1GC
