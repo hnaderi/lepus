@@ -15,13 +15,36 @@
  */
 
 package lepus.client
-import lepus.protocol.domains.LongString
 import cats.data.NonEmptyList
+import lepus.protocol.domains.LongString
+import lepus.protocol.domains.ShortString
 
-trait SaslMechanism[F[_]] {
-  def handle(challenge: LongString): F[LongString]
+final case class SaslMechanism[F[_]](
+    first: F[LongString],
+    next: LongString => F[LongString]
+)
+
+/** SASL Mechanisms orderd by preferrence from high to low */
+final case class AuthenticationConfig[F[_]](
+    mechanisms: NonEmptyList[(ShortString, SaslMechanism[F])]
+) extends AnyVal {
+
+  /** First supported mechanism based on preferrence */
+  def get(supported: String*): Option[(ShortString, SaslMechanism[F])] =
+    mechanisms.foldLeft(Option.empty[(ShortString, SaslMechanism[F])]) {
+      case (last @ Some(_), _) => last
+      case (None, (name, mechanism)) if supported.contains(name) =>
+        Some((name, mechanism))
+      case _ => None
+    }
+
 }
 
-final case class AuthenticationConfig[F[_]](
-    mechanisms: NonEmptyList[(String, SaslMechanism[F])]
-) extends AnyVal {}
+object AuthenticationConfig {
+  def apply[F[_]](
+      m: (ShortString, SaslMechanism[F]),
+      ms: (ShortString, SaslMechanism[F])*
+  ): AuthenticationConfig[F] = new AuthenticationConfig(
+    NonEmptyList.of(m, ms: _*)
+  )
+}

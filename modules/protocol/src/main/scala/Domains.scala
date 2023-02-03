@@ -69,8 +69,11 @@ type FieldData =
   ShortString | LongString | Boolean | Byte | Short | Int | Long | Float |
     Double | Decimal | Timestamp | FieldTable
 
-final case class FieldTable(values: Map[ShortString, FieldData])
+final case class FieldTable(values: Map[ShortString, FieldData]) extends AnyVal
 object FieldTable {
+  def apply(entries: (ShortString, FieldData)*): FieldTable = new FieldTable(
+    entries.toMap
+  )
   val empty: FieldTable = FieldTable(Map.empty)
 }
 

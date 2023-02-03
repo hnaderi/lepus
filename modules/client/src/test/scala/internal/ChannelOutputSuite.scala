@@ -21,7 +21,6 @@ import cats.effect.IO
 import cats.effect.implicits.*
 import cats.effect.std.Queue
 import cats.effect.std.QueueSource
-import cats.effect.testkit.TestControl
 import cats.implicits.*
 import lepus.codecs.FrameGenerators
 import lepus.protocol.Frame
@@ -90,71 +89,63 @@ class ChannelOutputSuite extends InternalTestSuite {
       assertEquals(sliceRemove.sorted, is1.sorted)
     }
 
-  test("Must respect blocking: writeOne") {
-    TestControl.executeEmbed(
-      for {
-        q <- Queue.unbounded[IO, Int]
-        out <- ChannelOutput(q, 1)
-        _ <- out.block
-        _ <- out.writeOne(1).timeout(1000.days).attempt
-        _ <- q.size.assertEquals(0)
-        _ <- out.unblock
-        _ <- out.writeOne(2)
-        _ <- q.take.assertEquals(2)
-      } yield ()
-    )
+  check("Must respect blocking: writeOne") {
+    for {
+      q <- Queue.unbounded[IO, Int]
+      out <- ChannelOutput(q, 1)
+      _ <- out.block
+      _ <- out.writeOne(1).timeout(1000.days).attempt
+      _ <- q.size.assertEquals(0)
+      _ <- out.unblock
+      _ <- out.writeOne(2)
+      _ <- q.take.assertEquals(2)
+    } yield ()
   }
 
-  test("Must wait when blocked: writeOne") {
-    TestControl.executeEmbed(
-      for {
-        q <- Queue.unbounded[IO, Int]
-        out <- ChannelOutput(q, 1)
-        _ <- out.block
-        _ <- out
-          .writeOne(1)
-          .background
-          .use(_ =>
-            IO.sleep(1000.days) >>
-              q.size.assertEquals(0) >>
-              out.unblock >>
-              q.take.assertEquals(1)
-          )
-      } yield ()
-    )
+  check("Must wait when blocked: writeOne") {
+    for {
+      q <- Queue.unbounded[IO, Int]
+      out <- ChannelOutput(q, 1)
+      _ <- out.block
+      _ <- out
+        .writeOne(1)
+        .background
+        .use(_ =>
+          IO.sleep(1000.days) >>
+            q.size.assertEquals(0) >>
+            out.unblock >>
+            q.take.assertEquals(1)
+        )
+    } yield ()
   }
 
-  test("Must respect blocking: writeAll") {
-    TestControl.executeEmbed(
-      for {
-        q <- Queue.unbounded[IO, Int]
-        out <- ChannelOutput(q, 1)
-        _ <- out.block
-        _ <- out.writeAll(1, 2, 3).timeout(1000.days).attempt
-        _ <- q.size.assertEquals(0)
-        _ <- out.unblock
-        _ <- out.writeAll(1, 2, 3)
-        _ <- List.range(0, 3).traverse(_ => q.take).assertEquals(List(1, 2, 3))
-      } yield ()
-    )
+  check("Must respect blocking: writeAll") {
+    for {
+      q <- Queue.unbounded[IO, Int]
+      out <- ChannelOutput(q, 1)
+      _ <- out.block
+      _ <- out.writeAll(1, 2, 3).timeout(1000.days).attempt
+      _ <- q.size.assertEquals(0)
+      _ <- out.unblock
+      _ <- out.writeAll(1, 2, 3)
+      _ <- List.range(0, 3).traverse(_ => q.take).assertEquals(List(1, 2, 3))
+    } yield ()
   }
 
-  test("Must wait when blocked: writeAll") {
-    TestControl.executeEmbed(
-      for {
-        q <- Queue.unbounded[IO, Int]
-        out <- ChannelOutput(q, 1)
-        _ <- out.block
-        _ <- out
-          .writeAll(1, 2, 3)
-          .background
-          .use(_ =>
-            IO.sleep(1000.days) >>
-              q.size.assertEquals(0) >>
-              out.unblock >>
-              List.range(0, 3).traverse(_ => q.take).assertEquals(List(1, 2, 3))
-          )
-      } yield ()
-    )
+  check("Must wait when blocked: writeAll") {
+    for {
+      q <- Queue.unbounded[IO, Int]
+      out <- ChannelOutput(q, 1)
+      _ <- out.block
+      _ <- out
+        .writeAll(1, 2, 3)
+        .background
+        .use(_ =>
+          IO.sleep(1000.days) >>
+            q.size.assertEquals(0) >>
+            out.unblock >>
+            List.range(0, 3).traverse(_ => q.take).assertEquals(List(1, 2, 3))
+        )
+    } yield ()
   }
 }

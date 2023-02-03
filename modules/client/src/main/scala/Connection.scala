@@ -34,6 +34,7 @@ import lepus.protocol.domains.ChannelNumber
 
 import internal.*
 
+import internal.ConnectionLowLevel
 trait Connection[F[_]] {
   def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]]
   def reliableChannel
@@ -122,7 +123,7 @@ object Connection {
       frames = Stream
         .fromQueueUnterminated(sendQ, bufferSize)
         .through(transport)
-        .through(negotiation.pipe)
+        .through(negotiation.pipe(sendQ.offer))
 
       statusHandler = Stream.eval(negotiation.config).evalMap(state.onConnected)
 

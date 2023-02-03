@@ -16,9 +16,13 @@
 
 package lepus.client.internal
 
-import munit.CatsEffectSuite
-import munit.ScalaCheckEffectSuite
+import cats.effect.IO
+import cats.effect.testkit.TestControl
+import munit.*
 
 trait InternalTestSuite extends CatsEffectSuite, ScalaCheckEffectSuite {
   export org.scalacheck.effect.PropF.forAllF
+
+  def check[T](options: TestOptions)(body: => IO[T])(implicit loc: Location) =
+    test(options)(TestControl.executeEmbed(body))
 }
