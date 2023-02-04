@@ -29,7 +29,7 @@ import lepus.protocol.domains.*
 private[client] trait RPCChannel[F[_]] {
   def sendWait(m: Method): F[Method]
   def sendNoWait(m: Method): F[Unit]
-  def recv(m: Method): F[Unit | ErrorCode]
+  def recv(m: Method): F[Unit]
 }
 
 private[client] object RPCChannel {
@@ -50,10 +50,19 @@ private[client] object RPCChannel {
       def sendNoWait(m: Method): F[Unit] =
         publisher.writeOne(Frame.Method(channelNumber, m))
 
-      def recv(m: Method): F[Unit | ErrorCode] =
-        waitlist.nextTurn(m).ifM(unit, syntaxError)
-
-      private val syntaxError: F[Unit | ErrorCode] = ReplyCode.SyntaxError.pure
-      private val unit: F[Unit | ErrorCode] = ().pure
+      def recv(m: Method): F[Unit] =
+        waitlist
+          .nextTurn(m)
+          .ifM(
+            F.unit,
+            AMQPError(
+              ReplyCode.CommandInvalid,
+              ShortString(
+                "Received a response method when no one has asked anything!"
+              ),
+              m._classId,
+              m._methodId
+            ).raiseError
+          )
     }
 }

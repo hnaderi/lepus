@@ -23,6 +23,8 @@ import cats.effect.std.Queue
 import cats.implicits.*
 import fs2.Pipe
 import fs2.Stream
+import fs2.concurrent.Signal
+import lepus.client.Channel.Status
 import lepus.client.apis.*
 import lepus.client.internal.*
 import lepus.protocol.*
@@ -32,14 +34,22 @@ trait Channel[F[_], M <: MessagingChannel] {
   def exchange: ExchangeAPI[F]
   def queue: QueueAPI[F]
   def messaging: M
+
+  def status: Signal[F, Status]
 }
 
 object Channel {
+  enum Status {
+    case Active, Closed
+  }
   private final class ChannelImpl[F[_], M <: MessagingChannel](
       rpc: ChannelTransmitter[F],
       val messaging: M
   )(using MonadError[F, Throwable])
       extends Channel[F, M] {
+
+    override def status: Signal[F, Status] = rpc.status
+
     final def exchange: ExchangeAPI[F] = ExchangeAPIImpl(rpc)
     final def queue: QueueAPI[F] = QueueAPIImpl(rpc)
   }

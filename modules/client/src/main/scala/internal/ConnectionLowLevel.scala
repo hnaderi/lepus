@@ -107,11 +107,9 @@ private[client] object ConnectionLowLevel {
     def signal: Signal[F, Status] = state
     def channels: Signal[F, Set[ChannelNumber]] = frameDispatcher.channels
 
-    private def handleError(f: F[Unit | ErrorCode]) = f.flatMap {
-      case () => Concurrent[F].unit
-      case e: ErrorCode =>
-        if e.errorType == ErrorType.Connection then ???
-        else ???
+    private def handleError(f: F[Unit]) = f.handleErrorWith {
+      case AMQPError(replyCode, replyText, classId, methodId) => ???
+      case other                                              => ???
     }
 
     def onHeader(h: Frame.Header): F[Unit] = handleError(

@@ -19,8 +19,10 @@ package internal
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
+import cats.effect.kernel.Resource
 import cats.implicits.*
 import lepus.client.internal.FakeReceiver.Interaction
+import lepus.codecs.ChannelDataGenerator
 import lepus.codecs.FrameGenerators
 import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
@@ -29,10 +31,9 @@ import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite
 import munit.ScalaCheckSuite
+import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 import scodec.bits.ByteVector
-import org.scalacheck.Gen
-import cats.effect.kernel.Resource
 
 class FrameDispatcherSuite extends InternalTestSuite {
   test("Must assign channel number") {
@@ -58,7 +59,7 @@ class FrameDispatcherSuite extends InternalTestSuite {
       fr <- FakeReceiver()
       frame: Frame.Body = Frame.Body(ChannelNumber(1), ByteVector(1, 2, 3))
       _ <- fd.add(_ => Resource.pure(fr)).use_
-      _ <- fd.body(frame).assertEquals(ReplyCode.ChannelError)
+      _ <- fd.body(frame).intercept[AMQPError]
       _ <- fr.interactions.assertEquals(Nil)
     } yield ()
   }
@@ -90,7 +91,9 @@ class FrameDispatcherSuite extends InternalTestSuite {
 
   test("Must dispatch method frames") {
     val methods: Gen[Frame.Method] =
-      FrameGenerators.method.map(_.copy(channel = ChannelNumber(1)))
+      FrameGenerators.method
+        .suchThat(!_.value.isInstanceOf[ChannelClass.Close])
+        .map(_.copy(channel = ChannelNumber(1)))
 
     forAllF(methods) { f =>
       for {
@@ -111,4 +114,22 @@ class FrameDispatcherSuite extends InternalTestSuite {
       } yield ()
     }
   }
+
+  test("Must close channel on Channel.Close") {
+    val methods: Gen[Frame.Method] =
+      ChannelDataGenerator.closeGen.map(Frame.Method(ChannelNumber(1), _))
+
+    forAllF(methods) { f =>
+      for {
+        fd <- FrameDispatcher[IO]
+        fr <- FakeReceiver()
+        _ <- fd
+          .add(_ => Resource.pure(fr))
+          .use(_ => fd.invoke(f))
+          .assertEquals(())
+        _ <- fr.lastInteraction.assertEquals(Interaction.Close.some)
+      } yield ()
+    }
+  }
+
 }

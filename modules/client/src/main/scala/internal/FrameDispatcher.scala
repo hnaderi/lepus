@@ -26,14 +26,14 @@ import cats.implicits.*
 import lepus.protocol.*
 import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
-import lepus.protocol.domains.ChannelNumber
+import lepus.protocol.domains.*
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 
 sealed trait FrameDispatcher[F[_]] {
-  def header(h: Frame.Header): F[Unit | ErrorCode]
-  def body(b: Frame.Body): F[Unit | ErrorCode]
-  def invoke(m: Frame.Method): F[Unit | ErrorCode]
+  def header(h: Frame.Header): F[Unit]
+  def body(b: Frame.Body): F[Unit]
+  def invoke(m: Frame.Method): F[Unit]
 
   def add[CHANNEL <: ChannelReceiver[F]](
       build: ChannelNumber => Resource[F, CHANNEL]
@@ -51,18 +51,19 @@ object FrameDispatcher {
   def apply[F[_]](using F: Concurrent[F]): F[FrameDispatcher[F]] = for {
     state <- SignallingRef[F].of(State[F]())
   } yield new {
-    def header(h: Frame.Header): F[Unit | ErrorCode] =
+    def header(h: Frame.Header): F[Unit] =
       call(h.channel)(_.header(h))
 
-    def body(b: Frame.Body): F[Unit | ErrorCode] =
+    def body(b: Frame.Body): F[Unit] =
       call(b.channel)(_.body(b))
 
-    def invoke(m: Frame.Method): F[Unit | ErrorCode] = call(m.channel)(ch =>
+    def invoke(m: Frame.Method): F[Unit] = call(m.channel)(ch =>
       m.value match {
         case d: (BasicClass.Deliver | BasicClass.Return) => ch.asyncContent(d)
         case d: (BasicClass.GetOk | BasicClass.GetEmpty.type) =>
           ch.syncContent(d)
-        case other => ch.method(other)
+        case _: ChannelClass.Close => ch.close.widen
+        case other                 => ch.method(other)
       }
     )
 
@@ -76,10 +77,16 @@ object FrameDispatcher {
 
     private def call(
         ch: ChannelNumber
-    )(f: ChannelReceiver[F] => F[Unit | ErrorCode]): F[Unit | ErrorCode] =
+    )(f: ChannelReceiver[F] => F[Unit]): F[Unit] =
       state.get.map(_.channels.get(ch)).flatMap {
         case Some(r) => f(r)
-        case None    => ReplyCode.ChannelError.pure
+        case None =>
+          AMQPError(
+            ReplyCode.NotFound,
+            ShortString("No such channel found!"),
+            ClassId(0),
+            MethodId(0)
+          ).raiseError
       }
 
     private def getNextChannelNumber = state.modify { s =>

@@ -26,16 +26,20 @@ import lepus.protocol.constants.ErrorCode
 import lepus.protocol.domains.ConsumerTag
 import lepus.protocol.domains.ChannelNumber
 import cats.effect.std.QueueSink
+import fs2.concurrent.Signal
+import lepus.client.Channel.Status
+import fs2.concurrent.SignallingRef
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
 
 private[client] trait ChannelReceiver[F[_]] {
-  def asyncContent(m: ContentMethod): F[Unit | ErrorCode]
-  def syncContent(m: ContentSyncResponse): F[Unit | ErrorCode]
-  def header(h: Frame.Header): F[Unit | ErrorCode]
-  def body(h: Frame.Body): F[Unit | ErrorCode]
-  def method(m: Method): F[Unit | ErrorCode]
+  def asyncContent(m: ContentMethod): F[Unit]
+  def syncContent(m: ContentSyncResponse): F[Unit]
+  def header(h: Frame.Header): F[Unit]
+  def body(h: Frame.Body): F[Unit]
+  def method(m: Method): F[Unit]
+  def close: F[Unit]
 }
 
 private[client] trait ChannelTransmitter[F[_]] {
@@ -48,6 +52,8 @@ private[client] trait ChannelTransmitter[F[_]] {
 
   def delivered(ctag: ConsumerTag): Stream[F, DeliveredMessage]
   def returned: Stream[F, ReturnedMessage]
+
+  def status: Signal[F, Status]
 }
 
 private[client] trait LowlevelChannel[F[_]]
@@ -77,17 +83,24 @@ private[client] object LowlevelChannel {
       out: ChannelOutput[F, Frame]
   ): F[LowlevelChannel[F]] = for {
     _ <- Queue.bounded[F, Frame](10)
+    state <- SignallingRef[F].of(Status.Active)
   } yield new LowlevelChannel[F] {
-    def asyncContent(m: ContentMethod): F[Unit | ErrorCode] =
+
+    override def close: F[Unit] = ???
+
+    override def status: Signal[F, Status] = state
+
+    def asyncContent(m: ContentMethod): F[Unit] =
       content.asyncNotify(m)
-    def syncContent(m: ContentSyncResponse): F[Unit | ErrorCode] =
+    def syncContent(m: ContentSyncResponse): F[Unit] =
       content.syncNotify(m)
-    def header(h: Frame.Header): F[Unit | ErrorCode] = content.recv(h)
-    def body(h: Frame.Body): F[Unit | ErrorCode] = content.recv(h)
-    def method(m: Method): F[Unit | ErrorCode] =
+    def header(h: Frame.Header): F[Unit] = content.recv(h)
+    def body(h: Frame.Body): F[Unit] = content.recv(h)
+    def method(m: Method): F[Unit] =
       // TODO match based on method
       m match {
-        case ChannelClass.Flow(e) => out.block.widen
+        case ChannelClass.Flow(e) => out.block.widen // TODO
+        case ChannelClass.CloseOk => ???
         case _                    => content.abort >> rpc.recv(m)
       }
 

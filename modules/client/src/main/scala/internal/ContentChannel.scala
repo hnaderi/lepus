@@ -36,10 +36,10 @@ import scodec.bits.ByteVector
 import ContentChannel.*
 
 private[client] trait ContentChannel[F[_]] {
-  def asyncNotify(m: ContentMethod): F[Unit | ErrorCode]
-  def syncNotify(m: ContentSyncResponse): F[Unit | ErrorCode]
+  def asyncNotify(m: ContentMethod): F[Unit]
+  def syncNotify(m: ContentSyncResponse): F[Unit]
 
-  def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode]
+  def recv(h: Frame.Header | Frame.Body): F[Unit]
   def abort: F[Unit]
 
   def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]]
@@ -59,24 +59,33 @@ private[client] object ContentChannel {
       state <- F.ref(State.Idle)
     } yield new {
 
-      def asyncNotify(m: ContentMethod): F[Unit | ErrorCode] =
-        state.set(State.AsyncStarted(m)).widen
+      private val unexpected: F[Unit] =
+        F.raiseError(
+          AMQPError(
+            ReplyCode.UnexpectedFrame,
+            replyText = ShortString(
+              "Received an unexpected frame, this is a fatal protocol error"
+            ),
+            ClassId(0),
+            MethodId(0)
+          )
+        )
 
-      def recv(h: Frame.Header | Frame.Body): F[Unit | ErrorCode] =
+      def asyncNotify(m: ContentMethod): F[Unit] =
+        state.set(State.AsyncStarted(m))
+
+      def recv(h: Frame.Header | Frame.Body): F[Unit] =
         state.get.flatMap {
           case State.AsyncStarted(m, acc) =>
             acc
               .add(h)
-              .fold(unexpected)(checkAsync(m, _).widen)
+              .fold(unexpected)(checkAsync(m, _))
           case State.SyncStarted(m, acc) =>
             acc.add(h).fold(unexpected)(checkSync(m, _))
           case _ => unexpected
         }
 
       def abort: F[Unit] = reset
-
-      private val unexpected: F[Unit | ErrorCode] =
-        ReplyCode.UnexpectedFrame.pure
 
       private def reset = state.set(State.Idle)
 
@@ -94,7 +103,7 @@ private[client] object ContentChannel {
       private def checkSync(
           m: BasicClass.GetOk,
           nacc: Accumulator.Started
-      ): F[Unit | ErrorCode] =
+      ): F[Unit] =
         if nacc.isCompleted then
           respond(
             SynchronousGet(
@@ -134,10 +143,10 @@ private[client] object ContentChannel {
       def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]] =
         getList.checkinAnd(publisher.writeOne(Frame.Method(channelNumber, m)))
 
-      private def respond(o: Option[SynchronousGet]): F[Unit | ErrorCode] =
+      private def respond(o: Option[SynchronousGet]): F[Unit] =
         getList.nextTurn(o).map(if _ then () else ReplyCode.SyntaxError)
 
-      def syncNotify(m: ContentSyncResponse): F[Unit | ErrorCode] = m match {
+      def syncNotify(m: ContentSyncResponse): F[Unit] = m match {
         case m: BasicClass.GetOk => state.set(State.SyncStarted(m)).widen
         case BasicClass.GetEmpty => respond(None)
       }

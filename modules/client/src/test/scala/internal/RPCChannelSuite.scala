@@ -96,7 +96,7 @@ class RPCChannelSuite extends InternalTestSuite {
     forAllF(methods, channelNumber) { (m, ch) =>
       for {
         sut <- newSut(ch)
-        _ <- sut.rpc.recv(m).assertEquals(ReplyCode.SyntaxError)
+        _ <- sut.rpc.recv(m).intercept[AMQPError]
         _ <- sut.q.size.assertEquals(0)
       } yield ()
 

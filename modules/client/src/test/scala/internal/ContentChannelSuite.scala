@@ -52,7 +52,7 @@ class ContentChannelSuite extends InternalTestSuite {
         sut <- newChannel()
         _ <- sut.cc
           .recv(content.header)
-          .assertEquals(ReplyCode.UnexpectedFrame)
+          .intercept[AMQPError]
       } yield ()
     }
   }
@@ -65,7 +65,7 @@ class ContentChannelSuite extends InternalTestSuite {
           _ <- sut.cc.asyncNotify(m)
           _ <- sut.cc
             .recv(content.bodies.head)
-            .assertEquals(ReplyCode.UnexpectedFrame)
+            .intercept[AMQPError]
         } yield ()
     }
   }
@@ -81,6 +81,7 @@ class ContentChannelSuite extends InternalTestSuite {
     }
   }
 
+  // TODO this test can be made more realistic
   test("Must skip async deliveries on abort") {
     val abortionScenario = for {
       a <- asyncContent
@@ -91,9 +92,9 @@ class ContentChannelSuite extends InternalTestSuite {
         val beforeAbort = acs.slice(0, splittingSize).map(_.assertEquals(()))
         val afterAbort = acs
           .slice(splittingSize, totalActions)
-          .map(_.assertEquals(ReplyCode.UnexpectedFrame))
+          .map(_.intercept[AMQPError])
 
-        (beforeAbort ::: List(cc.abort) ::: afterAbort).sequence.void
+        (beforeAbort ::: cc.abort :: afterAbort).sequence.void
       }
     } yield f
     val abortionScenarios = list(abortionScenario)

@@ -33,24 +33,28 @@ import scodec.bits.ByteVector
 
 final class FakeReceiver(
     interactionList: Ref[IO, List[FakeReceiver.Interaction]],
-    error: Ref[IO, Option[ErrorCode]]
+    error: Ref[IO, Option[AMQPError]]
 ) extends ChannelReceiver[IO] {
-  def asyncContent(m: ContentMethod): IO[Unit | ErrorCode] = interact(
+  def asyncContent(m: ContentMethod): IO[Unit] = interact(
     Interaction.AsyncContent(m)
   )
-  def syncContent(m: ContentSyncResponse): IO[Unit | ErrorCode] = interact(
+  def syncContent(m: ContentSyncResponse): IO[Unit] = interact(
     Interaction.SyncContent(m)
   )
-  def header(h: Frame.Header): IO[Unit | ErrorCode] = interact(
+  def header(h: Frame.Header): IO[Unit] = interact(
     Interaction.Header(h)
   )
-  def body(h: Frame.Body): IO[Unit | ErrorCode] = interact(Interaction.Body(h))
-  def method(m: Method): IO[Unit | ErrorCode] = interact(Interaction.Method(m))
+  def body(h: Frame.Body): IO[Unit] = interact(Interaction.Body(h))
+  def method(m: Method): IO[Unit] = interact(Interaction.Method(m))
 
-  private def interact(i: Interaction): IO[Unit | ErrorCode] =
-    interactionList.update(_.prepended(i)) >> error.get.map(_.getOrElse(()))
+  def close: IO[Unit] = interact(Interaction.Close).void
 
-  def setError(ec: ErrorCode): IO[Unit] = error.set(ec.some)
+  private def interact(i: Interaction): IO[Unit] =
+    interactionList.update(_.prepended(i)) >> error.get.flatMap(
+      _.toLeft(()).liftTo[IO]
+    )
+
+  def setError(ec: AMQPError): IO[Unit] = error.set(ec.some)
   def clearError: IO[Unit] = error.set(None)
 
   def interactions: IO[List[Interaction]] = interactionList.get
@@ -64,8 +68,9 @@ object FakeReceiver {
     case Header(h: Frame.Header)
     case Body(h: Frame.Body)
     case Method(m: lepus.protocol.Method)
+    case Close
   }
   def apply() =
-    (IO.ref(List.empty[Interaction]), IO.ref(Option.empty[ErrorCode]))
+    (IO.ref(List.empty[Interaction]), IO.ref(Option.empty[AMQPError]))
       .mapN(new FakeReceiver(_, _))
 }
