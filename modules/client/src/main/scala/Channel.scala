@@ -181,13 +181,15 @@ object Channel {
     def transaction: Resource[F, Transaction[F]] = ???
   }
 
-  private def prepare[F[_]: Concurrent](
+  private def prepare[F[_]](
       channel: ChannelTransmitter[F]
-  ): Resource[F, Unit] =
+  )(using F: Concurrent[F]): Resource[F, Unit] =
     val prepare = channel.call(ChannelClass.Open).void
     val destroy = channel.call(ChannelClass.Close(???, ???, ???, ???)).void
 
-    Resource.make(prepare)(_ => destroy)
+    Resource.make(prepare)(_ =>
+      channel.status.get.map(_ == Status.Closed).ifM(F.unit, destroy)
+    )
 
   private[client] def normal[F[_]: Concurrent](
       channel: ChannelTransmitter[F]

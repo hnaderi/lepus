@@ -22,7 +22,6 @@ import cats.implicits.*
 import fs2.Stream
 import lepus.protocol.Frame
 import lepus.protocol.*
-import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 

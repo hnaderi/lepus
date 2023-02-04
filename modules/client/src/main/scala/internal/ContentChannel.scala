@@ -28,7 +28,6 @@ import fs2.Stream
 import lepus.protocol.ConnectionClass.Start
 import lepus.protocol.Frame
 import lepus.protocol.*
-import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector

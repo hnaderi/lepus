@@ -24,13 +24,12 @@ import cats.effect.syntax.all.*
 import cats.effect.kernel.Resource
 import cats.implicits.*
 import lepus.protocol.*
-import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 
-sealed trait FrameDispatcher[F[_]] {
+private[client] trait FrameDispatcher[F[_]] {
   def header(h: Frame.Header): F[Unit]
   def body(b: Frame.Body): F[Unit]
   def invoke(m: Frame.Method): F[Unit]
@@ -79,7 +78,10 @@ object FrameDispatcher {
         ch: ChannelNumber
     )(f: ChannelReceiver[F] => F[Unit]): F[Unit] =
       state.get.map(_.channels.get(ch)).flatMap {
-        case Some(r) => f(r)
+        case Some(r) =>
+          f(r).onError { case _ =>
+            r.close
+          }
         case None =>
           AMQPError(
             ReplyCode.NotFound,

@@ -23,7 +23,6 @@ import lepus.client.internal.FakeReceiver.Interaction
 import lepus.codecs.FrameGenerators
 import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
-import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite

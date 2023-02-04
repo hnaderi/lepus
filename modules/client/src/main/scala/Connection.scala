@@ -28,8 +28,6 @@ import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*
-import lepus.protocol.constants.ErrorCode
-import lepus.protocol.constants.ErrorType
 import lepus.protocol.domains.ChannelNumber
 
 import scala.concurrent.duration.*

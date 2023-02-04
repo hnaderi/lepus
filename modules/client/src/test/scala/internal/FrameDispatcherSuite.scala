@@ -26,7 +26,6 @@ import lepus.codecs.ChannelDataGenerator
 import lepus.codecs.FrameGenerators
 import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
-import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite
@@ -132,4 +131,25 @@ class FrameDispatcherSuite extends InternalTestSuite {
     }
   }
 
+  test("Must close channel on error") {
+    val methods: Gen[Frame.Method] =
+      FrameGenerators.method.map(_.copy(channel = ChannelNumber(1)))
+    import lepus.codecs.ArbitraryDomains.given
+    val errors = Gen.resultOf(AMQPError(_, _, _, _))
+
+    forAllF(methods, errors) { (method, error) =>
+      for {
+        fd <- FrameDispatcher[IO]
+        fr <- FakeReceiver()
+        _ <- fr.setError(error)
+        _ <- fd
+          .add(_ => Resource.pure(fr))
+          .use(_ => fd.invoke(method))
+          .attempt
+          .assertEquals(Left(error))
+
+        _ <- fr.lastInteraction.assertEquals(Interaction.Close.some)
+      } yield ()
+    }
+  }
 }

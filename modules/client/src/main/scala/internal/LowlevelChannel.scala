@@ -19,16 +19,15 @@ package internal
 
 import cats.effect.Concurrent
 import cats.effect.std.Queue
+import cats.effect.std.QueueSink
 import cats.implicits.*
 import fs2.Stream
-import lepus.protocol.*
-import lepus.protocol.constants.ErrorCode
-import lepus.protocol.domains.ConsumerTag
-import lepus.protocol.domains.ChannelNumber
-import cats.effect.std.QueueSink
 import fs2.concurrent.Signal
-import lepus.client.Channel.Status
 import fs2.concurrent.SignallingRef
+import lepus.client.Channel.Status
+import lepus.protocol.*
+import lepus.protocol.domains.ChannelNumber
+import lepus.protocol.domains.ConsumerTag
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type

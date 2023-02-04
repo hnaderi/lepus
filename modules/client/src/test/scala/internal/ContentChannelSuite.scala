@@ -27,7 +27,6 @@ import lepus.codecs.BasicDataGenerator
 import lepus.codecs.DomainGenerators
 import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
-import lepus.protocol.constants.ErrorCode
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite
@@ -145,13 +144,13 @@ class ContentChannelSuite extends InternalTestSuite {
   private def asyncActions(cc: ContentChannel[IO])(
       method: ContentMethod,
       content: IncomingContent
-  ): List[IO[Unit | ErrorCode]] =
+  ): List[IO[Unit]] =
     List(cc.asyncNotify(method)) ::: contentActions(cc)(content)
 
   private def syncActions(cc: ContentChannel[IO])(
       method: BasicClass.GetOk,
       content: IncomingContent
-  ): List[IO[Unit | ErrorCode]] =
+  ): List[IO[Unit]] =
     List(cc.syncNotify(method)) ::: contentActions(cc)(content)
 
   private def contentActions(cc: ContentChannel[IO])(content: IncomingContent) =

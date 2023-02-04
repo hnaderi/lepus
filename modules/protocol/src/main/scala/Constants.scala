@@ -26,29 +26,27 @@ val FrameMinSize: Short = 4096
 val FrameEnd: Short = 206
 val ProtocolHeader: ByteVector = ByteVector('A', 'M', 'Q', 'P', 0, 0, 9, 1)
 
-enum ReplyCode(val code: Short) {
-  case ReplySuccess extends ReplyCode(200)
-  case ContentTooLarge extends ReplyCode(311), ErrorCode(ErrorType.Channel)
-  case NoConsumers extends ReplyCode(313), ErrorCode(ErrorType.Channel)
-  case ConnectionForced extends ReplyCode(320), ErrorCode(ErrorType.Connection)
-  case InvalidPath extends ReplyCode(402), ErrorCode(ErrorType.Connection)
-  case AccessRefused extends ReplyCode(403), ErrorCode(ErrorType.Channel)
-  case NotFound extends ReplyCode(404), ErrorCode(ErrorType.Channel)
-  case ResourceLocked extends ReplyCode(405), ErrorCode(ErrorType.Channel)
-  case PreconditionFailed extends ReplyCode(406), ErrorCode(ErrorType.Channel)
-  case FrameError extends ReplyCode(501), ErrorCode(ErrorType.Connection)
-  case SyntaxError extends ReplyCode(502), ErrorCode(ErrorType.Connection)
-  case CommandInvalid extends ReplyCode(503), ErrorCode(ErrorType.Connection)
-  case ChannelError extends ReplyCode(504), ErrorCode(ErrorType.Connection)
-  case UnexpectedFrame extends ReplyCode(505), ErrorCode(ErrorType.Connection)
-  case ResourceError extends ReplyCode(506), ErrorCode(ErrorType.Connection)
-  case NotAllowed extends ReplyCode(530), ErrorCode(ErrorType.Connection)
-  case NotImplemented extends ReplyCode(540), ErrorCode(ErrorType.Connection)
-  case InternalError extends ReplyCode(541), ErrorCode(ErrorType.Connection)
+enum ReplyCode(val code: Short, val category: ReplyCategory) {
+  case ReplySuccess extends ReplyCode(200, ReplyCategory.Success)
+  case ContentTooLarge extends ReplyCode(311, ReplyCategory.ChannelError)
+  case NoConsumers extends ReplyCode(313, ReplyCategory.ChannelError)
+  case ConnectionForced extends ReplyCode(320, ReplyCategory.ConnectionError)
+  case InvalidPath extends ReplyCode(402, ReplyCategory.ConnectionError)
+  case AccessRefused extends ReplyCode(403, ReplyCategory.ChannelError)
+  case NotFound extends ReplyCode(404, ReplyCategory.ChannelError)
+  case ResourceLocked extends ReplyCode(405, ReplyCategory.ChannelError)
+  case PreconditionFailed extends ReplyCode(406, ReplyCategory.ChannelError)
+  case FrameError extends ReplyCode(501, ReplyCategory.ConnectionError)
+  case SyntaxError extends ReplyCode(502, ReplyCategory.ConnectionError)
+  case CommandInvalid extends ReplyCode(503, ReplyCategory.ConnectionError)
+  case ChannelError extends ReplyCode(504, ReplyCategory.ConnectionError)
+  case UnexpectedFrame extends ReplyCode(505, ReplyCategory.ConnectionError)
+  case ResourceError extends ReplyCode(506, ReplyCategory.ConnectionError)
+  case NotAllowed extends ReplyCode(530, ReplyCategory.ConnectionError)
+  case NotImplemented extends ReplyCode(540, ReplyCategory.ConnectionError)
+  case InternalError extends ReplyCode(541, ReplyCategory.ConnectionError)
 }
 
-enum ErrorType {
-  case Channel, Connection
+enum ReplyCategory {
+  case Success, ChannelError, ConnectionError
 }
-
-sealed trait ErrorCode(val errorType: ErrorType)

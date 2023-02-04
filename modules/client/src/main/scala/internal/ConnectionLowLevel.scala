@@ -31,9 +31,8 @@ import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*
-import lepus.protocol.constants.ErrorCode
-import lepus.protocol.constants.ErrorType
-import lepus.protocol.domains.ChannelNumber
+import lepus.protocol.constants.{ReplyCode, ReplyCategory}
+import lepus.protocol.domains.*
 
 import internal.*
 import ConnectionLowLevel.*
@@ -100,6 +99,7 @@ private[client] object ConnectionLowLevel {
         f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
     ): Resource[F, Channel[F, MC]] = for {
       _ <- waitTilEstablished
+      // TODO build using negotiated config
       trm <- frameDispatcher.add(newChannel(_, send))
       ch <- f(trm)
     } yield ch
@@ -107,17 +107,44 @@ private[client] object ConnectionLowLevel {
     def signal: Signal[F, Status] = state
     def channels: Signal[F, Set[ChannelNumber]] = frameDispatcher.channels
 
-    private def handleError(f: F[Unit]) = f.handleErrorWith {
-      case AMQPError(replyCode, replyText, classId, methodId) => ???
-      case other                                              => ???
-    }
+    private def handleError(chNum: ChannelNumber, f: F[Unit]) =
+      f.handleErrorWith {
+        case AMQPError(replyCode, replyText, classId, methodId) =>
+          replyCode.category match {
+            case ReplyCategory.ChannelError =>
+              send.offer(
+                Frame.Method(
+                  chNum,
+                  ChannelClass.Close(replyCode, replyText, classId, methodId)
+                )
+              )
+            case _ =>
+              send.offer(
+                Frame.Method(
+                  chNum,
+                  ConnectionClass.Close(replyCode, replyText, classId, methodId)
+                )
+              )
+          }
+        case other =>
+          send.offer(
+            Frame.Method(
+              chNum,
+              ConnectionClass.Close(
+                ReplyCode.InternalError,
+                ShortString(""),
+                ClassId(0),
+                MethodId(0)
+              )
+            )
+          )
+      }
 
-    def onHeader(h: Frame.Header): F[Unit] = handleError(
-      frameDispatcher.header(h)
-    )
-    def onBody(b: Frame.Body): F[Unit] = handleError(frameDispatcher.body(b))
-    def onInvoke(m: Frame.Method): F[Unit] = handleError(
-      frameDispatcher.invoke(m)
-    )
+    def onHeader(h: Frame.Header): F[Unit] =
+      handleError(h.channel, frameDispatcher.header(h))
+    def onBody(b: Frame.Body): F[Unit] =
+      handleError(b.channel, frameDispatcher.body(b))
+    def onInvoke(m: Frame.Method): F[Unit] =
+      handleError(m.channel, frameDispatcher.invoke(m))
   }
 }
