@@ -17,6 +17,40 @@
 package lepus.client
 package internal
 
+import cats.effect.IO
+
 class LowLevelChannelSuite extends InternalTestSuite {
-  test("") {}
+  test("Initial status is Active") {
+    for {
+      ctx <- LowLevelChannelContext()
+      _ <- ctx.channel.status.get.assertEquals(Channel.Status.Active)
+    } yield ()
+  }
+
+  test("Status becomes Closed when .close") {
+    for {
+      ctx <- LowLevelChannelContext()
+      _ <- ctx.channel.close
+      _ <- ctx.channel.status.get.assertEquals(Channel.Status.Closed)
+    } yield ()
+  }
+}
+
+private final case class LowLevelChannelContext(
+    channel: LowlevelChannel[IO],
+    content: FakeContentChannel,
+    rpc: FakeRPCChannel,
+    publisher: FakeChannelPublisher,
+    dispatcher: FakeMessageDispatcher,
+    output: FakeChannelOutput
+)
+private object LowLevelChannelContext {
+  def apply() = for {
+    content <- FakeContentChannel()
+    rpc <- FakeRPCChannel()
+    pub <- FakeChannelPublisher()
+    disp <- FakeMessageDispatcher()
+    out <- FakeChannelOutput()
+    ch <- LowlevelChannel(content, rpc, pub, disp, out)
+  } yield new LowLevelChannelContext(ch, content, rpc, pub, disp, out)
 }

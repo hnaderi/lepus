@@ -85,9 +85,11 @@ private[client] object LowlevelChannel {
     state <- SignallingRef[F].of(Status.Active)
   } yield new LowlevelChannel[F] {
 
-    override def close: F[Unit] = ???
+    override def close: F[Unit] = state.set(Status.Closed)
 
     override def status: Signal[F, Status] = state
+
+    private def isClosed = status.map(_ == Status.Closed)
 
     def asyncContent(m: ContentMethod): F[Unit] =
       content.asyncNotify(m)
