@@ -31,7 +31,8 @@ import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*
-import lepus.protocol.constants.{ReplyCode, ReplyCategory}
+import lepus.protocol.constants.ReplyCategory
+import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 
 import internal.*
@@ -88,7 +89,7 @@ private[client] object ConnectionLowLevel {
         .flatMap {
           case Status.Connecting   => Stream.empty
           case _: Status.Connected => Stream.unit
-          case Status.Closed       => Stream.raiseError(???)
+          case Status.Closed       => Stream.raiseError(new Exception())
         }
         .head
         .compile

@@ -40,13 +40,14 @@ final class FakeFrameDispatcher(
 
   override def invoke(m: Frame.Method): IO[Unit] = dispatch(m)
 
-  override def channels: Signal[cats.effect.IO, Set[ChannelNumber]] = ???
+  override def channels: Signal[IO, Set[ChannelNumber]] =
+    Signal.constant(Set.empty)
 
   override def header(h: Header): IO[Unit] = dispatch(h)
 
   override def add[CHANNEL <: ChannelReceiver[IO]](
       build: ChannelNumber => Resource[IO, CHANNEL]
-  ): Resource[IO, CHANNEL] = ???
+  ): Resource[IO, CHANNEL] = build(ChannelNumber(1))
 
   private def dispatch(frame: Frame) =
     dispatched.update(frame :: _) >> error.fold(IO.unit)(IO.raiseError)

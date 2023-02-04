@@ -18,17 +18,19 @@ package lepus.client
 package internal
 
 import cats.effect.IO
+import cats.effect.kernel.Outcome
 import cats.effect.std.Queue
+import cats.effect.syntax.all.*
+import cats.effect.testkit.TestControl
 import lepus.client.internal.ConnectionLowLevel
-import lepus.protocol.constants.ReplyCode
-import lepus.protocol.domains.*
 import lepus.codecs.FrameGenerators
 import lepus.protocol.*
+import lepus.protocol.constants.ReplyCategory
+import lepus.protocol.constants.ReplyCode
+import lepus.protocol.domains.*
 import org.scalacheck.Gen
 
 import Connection.Status
-import cats.effect.testkit.TestControl
-import lepus.protocol.constants.ReplyCategory
 
 class ConnectionLowLevelSuite extends InternalTestSuite {
   test("Connection is in connecting state when initiated") {
@@ -69,6 +71,64 @@ class ConnectionLowLevelSuite extends InternalTestSuite {
       _ <- con.signal.get.assertEquals(
         Status.Connected(NegotiatedConfig(1, 2, 3))
       )
+    } yield ()
+  }
+
+  test("Adds channel when connected") {
+    for {
+      q <- Queue.synchronous[IO, Frame]
+      fd <- FakeFrameDispatcher()
+      built <- IO.ref(false)
+      setAsBuilt = (built.set(true) >> IO.raiseError(
+        new Exception()
+      )).toResource
+      con <- ConnectionLowLevel.from(q, fd, (_, _) => setAsBuilt)
+      _ <- con.onConnected(Some(NegotiatedConfig(1, 2, 3)))
+      _ <- con.addChannel(Channel.normal(_)).attempt.use_
+
+      _ <- built.get.assert
+    } yield ()
+  }
+
+  check("Waits for being connected when add channel is called") {
+    for {
+      q <- Queue.synchronous[IO, Frame]
+      fd <- FakeFrameDispatcher()
+      built <- IO.ref(false)
+      setAsBuilt = (built.set(true) >> IO.raiseError(
+        new Exception()
+      )).toResource
+      con <- ConnectionLowLevel.from(q, fd, (_, _) => setAsBuilt)
+      _ <- con
+        .addChannel(Channel.normal(_))
+        .use_
+        .attempt
+        .background
+        .use(fib =>
+          built.get.assertEquals(false) >>
+            con.onConnected(Some(NegotiatedConfig(1, 2, 3))) >>
+            fib >>
+            built.get.assert
+        )
+
+    } yield ()
+  }
+
+  check(
+    "Add channel fails if connection get closed, while waiting to be connected"
+  ) {
+    for {
+      q <- Queue.synchronous[IO, Frame]
+      fd <- FakeFrameDispatcher()
+      con <- ConnectionLowLevel.from(q, fd, (_, _) => ???)
+      _ <- IO.both(
+        con
+          .addChannel(Channel.normal(_))
+          .use_
+          .intercept[Exception],
+        con.onClosed
+      )
+
     } yield ()
   }
 
