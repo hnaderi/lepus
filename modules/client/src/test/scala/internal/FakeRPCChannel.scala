@@ -37,6 +37,8 @@ final class FakeRPCChannel(interactions: Ref[IO, List[Interaction]])
 
   private def interact(value: Interaction) = interactions.update(value :: _)
 
+  def reset: IO[Unit] = interactions.set(Nil)
+
   def assert(values: Interaction*): IO[Unit] =
     interactions.get.assertEquals(values.toList)
 }

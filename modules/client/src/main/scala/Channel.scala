@@ -40,7 +40,7 @@ trait Channel[F[_], M <: MessagingChannel] {
 
 object Channel {
   enum Status {
-    case Active, Closed
+    case Active, InActive, Closed
   }
   private final class ChannelImpl[F[_], M <: MessagingChannel](
       rpc: ChannelTransmitter[F],

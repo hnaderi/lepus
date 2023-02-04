@@ -18,6 +18,7 @@ package lepus.client
 package internal
 
 import cats.effect.IO
+import lepus.protocol.ChannelClass
 
 class LowLevelChannelSuite extends InternalTestSuite {
   test("Initial status is Active") {
@@ -32,6 +33,20 @@ class LowLevelChannelSuite extends InternalTestSuite {
       ctx <- LowLevelChannelContext()
       _ <- ctx.channel.close
       _ <- ctx.channel.status.get.assertEquals(Channel.Status.Closed)
+    } yield ()
+  }
+
+  test("Handles flow control") {
+    for {
+      ctx <- LowLevelChannelContext()
+      _ <- ctx.channel.method(ChannelClass.Flow(false))
+      _ <- ctx.channel.status.get.assertEquals(Channel.Status.InActive)
+      _ <- ctx.rpc.assert(
+        FakeRPCChannel.Interaction.SendNoWait(ChannelClass.FlowOk(false))
+      )
+      _ <- ctx.rpc.reset
+      _ <- ctx.channel.method(ChannelClass.Flow(true))
+      _ <- ctx.channel.status.get.assertEquals(Channel.Status.Active)
     } yield ()
   }
 }

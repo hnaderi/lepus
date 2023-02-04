@@ -61,10 +61,10 @@ private[client] trait LowlevelChannel[F[_]]
 
 /** Facade over other small components */
 private[client] object LowlevelChannel {
-  def from[F[_]: Concurrent](
+  def from[F[_]](
       channelNumber: ChannelNumber,
       sendQ: QueueSink[F, Frame]
-  ): F[LowlevelChannel[F]] = for {
+  )(using F: Concurrent[F]): F[LowlevelChannel[F]] = for {
     disp <- MessageDispatcher[F]
     out <- ChannelOutput(sendQ)
     wlist <- Waitlist[F, Option[SynchronousGet]]()
@@ -74,13 +74,13 @@ private[client] object LowlevelChannel {
     ch <- apply(content, rpc, pub, disp, out)
   } yield ch
 
-  def apply[F[_]: Concurrent](
+  def apply[F[_]](
       content: ContentChannel[F],
       rpc: RPCChannel[F],
       pub: ChannelPublisher[F],
       disp: MessageDispatcher[F],
       out: ChannelOutput[F, Frame]
-  ): F[LowlevelChannel[F]] = for {
+  )(using F: Concurrent[F]): F[LowlevelChannel[F]] = for {
     _ <- Queue.bounded[F, Frame](10)
     state <- SignallingRef[F].of(Status.Active)
   } yield new LowlevelChannel[F] {
@@ -91,6 +91,11 @@ private[client] object LowlevelChannel {
 
     private def isClosed = status.map(_ == Status.Closed)
 
+    private def setFlow(e: Boolean) =
+      if e
+      then out.unblock >> state.set(Status.Active)
+      else out.block >> state.set(Status.InActive)
+
     def asyncContent(m: ContentMethod): F[Unit] =
       content.asyncNotify(m)
     def syncContent(m: ContentSyncResponse): F[Unit] =
@@ -100,7 +105,8 @@ private[client] object LowlevelChannel {
     def method(m: Method): F[Unit] =
       // TODO match based on method
       m match {
-        case ChannelClass.Flow(e) => out.block.widen // TODO
+        case ChannelClass.Flow(e) =>
+          setFlow(e) >> rpc.sendNoWait(ChannelClass.FlowOk(e))
         case ChannelClass.CloseOk => ???
         case _                    => content.abort >> rpc.recv(m)
       }
