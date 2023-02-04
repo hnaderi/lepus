@@ -18,13 +18,16 @@ package lepus.client.internal
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
+import cats.syntax.all.*
 import lepus.protocol.Method
 import munit.CatsEffectAssertions.*
 
 import FakeRPCChannel.Interaction
 
-final class FakeRPCChannel(interactions: Ref[IO, List[Interaction]])
-    extends RPCChannel[IO] {
+final class FakeRPCChannel(
+    val interactions: InteractionList[Interaction],
+    val error: PlannedError
+) extends RPCChannel[IO] {
 
   override def sendWait(m: Method): IO[Method] =
     interact(Interaction.SendWait(m)).as(m)
@@ -35,12 +38,8 @@ final class FakeRPCChannel(interactions: Ref[IO, List[Interaction]])
 
   override def recv(m: Method): IO[Unit] = interact(Interaction.Recv(m))
 
-  private def interact(value: Interaction) = interactions.update(value :: _)
-
-  def reset: IO[Unit] = interactions.set(Nil)
-
-  def assert(values: Interaction*): IO[Unit] =
-    interactions.get.assertEquals(values.toList)
+  private def interact(value: Interaction) =
+    interactions.add(value) >> error.run
 }
 
 object FakeRPCChannel {
@@ -50,5 +49,6 @@ object FakeRPCChannel {
     case Recv(method: Method)
   }
   def apply(): IO[FakeRPCChannel] =
-    IO.ref(List.empty[Interaction]).map(new FakeRPCChannel(_))
+    (InteractionList[Interaction], PlannedError())
+      .mapN(new FakeRPCChannel(_, _))
 }

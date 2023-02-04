@@ -90,9 +90,7 @@ class FrameDispatcherSuite extends InternalTestSuite {
 
   test("Must dispatch method frames") {
     val methods: Gen[Frame.Method] =
-      FrameGenerators.method
-        .suchThat(!_.value.isInstanceOf[ChannelClass.Close])
-        .map(_.copy(channel = ChannelNumber(1)))
+      FrameGenerators.method.map(_.copy(channel = ChannelNumber(1)))
 
     forAllF(methods) { f =>
       for {
@@ -110,45 +108,6 @@ class FrameDispatcherSuite extends InternalTestSuite {
           case other => Interaction.Method(other)
         }
         _ <- fr.lastInteraction.assertEquals(expected.some)
-      } yield ()
-    }
-  }
-
-  test("Must close channel on Channel.Close") {
-    val methods: Gen[Frame.Method] =
-      ChannelDataGenerator.closeGen.map(Frame.Method(ChannelNumber(1), _))
-
-    forAllF(methods) { f =>
-      for {
-        fd <- FrameDispatcher[IO]
-        fr <- FakeReceiver()
-        _ <- fd
-          .add(_ => Resource.pure(fr))
-          .use(_ => fd.invoke(f))
-          .assertEquals(())
-        _ <- fr.lastInteraction.assertEquals(Interaction.Close.some)
-      } yield ()
-    }
-  }
-
-  test("Must close channel on error") {
-    val methods: Gen[Frame.Method] =
-      FrameGenerators.method.map(_.copy(channel = ChannelNumber(1)))
-    import lepus.codecs.ArbitraryDomains.given
-    val errors = Gen.resultOf(AMQPError(_, _, _, _))
-
-    forAllF(methods, errors) { (method, error) =>
-      for {
-        fd <- FrameDispatcher[IO]
-        fr <- FakeReceiver()
-        _ <- fr.setError(error)
-        _ <- fd
-          .add(_ => Resource.pure(fr))
-          .use(_ => fd.invoke(method))
-          .attempt
-          .assertEquals(Left(error))
-
-        _ <- fr.lastInteraction.assertEquals(Interaction.Close.some)
       } yield ()
     }
   }

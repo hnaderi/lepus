@@ -28,6 +28,7 @@ import lepus.client.Channel.Status
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 import lepus.protocol.domains.ConsumerTag
+import lepus.protocol.ChannelClass.Close
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
@@ -38,7 +39,6 @@ private[client] trait ChannelReceiver[F[_]] {
   def header(h: Frame.Header): F[Unit]
   def body(h: Frame.Body): F[Unit]
   def method(m: Method): F[Unit]
-  def close: F[Unit]
 }
 
 private[client] trait ChannelTransmitter[F[_]] {
@@ -85,7 +85,21 @@ private[client] object LowlevelChannel {
     state <- SignallingRef[F].of(Status.Active)
   } yield new LowlevelChannel[F] {
 
-    override def close: F[Unit] = state.set(Status.Closed)
+    private def onClose: F[Unit] =
+      state.set(Status.Closed) >> rpc.sendNoWait(ChannelClass.CloseOk)
+
+    private def handle(f: F[Unit]) =
+      f.onError(_ => state.set(Status.Closed)).recoverWith {
+        case e: AMQPError if e.replyCode.isChannelError =>
+          rpc.sendNoWait(
+            ChannelClass.Close(
+              e.replyCode,
+              e.replyText,
+              e.classId,
+              e.methodId
+            )
+          )
+      }
 
     override def status: Signal[F, Status] = state
 
@@ -100,16 +114,20 @@ private[client] object LowlevelChannel {
       content.asyncNotify(m)
     def syncContent(m: ContentSyncResponse): F[Unit] =
       content.syncNotify(m)
-    def header(h: Frame.Header): F[Unit] = content.recv(h)
+
+    def header(h: Frame.Header): F[Unit] = handle(content.recv(h))
+
     def body(h: Frame.Body): F[Unit] = content.recv(h)
     def method(m: Method): F[Unit] =
       // TODO match based on method
-      m match {
+      handle(m match {
         case ChannelClass.Flow(e) =>
           setFlow(e) >> rpc.sendNoWait(ChannelClass.FlowOk(e))
-        case ChannelClass.CloseOk => ???
+        case ChannelClass.Close(replyCode, replyText, classId, methodId) =>
+          onClose
+        case ChannelClass.CloseOk => state.set(Status.Closed)
         case _                    => content.abort >> rpc.recv(m)
-      }
+      })
 
     def publish(method: BasicClass.Publish, msg: Message): F[Unit] =
       pub.send(method, msg)

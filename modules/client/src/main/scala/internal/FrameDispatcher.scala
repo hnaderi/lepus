@@ -61,8 +61,7 @@ object FrameDispatcher {
         case d: (BasicClass.Deliver | BasicClass.Return) => ch.asyncContent(d)
         case d: (BasicClass.GetOk | BasicClass.GetEmpty.type) =>
           ch.syncContent(d)
-        case _: ChannelClass.Close => ch.close.widen
-        case other                 => ch.method(other)
+        case other => ch.method(other)
       }
     )
 
@@ -78,10 +77,7 @@ object FrameDispatcher {
         ch: ChannelNumber
     )(f: ChannelReceiver[F] => F[Unit]): F[Unit] =
       state.get.map(_.channels.get(ch)).flatMap {
-        case Some(r) =>
-          f(r).onError { case _ =>
-            r.close
-          }
+        case Some(r) => f(r)
         case None =>
           AMQPError(
             ReplyCode.NotFound,

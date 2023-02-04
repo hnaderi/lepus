@@ -19,6 +19,7 @@ package lepus.client.internal
 import cats.effect.IO
 import cats.effect.kernel.DeferredSource
 import cats.effect.kernel.Ref
+import cats.syntax.all.*
 import lepus.client.SynchronousGet
 import lepus.client.internal.FakeContentChannel.Interaction
 import lepus.protocol.BasicClass
@@ -27,8 +28,10 @@ import munit.CatsEffectAssertions.*
 
 import Frame.*
 
-final class FakeContentChannel(interactions: Ref[IO, List[Interaction]])
-    extends ContentChannel[IO] {
+final class FakeContentChannel(
+    interactions: Ref[IO, List[Interaction]],
+    val error: PlannedError
+) extends ContentChannel[IO] {
 
   override def asyncNotify(m: ContentMethod): IO[Unit] = interact(
     Interaction.AsyncNotify(m)
@@ -47,7 +50,8 @@ final class FakeContentChannel(interactions: Ref[IO, List[Interaction]])
 
   override def abort: IO[Unit] = interact(Interaction.Abort)
 
-  private def interact(value: Interaction) = interactions.update(value :: _)
+  private def interact(value: Interaction) =
+    interactions.update(value :: _) >> error.run
 
   def assert(values: Interaction*): IO[Unit] =
     interactions.get.assertEquals(values.toList)
@@ -62,5 +66,6 @@ object FakeContentChannel {
     case Abort
   }
   def apply(): IO[FakeContentChannel] =
-    IO.ref(List.empty[Interaction]).map(new FakeContentChannel(_))
+    (IO.ref(List.empty[Interaction]), PlannedError())
+      .mapN(new FakeContentChannel(_, _))
 }

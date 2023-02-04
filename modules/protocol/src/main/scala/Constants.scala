@@ -45,6 +45,9 @@ enum ReplyCode(val code: Short, val category: ReplyCategory) {
   case NotAllowed extends ReplyCode(530, ReplyCategory.ConnectionError)
   case NotImplemented extends ReplyCode(540, ReplyCategory.ConnectionError)
   case InternalError extends ReplyCode(541, ReplyCategory.ConnectionError)
+
+  inline def isChannelError = category == ReplyCategory.ChannelError
+  inline def isConnectionError = category == ReplyCategory.ConnectionError
 }
 
 enum ReplyCategory {
