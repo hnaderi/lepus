@@ -48,6 +48,11 @@ object Transport {
       .flatMap(pv => StreamDecoder.many(logFailuresToStdOut(FrameCodec.frame)))
       .toPipeByte
 
+  private def decoderServer2[F[_]](using
+      F: MonadError[F, Throwable]
+  ): Pipe[F, Byte, Frame] =
+    StreamDecoder.many(logFailuresToStdOut(FrameCodec.frame)).toPipeByte
+
   private[lepus] def decoder[F[_]](using
       F: MonadError[F, Throwable]
   ): Pipe[F, Byte, Frame] =
@@ -72,7 +77,7 @@ object Transport {
       writes: Pipe[F, Byte, Nothing]
   ): Transport[F] =
     toSend =>
-      val recv = reads.through(decoderServer)
+      val recv = reads.through(decoderServer2)
       val send = (protocolHeader ++ toSend.through(encoder)).through(writes)
       recv mergeHaltBoth send
 

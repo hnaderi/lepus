@@ -29,6 +29,7 @@ import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
+import lepus.protocol.domains.Path
 
 import scala.concurrent.duration.*
 
@@ -49,14 +50,23 @@ trait Connection[F[_]] {
 object Connection {
   def from[F[_]: Temporal](
       transport: Transport[F],
+      auth: AuthenticationConfig[F],
+      path: Path = Path("/"),
       bufferSize: Int = 100
   ): Resource[F, Connection[F]] = for {
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
     state <- Resource.eval(
       ConnectionLowLevel(sendQ, LowlevelChannel.from[F](_, _).toResource)
     )
+    negotiation <- StartupNegotiation(auth, path).toResource
     con = ConnectionImpl[F](state)
-    _ <- run(sendQ, transport, state, bufferSize).compile.drain.background
+    _ <- run(
+      sendQ,
+      negotiation,
+      transport,
+      state,
+      bufferSize
+    ).compile.drain.background
   } yield con
 
   enum Status {
@@ -87,50 +97,51 @@ object Connection {
 
   private[client] def run[F[_]: Temporal](
       sendQ: Queue[F, Frame],
+      negotiation: StartupNegotiation[F],
       transport: Transport[F],
       state: ConnectionLowLevel[F],
       bufferSize: Int
-  ): Stream[F, Nothing] =
-    val process = for {
-      negotiation <- Stream.eval(StartupNegotiation(???))
-      frames = Stream
-        .fromQueueUnterminated(sendQ, bufferSize)
-        .through(transport)
-        .through(negotiation.pipe(sendQ.offer))
+  ): Stream[F, Nothing] = {
+    val frames = Stream
+      .fromQueueUnterminated(sendQ, bufferSize)
+      .through(transport)
+      .through(negotiation.pipe(sendQ.offer))
 
-      statusHandler = Stream.eval(negotiation.config).evalMap(state.onConnected)
+    val statusHandler =
+      Stream.eval(negotiation.config).evalMap(state.onConnected)
 
-      heartbeats = state.signal.discrete.flatMap {
-        case Status.Connected(config) =>
-          Stream
-            .awakeEvery[F](config.heartbeat.toInt.seconds)
-            .foreach(_ => sendQ.offer(Frame.Heartbeat))
-        case _ => Stream.empty
-      }
+    val heartbeats = state.signal.discrete.flatMap {
+      case Status.Connected(config) =>
+        Stream
+          .awakeEvery[F](config.heartbeat.toInt.seconds)
+          .foreach(_ => sendQ.offer(Frame.Heartbeat))
+      case _ => Stream.empty
+    }
 
-      frameHandler = frames.foreach {
-        case f: Frame.Body   => state.onBody(f)
-        case f: Frame.Header => state.onHeader(f)
-        case m: Frame.Method if m.channel != ChannelNumber(0) =>
-          state.onInvoke(m)
-        case m: Frame.Method => // Global methods like connection class
-          import lepus.protocol.ConnectionClass.*
-          m.value match {
-            case Close(replyCode, replyText, classId, methodId) =>
-              state.onClosed // TODO send close ok
-            case CloseOk                         => state.onClosed
-            case Blocked(reason)                 => ???
-            case Unblocked                       => ???
-            case UpdateSecret(newSecret, reason) => ???
-            case UpdateSecretOk                  => ???
-            case _                               => ??? // TODO unexpected frame
-          }
-        case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
-      }
+    val frameHandler = frames.foreach {
+      case f: Frame.Body   => state.onBody(f)
+      case f: Frame.Header => state.onHeader(f)
+      case m: Frame.Method if m.channel != ChannelNumber(0) =>
+        state.onInvoke(m)
+      case m: Frame.Method => // Global methods like connection class
+        import lepus.protocol.ConnectionClass.*
+        m.value match {
+          case Close(replyCode, replyText, classId, methodId) =>
+            state.onClosed // TODO send close ok
+          case CloseOk                         => state.onClosed
+          case Blocked(reason)                 => ???
+          case Unblocked                       => ???
+          case UpdateSecret(newSecret, reason) => ???
+          case UpdateSecretOk                  => ???
+          case _                               => ??? // TODO unexpected frame
+        }
+      case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
+    }
 
-      a <- frameHandler.concurrently(statusHandler).concurrently(heartbeats)
-    } yield a
-
-    process.onFinalize(state.onClosed) // TODO closing might need extra work
+    frameHandler
+      .concurrently(statusHandler)
+      .concurrently(heartbeats)
+      .onFinalize(state.onClosed) // TODO closing might need extra work
+  }
 
 }

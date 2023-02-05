@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  rabbit:
+    image: rabbitmq:3-management
+    #NOTE that hostname is crucial for persistent to work
+    hostname: rabbit-node
+    volumes:
+      - rabbit:/var/lib/rabbitmq:rw
+    ports:
+      - 5672:5672
+      - 15672:15672
+volumes:
+  rabbit:

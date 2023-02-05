@@ -15,7 +15,10 @@
  */
 
 package lepus.client
+
 import cats.data.NonEmptyList
+import cats.effect.Concurrent
+import cats.syntax.all.*
 import lepus.protocol.domains.LongString
 import lepus.protocol.domains.ShortString
 
@@ -24,9 +27,20 @@ final case class SaslMechanism[F[_]](
     next: LongString => F[LongString]
 )
 
+object SaslMechanism {
+  // TODO Sasl prep and stuff...
+  def plain[F[_]: Concurrent](username: String, password: String) = {
+    val s = LongString
+      .from(s"\u0000$username\u0000$password")
+      .leftMap(new Exception(_))
+      .liftTo[F]
+    SaslMechanism(s, _ => s)
+  }
+}
+
 /** SASL Mechanisms orderd by preferrence from high to low */
-final case class AuthenticationConfig[F[_]](
-    mechanisms: NonEmptyList[(ShortString, SaslMechanism[F])]
+final class AuthenticationConfig[F[_]](
+    val mechanisms: NonEmptyList[(ShortString, SaslMechanism[F])]
 ) extends AnyVal {
 
   /** First supported mechanism based on preferrence */

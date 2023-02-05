@@ -50,38 +50,6 @@ abstract class ConnectionSuite extends CatsEffectSuite {
     val p = MessageCount(10)
   }
 
-  private def method(m: Method) = Frame.Method(ChannelNumber(0), m)
-
-  test("Sanity") {
-    for {
-      fs <- FakeServer()
-      con <- Connection
-        .from(fs.transport)
-        .use(_ =>
-          fs.send(
-            method(
-              ConnectionClass.Start(
-                0,
-                9,
-                FieldTable.empty,
-                LongString(""),
-                locales = LongString("")
-              )
-            )
-          ) >>
-            fs.recv.assertEquals(
-              method(
-                ConnectionClass.StartOk(
-                  FieldTable.empty,
-                  mechanism = ShortString(""),
-                  response = LongString(""),
-                  locale = ShortString("")
-                )
-              )
-            )
-        )
-    } yield ()
-  }
 }
 
 final class FakeServer(sendQ: Queue[IO, Frame], recvQ: Queue[IO, Frame]) {

@@ -139,6 +139,13 @@ val std = module2("std") {
     .dependsOn(data)
 }
 
+val example =
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .in(file("example"))
+    .dependsOn(client)
+    .enablePlugins(NoPublishPlugin)
+
 val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
@@ -163,7 +170,8 @@ val root = tlCrossRootProject
     client,
     std,
     data,
-    docs
+    docs,
+    example
   )
 
 def addAlias(name: String)(tasks: String*) =

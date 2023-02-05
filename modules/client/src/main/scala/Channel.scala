@@ -28,6 +28,7 @@ import lepus.client.Channel.Status
 import lepus.client.apis.*
 import lepus.client.internal.*
 import lepus.protocol.*
+import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 
 trait Channel[F[_], M <: MessagingChannel] {
@@ -43,15 +44,15 @@ object Channel {
     case Active, InActive, Closed
   }
   private final class ChannelImpl[F[_], M <: MessagingChannel](
-      rpc: ChannelTransmitter[F],
+      transmitter: ChannelTransmitter[F],
       val messaging: M
   )(using MonadError[F, Throwable])
       extends Channel[F, M] {
 
-    override def status: Signal[F, Status] = rpc.status
+    override def status: Signal[F, Status] = transmitter.status
 
-    final def exchange: ExchangeAPI[F] = ExchangeAPIImpl(rpc)
-    final def queue: QueueAPI[F] = QueueAPIImpl(rpc)
+    final def exchange: ExchangeAPI[F] = ExchangeAPIImpl(transmitter)
+    final def queue: QueueAPI[F] = QueueAPIImpl(transmitter)
   }
 
   extension [F[_]](rpc: ChannelTransmitter[F]) {
@@ -185,7 +186,16 @@ object Channel {
       channel: ChannelTransmitter[F]
   )(using F: Concurrent[F]): Resource[F, Unit] =
     val prepare = channel.call(ChannelClass.Open).void
-    val destroy = channel.call(ChannelClass.Close(???, ???, ???, ???)).void
+    val destroy = channel
+      .call(
+        ChannelClass.Close(
+          ReplyCode.ReplySuccess,
+          ShortString(""),
+          ClassId(0),
+          MethodId(0)
+        )
+      )
+      .void
 
     Resource.make(prepare)(_ =>
       channel.status.get.map(_ == Status.Closed).ifM(F.unit, destroy)
@@ -194,20 +204,20 @@ object Channel {
   private[client] def normal[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
   ): Resource[F, Channel[F, NormalMessagingChannel[F]]] =
-    prepare(channel).as(???)
+    prepare(channel).as(ChannelImpl(channel, NormalPublishingImpl(channel)))
 
   private[client] def reliable[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
   ): Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
     prepare(channel)
       .evalMap(_ => channel.call(ConfirmClass.Select(true)))
-      .as(???)
+      .as(ChannelImpl(channel, ReliablePublishingImpl(channel)))
 
   private[client] def transactional[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
   ): Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
     prepare(channel)
       .evalMap(_ => channel.call(TxClass.Select))
-      .as(???)
+      .as(ChannelImpl(channel, TransactionalMessagingImpl(channel)))
 
 }
