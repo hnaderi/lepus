@@ -46,7 +46,7 @@ final class FakeContentChannel(
   override def get(
       m: BasicClass.Get
   ): IO[DeferredSource[IO, Option[SynchronousGet]]] =
-    interact(Interaction.Get(m)) >> IO.deferred
+    interact(Interaction.Get(m)) >> IO.deferred.flatTap(_.complete(None))
 
   override def abort: IO[Unit] = interact(Interaction.Abort)
 

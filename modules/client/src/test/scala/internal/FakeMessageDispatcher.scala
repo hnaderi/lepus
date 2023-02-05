@@ -28,16 +28,27 @@ import munit.Assertions.*
 
 final class FakeMessageDispatcher(
     delivered: Ref[IO, List[DeliveredMessage]],
-    returns: Ref[IO, List[ReturnedMessage]]
+    returns: Ref[IO, List[ReturnedMessage]],
+    returned: Queue[IO, ReturnedMessage],
+    deliveries: Ref[IO, Map[ConsumerTag, Queue[IO, DeliveredMessage]]]
 ) extends MessageDispatcher[IO] {
   def deliver(msg: DeliveredMessage): IO[Unit] =
-    delivered.update(_.prepended(msg))
+    delivered.update(_.prepended(msg)) >> deliveries.get.flatMap(
+      _.get(msg.consumerTag).fold(IO.unit)(_.offer(msg))
+    )
+
   def `return`(msg: ReturnedMessage): IO[Unit] =
-    returns.update(_.prepended(msg))
+    returns.update(_.prepended(msg)) >> returned.offer(msg)
+
   def deliveryQ(
       ctag: ConsumerTag
-  ): Resource[IO, QueueSource[IO, DeliveredMessage]] = ???
-  def returnQ: QueueSource[IO, ReturnedMessage] = ???
+  ): Resource[IO, QueueSource[IO, DeliveredMessage]] = Resource.make(
+    Queue
+      .unbounded[IO, DeliveredMessage]
+      .flatTap(q => deliveries.update(_.updated(ctag, q)))
+  )(_ => deliveries.update(_ - ctag))
+
+  def returnQ: QueueSource[IO, ReturnedMessage] = returned
 
   def assertDelivered(msg: DeliveredMessage): IO[Unit] =
     delivered.get.map(l => assert(l.contains(msg)))
@@ -51,6 +62,11 @@ final class FakeMessageDispatcher(
 
 object FakeMessageDispatcher {
   def apply(): IO[FakeMessageDispatcher] =
-    (IO.ref(List.empty[DeliveredMessage]), IO.ref(List.empty[ReturnedMessage]))
-      .mapN(new FakeMessageDispatcher(_, _))
+    (
+      IO.ref(List.empty[DeliveredMessage]),
+      IO.ref(List.empty[ReturnedMessage]),
+      Queue.unbounded[IO, ReturnedMessage],
+      IO.ref(Map.empty[ConsumerTag, Queue[IO, DeliveredMessage]])
+    )
+      .mapN(new FakeMessageDispatcher(_, _, _, _))
 }

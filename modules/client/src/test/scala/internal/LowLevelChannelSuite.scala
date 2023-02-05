@@ -19,8 +19,10 @@ package internal
 
 import cats.effect.IO
 import lepus.codecs.AllClassesDataGenerator
+import lepus.codecs.BasicDataGenerator
 import lepus.codecs.ChannelDataGenerator
 import lepus.codecs.FrameGenerators
+import lepus.protocol.BasicClass
 import lepus.protocol.ChannelClass
 import lepus.protocol.constants.ReplyCode
 import org.scalacheck.Gen
@@ -139,13 +141,131 @@ class LowLevelChannelSuite extends InternalTestSuite {
     }
   }
 
-  test("Must throw underlying errors which are not channel errors : Header") {
+  test("Must handle header messages") {
+    forAllF(FrameGenerators.header) { header =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.channel.header(header)
+        _ <- ctx.content.assert(FakeContentChannel.Interaction.Recv(header))
+      } yield ()
+    }
+  }
+  test("Must close channel on method error : Header") {
     forAllF(FrameGenerators.header, channelErrors) { (header, error) =>
       for {
         ctx <- LowLevelChannelContext()
         _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
         _ <- ctx.channel.header(header)
         _ <- ctx.channel.status.get.assertEquals(Channel.Status.Closed)
+      } yield ()
+    }
+  }
+  test("Must throw underlying errors which are not channel errors : Header") {
+    forAllF(FrameGenerators.header, generalErrors) { (header, error) =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
+        _ <- ctx.channel.header(header).attempt.assertEquals(Left(error))
+      } yield ()
+    }
+  }
+
+  test("Must handle body messages") {
+    forAllF(FrameGenerators.body) { body =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.channel.body(body)
+        _ <- ctx.content.assert(FakeContentChannel.Interaction.Recv(body))
+      } yield ()
+    }
+  }
+  test("Must close channel on method error : Body") {
+    forAllF(FrameGenerators.body, channelErrors) { (body, error) =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
+        _ <- ctx.channel.body(body)
+        _ <- ctx.channel.status.get.assertEquals(Channel.Status.Closed)
+      } yield ()
+    }
+  }
+  test("Must throw underlying errors which are not channel errors : Body") {
+    forAllF(FrameGenerators.body, generalErrors) { (body, error) =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
+        _ <- ctx.channel.body(body).attempt.assertEquals(Left(error))
+      } yield ()
+    }
+  }
+
+  private val asyncContent: Gen[ContentMethod] =
+    Gen.oneOf(BasicDataGenerator.deliverGen, BasicDataGenerator.returnGen)
+  private val syncContent: Gen[ContentSyncResponse] =
+    Gen.oneOf(BasicDataGenerator.getOkGen, BasicDataGenerator.getEmptyGen)
+
+  test("Must handle async content methods") {
+    forAllF(asyncContent) { method =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.channel.asyncContent(method)
+        _ <- ctx.content.assert(
+          FakeContentChannel.Interaction.AsyncNotify(method)
+        )
+      } yield ()
+    }
+  }
+  test("Must close channel on method error : Async Content") {
+    forAllF(asyncContent, channelErrors) { (method, error) =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
+        _ <- ctx.channel.asyncContent(method)
+        _ <- ctx.channel.status.get.assertEquals(Channel.Status.Closed)
+      } yield ()
+    }
+  }
+  test(
+    "Must throw underlying errors which are not channel errors : Async Content"
+  ) {
+    forAllF(asyncContent, generalErrors) { (method, error) =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
+        _ <- ctx.channel.asyncContent(method).attempt.assertEquals(Left(error))
+      } yield ()
+    }
+  }
+
+  test("Must handle Sync content messages") {
+    forAllF(syncContent) { method =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.channel.syncContent(method)
+        _ <- ctx.content.assert(
+          FakeContentChannel.Interaction.SyncNotify(method)
+        )
+      } yield ()
+    }
+  }
+  test("Must close channel on method error : Sync content") {
+    forAllF(syncContent, channelErrors) { (method, error) =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
+        _ <- ctx.channel.syncContent(method)
+        _ <- ctx.channel.status.get.assertEquals(Channel.Status.Closed)
+      } yield ()
+    }
+  }
+  test(
+    "Must throw underlying errors which are not channel errors : Sync content"
+  ) {
+    forAllF(syncContent, generalErrors) { (method, error) =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.content.error.set(PlannedErrorKind.Times(1, error))
+        _ <- ctx.channel.syncContent(method).attempt.assertEquals(Left(error))
       } yield ()
     }
   }

@@ -25,10 +25,10 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.Channel.Status
+import lepus.protocol.ChannelClass.Close
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 import lepus.protocol.domains.ConsumerTag
-import lepus.protocol.ChannelClass.Close
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
@@ -111,13 +111,15 @@ private[client] object LowlevelChannel {
       else out.block >> state.set(Status.InActive)
 
     def asyncContent(m: ContentMethod): F[Unit] =
-      content.asyncNotify(m)
+      handle(content.asyncNotify(m))
+
     def syncContent(m: ContentSyncResponse): F[Unit] =
-      content.syncNotify(m)
+      handle(content.syncNotify(m))
 
     def header(h: Frame.Header): F[Unit] = handle(content.recv(h))
 
-    def body(h: Frame.Body): F[Unit] = content.recv(h)
+    def body(h: Frame.Body): F[Unit] = handle(content.recv(h))
+
     def method(m: Method): F[Unit] =
       // TODO match based on method
       handle(m match {
@@ -136,6 +138,7 @@ private[client] object LowlevelChannel {
     def sendNoWait(m: Method): F[Unit] = rpc.sendNoWait(m)
     def get(m: BasicClass.Get): F[Option[SynchronousGet]] =
       content.get(m).flatMap(_.get)
+
     def delivered(ctag: ConsumerTag): Stream[F, DeliveredMessage] = Stream
       .resource(disp.deliveryQ(ctag))
       .flatMap(Stream.fromQueueUnterminated(_, 100))
