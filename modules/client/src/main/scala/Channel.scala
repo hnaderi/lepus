@@ -182,42 +182,23 @@ object Channel {
     def transaction: Resource[F, Transaction[F]] = ???
   }
 
-  private def prepare[F[_]](
-      channel: ChannelTransmitter[F]
-  )(using F: Concurrent[F]): Resource[F, Unit] =
-    val prepare = channel.call(ChannelClass.Open).void
-    val destroy = channel
-      .call(
-        ChannelClass.Close(
-          ReplyCode.ReplySuccess,
-          ShortString(""),
-          ClassId(0),
-          MethodId(0)
-        )
-      )
-      .void
-
-    Resource.make(prepare)(_ =>
-      channel.status.get.map(_ == Status.Closed).ifM(F.unit, destroy)
-    )
-
   private[client] def normal[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ): Resource[F, Channel[F, NormalMessagingChannel[F]]] =
-    prepare(channel).as(ChannelImpl(channel, NormalPublishingImpl(channel)))
+  ): Channel[F, NormalMessagingChannel[F]] =
+    ChannelImpl(channel, NormalPublishingImpl(channel))
 
   private[client] def reliable[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ): Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
-    prepare(channel)
-      .evalMap(_ => channel.call(ConfirmClass.Select(true)))
+  ): F[Channel[F, ReliablePublishingMessagingChannel[F]]] =
+    channel
+      .call(ConfirmClass.Select(true))
       .as(ChannelImpl(channel, ReliablePublishingImpl(channel)))
 
   private[client] def transactional[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ): Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
-    prepare(channel)
-      .evalMap(_ => channel.call(TxClass.Select))
+  ): F[Channel[F, TransactionalMessagingChannel[F]]] =
+    channel
+      .call(TxClass.Select)
       .as(ChannelImpl(channel, TransactionalMessagingImpl(channel)))
 
 }

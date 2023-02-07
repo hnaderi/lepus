@@ -27,7 +27,6 @@ import lepus.client.DeliveredMessage
 import lepus.client.Message
 import lepus.client.ReturnedMessage
 import lepus.client.SynchronousGet
-import lepus.client.internal.ConnectionLowLevel
 import lepus.client.internal.FakeLowLevelChannel.Interaction
 import lepus.codecs.ConnectionDataGenerator
 import lepus.codecs.DomainGenerators

@@ -24,7 +24,6 @@ import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
-import lepus.client.internal.ConnectionLowLevel
 import lepus.codecs.ConnectionDataGenerator
 import lepus.codecs.DomainGenerators
 import lepus.codecs.FrameGenerators

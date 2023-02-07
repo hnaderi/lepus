@@ -22,7 +22,6 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.std.Queue
 import fs2.concurrent.Signal
-import lepus.client.internal.ConnectionLowLevel
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 import munit.CatsEffectAssertions.*

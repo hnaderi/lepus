@@ -34,7 +34,6 @@ import lepus.protocol.domains.Path
 import scala.concurrent.duration.*
 
 import internal.*
-import internal.ConnectionLowLevel
 
 trait Connection[F[_]] {
   def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]]
@@ -55,109 +54,56 @@ object Connection {
       bufferSize: Int = 100
   ): Resource[F, Connection[F]] = for {
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
-    state <- Resource.eval(
-      ConnectionLowLevel(sendQ, LowlevelChannel.from[F](_, _).toResource)
-    )
     negotiation <- StartupNegotiation(auth, path).toResource
-    con = ConnectionImpl[F](state)
-    _ <- run(
-      sendQ,
-      negotiation,
-      transport,
-      state,
-      bufferSize
-    ).compile.drain.background
-  } yield con
+    con <- run2(sendQ, negotiation, transport, path, bufferSize)
+  } yield ConnectionImpl[F](con)
 
   enum Status {
     case Connecting
-    case Connected(config: NegotiatedConfig)
     case Connected2
     case Closed
   }
 
   private[client] final class ConnectionImpl[F[_]](
-      underlying: ConnectionLowLevel[F]
+      underlying: ConnectionLowLevel2[F]
   )(using F: Concurrent[F])
       extends Connection[F] {
 
     def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] =
-      underlying.addChannel(Channel.normal)
+      underlying.newChannel.map(Channel.normal)
 
     def reliableChannel
         : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
-      underlying.addChannel(Channel.reliable)
+      underlying.newChannel.evalMap(Channel.reliable)
 
     def transactionalChannel
         : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
-      underlying.addChannel(Channel.transactional)
+      underlying.newChannel.evalMap(Channel.transactional)
 
     final def status: Signal[F, Status] = underlying.signal
     final def channels: Signal[F, Set[ChannelNumber]] = underlying.channels
   }
 
-  private[client] def run[F[_]: Temporal](
+  private[client] def run2[F[_]: Temporal](
       sendQ: Queue[F, Frame],
       negotiation: StartupNegotiation[F],
       transport: Transport[F],
-      state: ConnectionLowLevel[F],
+      vhost: Path,
       bufferSize: Int
-  ): Stream[F, Nothing] = {
+  ): Resource[F, ConnectionLowLevel2[F]] = {
     val frames = Stream
       .fromQueueUnterminated(sendQ, bufferSize)
       .through(transport)
       .through(negotiation.pipe(sendQ.offer))
 
-    val statusHandler =
-      Stream.eval(negotiation.config).evalMap(state.onConnected)
-
-    val heartbeats = state.signal.discrete.flatMap {
-      case Status.Connected(config) =>
-        Stream
-          .awakeEvery[F](config.heartbeat.toInt.seconds)
-          .foreach(_ => sendQ.offer(Frame.Heartbeat))
-      case _ => Stream.empty
-    }
-
-    val frameHandler = frames.foreach {
-      case f: Frame.Body   => state.onBody(f)
-      case f: Frame.Header => state.onHeader(f)
-      case m: Frame.Method if m.channel != ChannelNumber(0) =>
-        state.onInvoke(m)
-      case m: Frame.Method => // Global methods like connection class
-        import lepus.protocol.ConnectionClass.*
-        m.value match {
-          case Close(replyCode, replyText, classId, methodId) =>
-            state.onClosed // TODO send close ok
-          case CloseOk                         => state.onClosed
-          case Blocked(reason)                 => ???
-          case Unblocked                       => ???
-          case UpdateSecret(newSecret, reason) => ???
-          case UpdateSecretOk                  => ???
-          case _                               => ??? // TODO unexpected frame
-        }
-      case Frame.Heartbeat => sendQ.offer(Frame.Heartbeat)
-    }
-
-    frameHandler
-      .concurrently(statusHandler)
-      .concurrently(heartbeats)
-      .onFinalize(state.onClosed) // TODO closing might need extra work
-  }
-
-  private[client] def run2[F[_]: Temporal](
-      sendQ: Queue[F, Frame],
-      negotiation: StartupNegotiation[F],
-      transport: Transport[F]
-  ): Resource[F, ConnectionLowLevel2[F]] = {
-    val frames = Stream
-      .fromQueueUnterminated(sendQ, 1)
-      .through(transport)
-      .through(negotiation.pipe(sendQ.offer))
-
     val con = negotiation.config.toResource.flatMap {
       case Some(config) =>
-        ConnectionLowLevel2.from(config, ???, ???, sendQ, ???)
+        ConnectionLowLevel2(
+          config,
+          vhost,
+          sendQ,
+          in => LowlevelChannel.from(in.number, in.output)
+        )
       case None => ???
     }
 

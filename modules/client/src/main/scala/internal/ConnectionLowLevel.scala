@@ -37,122 +37,6 @@ import lepus.protocol.domains.*
 
 import scala.concurrent.duration.*
 
-import internal.*
-import ConnectionLowLevel.*
-
-private[client] trait ConnectionLowLevel[F[_]] {
-  def onClosed: F[Unit]
-  def onConnected(config: Option[NegotiatedConfig]): F[Unit]
-
-  def onHeader(h: Frame.Header): F[Unit]
-  def onBody(b: Frame.Body): F[Unit]
-  def onInvoke(m: Frame.Method): F[Unit]
-
-  def addChannel[MC <: MessagingChannel](
-      f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
-  ): Resource[F, Channel[F, MC]]
-
-  def signal: Signal[F, Connection.Status]
-  def channels: Signal[F, Set[ChannelNumber]]
-}
-
-private[client] object ConnectionLowLevel {
-  def apply[F[_]: Concurrent](
-      send: QueueSink[F, Frame],
-      newChannel: (
-          ChannelNumber,
-          QueueSink[F, Frame]
-      ) => Resource[F, LowlevelChannel[F]]
-  ): F[ConnectionLowLevel[F]] =
-    FrameDispatcher[F].flatMap(from(send, _, newChannel))
-
-  def from[F[_]: Concurrent](
-      send: QueueSink[F, Frame],
-      frameDispatcher: FrameDispatcher[F],
-      newChannel: (
-          ChannelNumber,
-          QueueSink[F, Frame]
-      ) => Resource[F, LowlevelChannel[F]]
-  ): F[ConnectionLowLevel[F]] = for {
-    state <- SignallingRef[F].of(Status.Connecting)
-  } yield new ConnectionLowLevel[F] {
-
-    def onClosed: F[Unit] = state.set(Status.Closed)
-    def onConnected(config: Option[NegotiatedConfig]): F[Unit] = state.update {
-      case Status.Connecting =>
-        config match {
-          case None         => Status.Closed
-          case Some(config) => Status.Connected(config)
-        }
-      case other => other
-    }
-
-    private val waitTilEstablished =
-      state.discrete
-        .flatMap {
-          case Status.Connecting   => Stream.empty
-          case _: Status.Connected => Stream.unit
-          case Status.Closed       => Stream.raiseError(new Exception())
-        }
-        .head
-        .compile
-        .resource
-        .drain
-
-    def addChannel[MC <: MessagingChannel](
-        f: ChannelTransmitter[F] => Resource[F, Channel[F, MC]]
-    ): Resource[F, Channel[F, MC]] = for {
-      _ <- waitTilEstablished
-      // TODO build using negotiated config
-      trm <- frameDispatcher.add(newChannel(_, send))
-      ch <- f(trm)
-    } yield ch
-
-    def signal: Signal[F, Status] = state
-    def channels: Signal[F, Set[ChannelNumber]] = frameDispatcher.channels
-
-    private def handleError(chNum: ChannelNumber, f: F[Unit]) =
-      f.handleErrorWith {
-        case AMQPError(replyCode, replyText, classId, methodId) =>
-          replyCode.category match {
-            case ReplyCategory.ChannelError =>
-              send.offer(
-                Frame.Method(
-                  chNum,
-                  ChannelClass.Close(replyCode, replyText, classId, methodId)
-                )
-              )
-            case _ =>
-              send.offer(
-                Frame.Method(
-                  chNum,
-                  ConnectionClass.Close(replyCode, replyText, classId, methodId)
-                )
-              )
-          }
-        case other =>
-          send.offer(
-            Frame.Method(
-              chNum,
-              ConnectionClass.Close(
-                ReplyCode.InternalError,
-                ShortString(""),
-                ClassId(0),
-                MethodId(0)
-              )
-            )
-          )
-      }
-
-    def onHeader(h: Frame.Header): F[Unit] =
-      handleError(h.channel, frameDispatcher.header(h))
-    def onBody(b: Frame.Body): F[Unit] =
-      handleError(b.channel, frameDispatcher.body(b))
-    def onInvoke(m: Frame.Method): F[Unit] =
-      handleError(m.channel, frameDispatcher.invoke(m))
-  }
-}
-
 private[client] trait ConnectionLowLevel2[F[_]] {
   def handler: Pipe[F, Frame, Nothing]
 
@@ -181,6 +65,14 @@ private[client] object ConnectionLowLevel2 {
       )
     )
   )
+
+  def apply[F[_]: Temporal](
+      config: NegotiatedConfig,
+      vhost: Path,
+      output: QueueSink[F, Frame],
+      buildChannel: ChannelFactory[F]
+  ): Resource[F, ConnectionLowLevel2[F]] = FrameDispatcher[F].toResource
+    .flatMap(from(config, vhost, _, output, buildChannel))
 
   def from[F[_]: Temporal](
       config: NegotiatedConfig,
