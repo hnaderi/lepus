@@ -60,12 +60,12 @@ object Connection {
 
   enum Status {
     case Connecting
-    case Connected2
+    case Connected
     case Closed
   }
 
   private[client] final class ConnectionImpl[F[_]](
-      underlying: ConnectionLowLevel2[F]
+      underlying: ConnectionLowLevel[F]
   )(using F: Concurrent[F])
       extends Connection[F] {
 
@@ -90,7 +90,7 @@ object Connection {
       transport: Transport[F],
       vhost: Path,
       bufferSize: Int
-  ): Resource[F, ConnectionLowLevel2[F]] = {
+  ): Resource[F, ConnectionLowLevel[F]] = {
     val frames = Stream
       .fromQueueUnterminated(sendQ, bufferSize)
       .through(transport)
@@ -98,7 +98,7 @@ object Connection {
 
     val con = negotiation.config.toResource.flatMap {
       case Some(config) =>
-        ConnectionLowLevel2(
+        ConnectionLowLevel(
           config,
           vhost,
           sendQ,

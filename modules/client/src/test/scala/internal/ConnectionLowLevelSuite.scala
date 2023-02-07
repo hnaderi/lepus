@@ -38,7 +38,7 @@ import scala.concurrent.duration.*
 
 import Connection.Status
 
-class ConnectionLowLevelSuite2 extends InternalTestSuite {
+class ConnectionLowLevelSuite extends InternalTestSuite {
   test("Connection is in connecting state when initiated") {
     ConnectionLowLevelContext().use(
       _.con.signal.get.assertEquals(Status.Connecting)
@@ -88,7 +88,7 @@ class ConnectionLowLevelSuite2 extends InternalTestSuite {
           .compile
           .drain
         assert = l0.await >> ctx.con.signal.get
-          .assertEquals(Status.Connected2) >> l1.release
+          .assertEquals(Status.Connected) >> l1.release
         _ <- IO.both(handler, assert)
       } yield ()
     )
@@ -100,7 +100,7 @@ class ConnectionLowLevelSuite2 extends InternalTestSuite {
     for {
       q <- FakeFrameOutput()
       fd <- FakeFrameDispatcher()
-      _ <- ConnectionLowLevel2
+      _ <- ConnectionLowLevel
         .from(config, Path("/"), fd, q, builderStub)
         .use(_ => q.data.reset)
       _ <- q.data.assert(
@@ -238,7 +238,7 @@ class ConnectionLowLevelSuite2 extends InternalTestSuite {
 
       server <- scenario
       fd <- FrameDispatcher[IO]
-      _ <- ConnectionLowLevel2
+      _ <- ConnectionLowLevel
         .from(config, Path("/"), fd, server.messages, builder)
         .use { con =>
           val handler = con.handler(server.responses).compile.drain
@@ -304,7 +304,7 @@ class ConnectionLowLevelSuite2 extends InternalTestSuite {
 private final case class ConnectionLowLevelContext(
     send: FakeFrameOutput,
     dispatcher: FakeFrameDispatcher,
-    con: ConnectionLowLevel2[IO]
+    con: ConnectionLowLevel[IO]
 )
 
 private object ConnectionLowLevelContext {
@@ -318,7 +318,7 @@ private object ConnectionLowLevelContext {
   ) = for {
     q <- FakeFrameOutput().toResource
     fd <- FakeFrameDispatcher().toResource
-    con <- ConnectionLowLevel2.from(config, vhost, fd, q, builder)
+    con <- ConnectionLowLevel.from(config, vhost, fd, q, builder)
   } yield new ConnectionLowLevelContext(q, fd, con)
 }
 

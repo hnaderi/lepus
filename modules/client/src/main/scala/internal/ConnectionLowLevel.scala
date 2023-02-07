@@ -37,7 +37,7 @@ import lepus.protocol.domains.*
 
 import scala.concurrent.duration.*
 
-private[client] trait ConnectionLowLevel2[F[_]] {
+private[client] trait ConnectionLowLevel[F[_]] {
   def handler: Pipe[F, Frame, Nothing]
 
   def newChannel: Resource[F, ChannelTransmitter[F]]
@@ -46,7 +46,7 @@ private[client] trait ConnectionLowLevel2[F[_]] {
   def channels: Signal[F, Set[ChannelNumber]]
 }
 
-private[client] object ConnectionLowLevel2 {
+private[client] object ConnectionLowLevel {
   private def openConnection[F[_]: Concurrent](
       output: QueueSink[F, Frame],
       vhost: Path
@@ -71,7 +71,7 @@ private[client] object ConnectionLowLevel2 {
       vhost: Path,
       output: QueueSink[F, Frame],
       buildChannel: ChannelFactory[F]
-  ): Resource[F, ConnectionLowLevel2[F]] = FrameDispatcher[F].toResource
+  ): Resource[F, ConnectionLowLevel[F]] = FrameDispatcher[F].toResource
     .flatMap(from(config, vhost, _, output, buildChannel))
 
   def from[F[_]: Temporal](
@@ -80,7 +80,7 @@ private[client] object ConnectionLowLevel2 {
       dispatcher: FrameDispatcher[F],
       output: QueueSink[F, Frame],
       buildChannel: ChannelFactory[F]
-  ): Resource[F, ConnectionLowLevel2[F]] = for {
+  ): Resource[F, ConnectionLowLevel[F]] = for {
     state <- SignallingRef[F].of(Status.Connecting).toResource
     _ <- openConnection(output, vhost)
   } yield new {
@@ -95,7 +95,7 @@ private[client] object ConnectionLowLevel2 {
       case h: Frame.Header => dispatcher.header(h)
       case Frame.Method(0, value) =>
         value match {
-          case ConnectionClass.OpenOk => state.set(Status.Connected2)
+          case ConnectionClass.OpenOk => state.set(Status.Connected)
           case _: ConnectionClass.Close =>
             state.set(Status.Closed) >>
               output.offer(
@@ -130,7 +130,7 @@ private[client] object ConnectionLowLevel2 {
     private def waitTilConnected = signal.discrete
       .flatMap {
         case Status.Connecting => Stream.empty
-        case Status.Connected2 => Stream.unit
+        case Status.Connected => Stream.unit
         case Status.Closed =>
           Stream.raiseError(new Exception("Connection failed"))
       }
