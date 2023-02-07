@@ -145,6 +145,12 @@ val example =
     .in(file("example"))
     .dependsOn(client)
     .enablePlugins(NoPublishPlugin)
+    .jvmSettings(
+      fork := true
+    )
+    .nativeSettings(
+      libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.3"
+    )
 
 val docs = project
   .in(file("site"))

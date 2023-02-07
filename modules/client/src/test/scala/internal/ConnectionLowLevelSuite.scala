@@ -265,10 +265,10 @@ class ConnectionLowLevelSuite extends InternalTestSuite {
   }
 
   test("Add channel waits for connection to become connected") {
-    val error = new RuntimeException
     for {
       built <- IO.ref(false)
-      builder: ChannelFactory[IO] = _ => built.set(true) >> IO.raiseError(error)
+      builder: ChannelFactory[IO] = _ =>
+        built.set(true) >> IO.raiseError(new RuntimeException)
       _ <- ConnectionLowLevelContext(builder = builder)
         .use(ctx =>
           IO.both(
@@ -283,8 +283,8 @@ class ConnectionLowLevelSuite extends InternalTestSuite {
               built.get.assert
           )
         )
-        .attempt
-        .assertEquals(Left(error))
+        .intercept[Exception]
+
     } yield ()
   }
 

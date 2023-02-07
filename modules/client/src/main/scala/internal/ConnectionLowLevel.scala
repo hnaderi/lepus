@@ -130,7 +130,7 @@ private[client] object ConnectionLowLevel {
     private def waitTilConnected = signal.discrete
       .flatMap {
         case Status.Connecting => Stream.empty
-        case Status.Connected => Stream.unit
+        case Status.Connected  => Stream.unit
         case Status.Closed =>
           Stream.raiseError(new Exception("Connection failed"))
       }
