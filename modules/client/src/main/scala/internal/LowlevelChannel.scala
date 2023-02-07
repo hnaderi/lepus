@@ -127,8 +127,8 @@ private[client] object LowlevelChannel {
           setFlow(e) >> rpc.sendNoWait(ChannelClass.FlowOk(e))
         case ChannelClass.Close(replyCode, replyText, classId, methodId) =>
           onClose
-        case ChannelClass.CloseOk => state.set(Status.Closed)
-        case _                    => content.abort >> rpc.recv(m)
+        case m @ ChannelClass.CloseOk => state.set(Status.Closed) >> rpc.recv(m)
+        case _                        => content.abort >> rpc.recv(m)
       })
 
     def publish(method: BasicClass.Publish, msg: Message): F[Unit] =

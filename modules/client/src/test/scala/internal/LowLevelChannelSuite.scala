@@ -78,7 +78,7 @@ class LowLevelChannelSuite extends InternalTestSuite {
     }
   }
 
-  test("Must close channel where receives close ok method (just in case!)") {
+  test("Must close channel where receives close ok method") {
     val methods = ChannelDataGenerator.closeOkGen
 
     forAllF(methods) { method =>
@@ -86,7 +86,9 @@ class LowLevelChannelSuite extends InternalTestSuite {
         ctx <- LowLevelChannelContext()
         _ <- ctx.channel.method(method)
         _ <- ctx.channel.status.get.assertEquals(Channel.Status.Closed)
-        _ <- ctx.rpc.interactions.assert()
+        _ <- ctx.rpc.interactions.assert(
+          FakeRPCChannel.Interaction.Recv(ChannelClass.CloseOk)
+        )
       } yield ()
     }
   }

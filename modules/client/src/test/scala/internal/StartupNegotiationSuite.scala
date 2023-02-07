@@ -173,7 +173,7 @@ class StartupNegotiationSuite extends InternalTestSuite {
     } yield ()
   }
 
-  check("Accepts tuning parameters from server and opens vhost") {
+  check("Accepts tuning parameters from server") {
     val serverResponses = fs2.Stream(
       method(
         ConnectionClass.Start(
@@ -196,52 +196,11 @@ class StartupNegotiationSuite extends InternalTestSuite {
           locale = ShortString("en-US")
         )
       ),
-      method(ConnectionClass.TuneOk(1, 2, 3)),
-      method(ConnectionClass.Open(Path("/path")))
+      method(ConnectionClass.TuneOk(1, 2, 3))
     )
 
     for {
-      sut <- StartupNegotiation(auth, Path("/path"))
-      send <- ExpectedQueue(expected)
-      _ <- sut
-        .pipe(send.assert)(serverResponses)
-        .compile
-        .toList
-        .assertEquals(Nil)
-      _ <- sut.config.assertEquals(None)
-    } yield ()
-  }
-
-  check("Notifies config when opened") {
-    val serverResponses = fs2.Stream(
-      method(
-        ConnectionClass.Start(
-          0,
-          9,
-          FieldTable.empty,
-          LongString("fake1 fake2"),
-          locales = LongString("")
-        )
-      ),
-      method(ConnectionClass.Tune(1, 2, 3)),
-      method(ConnectionClass.OpenOk)
-    )
-
-    val expected = List(
-      method(
-        ConnectionClass.StartOk(
-          clientProps,
-          mechanism = ShortString("fake1"),
-          response = LongString("initial"),
-          locale = ShortString("en-US")
-        )
-      ),
-      method(ConnectionClass.TuneOk(1, 2, 3)),
-      method(ConnectionClass.Open(Path("/path")))
-    )
-
-    for {
-      sut <- StartupNegotiation(auth, Path("/path"))
+      sut <- StartupNegotiation(auth)
       send <- ExpectedQueue(expected)
       _ <- sut
         .pipe(send.assert)(serverResponses)
@@ -265,10 +224,7 @@ class StartupNegotiationSuite extends InternalTestSuite {
         )
       ),
       method(ConnectionClass.Tune(1, 2, 3)),
-      method(ConnectionClass.OpenOk),
-      // Server never sends QosOk after opening a connection of course,
-      // but the point is that pipe opens up after negotiation
-      method(BasicClass.QosOk)
+      method(ConnectionClass.OpenOk)
     )
 
     val expected = List(
@@ -280,18 +236,17 @@ class StartupNegotiationSuite extends InternalTestSuite {
           locale = ShortString("en-US")
         )
       ),
-      method(ConnectionClass.TuneOk(1, 2, 3)),
-      method(ConnectionClass.Open(Path("/path")))
+      method(ConnectionClass.TuneOk(1, 2, 3))
     )
 
     for {
-      sut <- StartupNegotiation(auth, Path("/path"))
+      sut <- StartupNegotiation(auth)
       send <- ExpectedQueue(expected)
       _ <- sut
         .pipe(_ => IO.unit)(serverResponses)
         .compile
         .toList
-        .assertEquals(List(method(BasicClass.QosOk)))
+        .assertEquals(List(method(ConnectionClass.OpenOk)))
     } yield ()
   }
 

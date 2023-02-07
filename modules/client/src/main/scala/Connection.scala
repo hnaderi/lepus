@@ -72,6 +72,7 @@ object Connection {
   enum Status {
     case Connecting
     case Connected(config: NegotiatedConfig)
+    case Connected2
     case Closed
   }
 
@@ -142,6 +143,25 @@ object Connection {
       .concurrently(statusHandler)
       .concurrently(heartbeats)
       .onFinalize(state.onClosed) // TODO closing might need extra work
+  }
+
+  private[client] def run2[F[_]: Temporal](
+      sendQ: Queue[F, Frame],
+      negotiation: StartupNegotiation[F],
+      transport: Transport[F]
+  ): Resource[F, ConnectionLowLevel2[F]] = {
+    val frames = Stream
+      .fromQueueUnterminated(sendQ, 1)
+      .through(transport)
+      .through(negotiation.pipe(sendQ.offer))
+
+    val con = negotiation.config.toResource.flatMap {
+      case Some(config) =>
+        ConnectionLowLevel2.from(config, ???, ???, sendQ, ???)
+      case None => ???
+    }
+
+    con.flatTap(con => frames.through(con.handler).compile.drain.background)
   }
 
 }

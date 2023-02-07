@@ -35,6 +35,8 @@ import lepus.protocol.constants.ReplyCategory
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 
+import scala.concurrent.duration.*
+
 import internal.*
 import ConnectionLowLevel.*
 
@@ -74,6 +76,7 @@ private[client] object ConnectionLowLevel {
   ): F[ConnectionLowLevel[F]] = for {
     state <- SignallingRef[F].of(Status.Connecting)
   } yield new ConnectionLowLevel[F] {
+
     def onClosed: F[Unit] = state.set(Status.Closed)
     def onConnected(config: Option[NegotiatedConfig]): F[Unit] = state.update {
       case Status.Connecting =>
@@ -149,3 +152,119 @@ private[client] object ConnectionLowLevel {
       handleError(m.channel, frameDispatcher.invoke(m))
   }
 }
+
+private[client] trait ConnectionLowLevel2[F[_]] {
+  def handler: Pipe[F, Frame, Nothing]
+
+  def newChannel: Resource[F, ChannelTransmitter[F]]
+
+  def signal: Signal[F, Connection.Status]
+  def channels: Signal[F, Set[ChannelNumber]]
+}
+
+private[client] object ConnectionLowLevel2 {
+  private def openConnection[F[_]: Concurrent](
+      output: QueueSink[F, Frame],
+      vhost: Path
+  ) = Resource.make(
+    output.offer(Frame.Method(ChannelNumber(0), ConnectionClass.Open(vhost)))
+  )(_ =>
+    output.offer(
+      Frame.Method(
+        ChannelNumber(0),
+        ConnectionClass.Close(
+          ReplyCode.ReplySuccess,
+          ShortString(""),
+          ClassId(0),
+          MethodId(0)
+        )
+      )
+    )
+  )
+
+  def from[F[_]: Temporal](
+      config: NegotiatedConfig,
+      vhost: Path,
+      dispatcher: FrameDispatcher[F],
+      output: QueueSink[F, Frame],
+      buildChannel: ChannelFactory[F]
+  ): Resource[F, ConnectionLowLevel2[F]] = for {
+    state <- SignallingRef[F].of(Status.Connecting).toResource
+    _ <- openConnection(output, vhost)
+  } yield new {
+
+    private val isClosed = signal.map(_ == Status.Closed)
+    private val heartbeats = Stream
+      .awakeEvery(config.heartbeat.toInt.seconds)
+      .foreach(_ => output.offer(Frame.Heartbeat))
+
+    override def handler: Pipe[F, Frame, Nothing] = _.foreach {
+      case b: Frame.Body   => dispatcher.body(b)
+      case h: Frame.Header => dispatcher.header(h)
+      case Frame.Method(0, value) =>
+        value match {
+          case ConnectionClass.OpenOk => state.set(Status.Connected2)
+          case _: ConnectionClass.Close =>
+            state.set(Status.Closed) >>
+              output.offer(
+                Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk)
+              )
+          case ConnectionClass.CloseOk => state.set(Status.Closed)
+          case _                       => ???
+        }
+      case m: Frame.Method => dispatcher.invoke(m)
+      case Frame.Heartbeat => output.offer(Frame.Heartbeat)
+    }.onFinalize(state.set(Status.Closed))
+      .concurrently(heartbeats)
+
+    import Channel.call
+    private def openChannel(ch: LowlevelChannel[F]) =
+      Resource.make(ch.call(ChannelClass.Open).void)(_ =>
+        // ch.status.get
+        //   .map(_ == Channel.Status.Closed)
+        //   .ifM(
+        //     Concurrent[F].unit,
+        ch.call(
+          ChannelClass.Close(
+            ReplyCode.ReplySuccess,
+            ShortString(""),
+            ClassId(0),
+            MethodId(0)
+          )
+        ).void
+      )
+      // )
+
+    private def waitTilConnected = signal.discrete
+      .flatMap {
+        case Status.Connecting => Stream.empty
+        case Status.Connected2 => Stream.unit
+        case Status.Closed =>
+          Stream.raiseError(new Exception("Connection failed"))
+      }
+      .head
+      .compile
+      .drain
+      .toResource
+
+    override def newChannel: Resource[F, ChannelTransmitter[F]] = for {
+      _ <- waitTilConnected
+      ch <- dispatcher.add(n =>
+        buildChannel(ChannelBuildInput(n, output)).toResource
+      )
+      _ <- openChannel(ch)
+    } yield ch
+
+    override def signal: Signal[F, Status] = state
+
+    override def channels: Signal[F, Set[ChannelNumber]] = dispatcher.channels
+
+  }
+}
+
+type ChannelFactory[F[_]] = ChannelBuildInput[F] => F[LowlevelChannel[F]]
+
+final case class ChannelBuildInput[F[_]](
+    number: ChannelNumber,
+    output: QueueSink[F, Frame]
+)

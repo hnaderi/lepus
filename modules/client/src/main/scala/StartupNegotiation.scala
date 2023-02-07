@@ -54,14 +54,17 @@ object StartupNegotiation {
             Pull
               .eval(step(frame).onError(_ => conf.complete(None).void))
               .flatMap {
-                case NegotiationResult.Continue(responses, nextStep) =>
+                case NegotiationResult.Continue(response, nextStep) =>
                   Pull
-                    .eval(responses.traverse(sendQ)) >> go(nextStep, nextFrames)
-                case NegotiationResult.Completed(config) =>
-                  Pull.eval(conf.complete(Some(config))) >> nextFrames.pull.echo
+                    .eval(sendQ(response)) >> go(nextStep, nextFrames)
+                case NegotiationResult.Completed(response, config) =>
+                  Pull.eval(
+                    sendQ(response) >> conf.complete(Some(config))
+                  ) >> nextFrames.pull.echo
               }
           case None => Pull.eval(conf.complete(None).void)
         }
+
       go(start, in).stream
     }
 
@@ -111,22 +114,14 @@ object StartupNegotiation {
         : ConnectionClass.Tune => F[NegotiationResult[F]] = {
       case Tune(channelMax, frameMax, heartbeat) =>
         NegotiationResult
-          .continue(
-            ConnectionClass.TuneOk(channelMax, frameMax, heartbeat),
-            ConnectionClass.Open(vhost)
-          )(
-            afterOpen(
-              NegotiatedConfig(
-                channelMax = channelMax,
-                frameMax = frameMax,
-                heartbeat = heartbeat
-              )
+          .completed(
+            NegotiatedConfig(
+              channelMax = channelMax,
+              frameMax = frameMax,
+              heartbeat = heartbeat
             )
           )
           .pure[F]
-    }
-    private def afterOpen(config: NegotiatedConfig): Negotiation[F] = method {
-      case ConnectionClass.OpenOk => NegotiationResult.Completed(config).pure
     }
 
   }
@@ -146,12 +141,22 @@ final case class NegotiatedConfig(
 )
 
 private enum NegotiationResult[F[_]] {
-  case Continue(responses: List[Frame], next: Negotiation[F])
-  case Completed(config: NegotiatedConfig)
+  case Continue(response: Frame, next: Negotiation[F])
+  case Completed(response: Frame, config: NegotiatedConfig)
 }
+
 private object NegotiationResult {
-  def continue[F[_]](responses: ConnectionClass*)(next: Negotiation[F]) =
-    Continue(responses.map(Frame.Method(ChannelNumber(0), _)).toList, next)
+  def continue[F[_]](response: ConnectionClass)(next: Negotiation[F]) =
+    Continue(Frame.Method(ChannelNumber(0), response), next)
+  def completed[F[_]](config: NegotiatedConfig) =
+    Completed[F](
+      Frame.Method(
+        ChannelNumber(0),
+        ConnectionClass
+          .TuneOk(config.channelMax, config.frameMax, config.heartbeat)
+      ),
+      config
+    )
 }
 
 type Negotiation[F[_]] = Frame => F[NegotiationResult[F]]
