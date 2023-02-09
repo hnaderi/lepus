@@ -57,7 +57,7 @@ class ChannelPublisherSuite extends InternalTestSuite {
         _ <- pq.take.assertEquals(
           Frame.Header(
             ch,
-            ClassId(10),
+            publishMethod._classId,
             bodySize = data.size,
             props
           )
