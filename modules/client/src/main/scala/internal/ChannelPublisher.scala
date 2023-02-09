@@ -45,7 +45,7 @@ object ChannelPublisher {
           .prepended(
             Frame.Header(
               channelNumber,
-              ClassId(10),
+              method._classId,
               msg.payload.size,
               msg.properties
             )

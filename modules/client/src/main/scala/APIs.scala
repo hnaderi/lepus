@@ -64,13 +64,13 @@ trait ExchangeAPI[F[_]] {
 trait QueueAPI[F[_]] {
 
   def declare(
-      queue: QueueName,
-      passive: Boolean,
-      durable: Boolean,
-      exclusive: Boolean,
-      autoDelete: Boolean,
-      noWait: NoWait,
-      arguments: FieldTable
+      queue: QueueName = QueueName(""),
+      passive: Boolean = false,
+      durable: Boolean = false,
+      exclusive: Boolean = false,
+      autoDelete: Boolean = false,
+      noWait: NoWait = false,
+      arguments: FieldTable = FieldTable.empty
   ): F[Option[QueueClass.DeclareOk]]
 
   def bind(

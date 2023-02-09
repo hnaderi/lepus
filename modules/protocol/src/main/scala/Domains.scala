@@ -84,6 +84,7 @@ object ClassId extends TaggedOpaqueComp[Short, ClassId]
   */
 opaque type ConsumerTag <: ShortString = ShortString
 object ConsumerTag extends TaggedOpaqueComp[ShortString, ConsumerTag] {
+  inline def from(inline t: String): ConsumerTag = ShortString(t)
   def empty: ConsumerTag = ShortString.empty
 }
 

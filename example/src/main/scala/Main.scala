@@ -22,21 +22,28 @@ import com.comcast.ip4s.*
 import lepus.client.Connection
 import lepus.client.LepusClient
 import lepus.protocol.domains.*
+import lepus.client.Message
+import scodec.bits.ByteVector
+import scala.concurrent.duration.*
 
 object Main extends IOApp.Simple {
 
+  private val exchange = ExchangeName("")
+
   override def run: IO[Unit] = connect.use((con, ch) =>
     for {
-      q <- ch.queue.declare(
-        QueueName(""),
-        passive = false,
-        durable = false,
-        exclusive = false,
-        autoDelete = true,
-        noWait = false,
-        FieldTable.empty
-      )
+      q <- ch.queue.declare(autoDelete = true)
+      q <- IO.fromOption(q)(new Exception())
+      print = ch.messaging.consume(q.queue).printlns
+      publish = fs2.Stream
+        .awakeEvery[IO](1.second)
+        .map(_.toMillis)
+        .evalTap(l => IO.println(s"publishing $l"))
+        .map(l => Message(ByteVector.fromLong(l)))
+        .evalMap(ch.messaging.publish(exchange, q.queue, _))
       _ <- IO.println(q)
+
+      _ <- print.merge(publish).interruptAfter(10.seconds).compile.drain
     } yield ()
   )
 

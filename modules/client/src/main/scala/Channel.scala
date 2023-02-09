@@ -85,7 +85,7 @@ object Channel {
         arguments: FieldTable = FieldTable.empty
     ): Stream[F, DeliveredMessage] =
       import Stream.*
-      val ctag: ConsumerTag = ???
+      val ctag: ConsumerTag = ConsumerTag.from("consumer1") // TODO automated
       eval(
         channel.call(
           BasicClass.Consume(
