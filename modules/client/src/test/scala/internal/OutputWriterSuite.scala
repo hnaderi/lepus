@@ -18,7 +18,6 @@ package lepus.client
 package internal
 
 import cats.effect.IO
-import cats.syntax.writer
 import lepus.client.internal.OutputWriter
 
 import scala.concurrent.duration.*
