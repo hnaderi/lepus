@@ -85,16 +85,16 @@ object StartupNegotiation {
         val proposedMechanisms = mechanisms.split(" ")
         auth.get(proposedMechanisms: _*) match {
           case None => NoSupportedSASLMechanism.raiseError
-          case Some((mechanism, sasl)) =>
-            sasl.first.map(response =>
+          case Some(mechanism) =>
+            mechanism.first.map(response =>
               NegotiationResult.continue(
                 ConnectionClass.StartOk(
                   clientProps,
-                  mechanism,
+                  mechanism.name,
                   response,
                   ShortString("en-US")
                 )
-              )(handleChallenge(sasl))
+              )(handleChallenge(mechanism))
             )
         }
 

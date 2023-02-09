@@ -23,24 +23,21 @@ import lepus.protocol.domains.ShortString
 import munit.FunSuite
 
 class AuthenticationConfigSuite extends FunSuite {
-  val sasl1 = SaslMechanism(IO(LongString("1")), IO(_))
-  val sasl2 = SaslMechanism(IO(LongString("2")), IO(_))
+  val sasl1 = SaslMechanism(ShortString("sasl1"), IO(LongString("1")), IO(_))
+  val sasl2 = SaslMechanism(ShortString("sasl2"), IO(LongString("2")), IO(_))
 
-  val auth = AuthenticationConfig(
-    ShortString("sasl1") -> sasl1,
-    ShortString("sasl2") -> sasl2
-  )
+  val auth = AuthenticationConfig(sasl1, sasl2)
 
   test("Empty") {
     assertEquals(auth.get(), None)
   }
 
   test("First") {
-    assertEquals(auth.get("sasl1"), Some(ShortString("sasl1"), sasl1))
+    assertEquals(auth.get("sasl1"), Some(sasl1))
   }
 
   test("Second") {
-    assertEquals(auth.get("sasl2"), Some(ShortString("sasl2"), sasl2))
+    assertEquals(auth.get("sasl2"), Some(sasl2))
   }
 
   test("Non existing") {

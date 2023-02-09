@@ -23,6 +23,7 @@ import lepus.protocol.domains.LongString
 import lepus.protocol.domains.ShortString
 
 final case class SaslMechanism[F[_]](
+    name: ShortString,
     first: F[LongString],
     next: LongString => F[LongString]
 )
@@ -34,21 +35,21 @@ object SaslMechanism {
       .from(s"\u0000$username\u0000$password")
       .leftMap(new Exception(_))
       .liftTo[F]
-    SaslMechanism(s, _ => s)
+    SaslMechanism(ShortString("PLAIN"), s, _ => s)
   }
 }
 
 /** SASL Mechanisms orderd by preferrence from high to low */
 final class AuthenticationConfig[F[_]](
-    val mechanisms: NonEmptyList[(ShortString, SaslMechanism[F])]
+    val mechanisms: NonEmptyList[SaslMechanism[F]]
 ) extends AnyVal {
 
   /** First supported mechanism based on preferrence */
-  def get(supported: String*): Option[(ShortString, SaslMechanism[F])] =
-    mechanisms.foldLeft(Option.empty[(ShortString, SaslMechanism[F])]) {
+  def get(supported: String*): Option[SaslMechanism[F]] =
+    mechanisms.foldLeft(Option.empty[SaslMechanism[F]]) {
       case (last @ Some(_), _) => last
-      case (None, (name, mechanism)) if supported.contains(name) =>
-        Some((name, mechanism))
+      case (None, mechanism) if supported.contains(mechanism.name) =>
+        Some(mechanism)
       case _ => None
     }
 
@@ -56,8 +57,8 @@ final class AuthenticationConfig[F[_]](
 
 object AuthenticationConfig {
   def apply[F[_]](
-      m: (ShortString, SaslMechanism[F]),
-      ms: (ShortString, SaslMechanism[F])*
+      m: SaslMechanism[F],
+      ms: SaslMechanism[F]*
   ): AuthenticationConfig[F] = new AuthenticationConfig(
     NonEmptyList.of(m, ms: _*)
   )

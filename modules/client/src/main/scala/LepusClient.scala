@@ -40,9 +40,7 @@ object LepusClient {
 
     Connection.from(
       transport,
-      AuthenticationConfig(
-        ShortString("PLAIN") -> SaslMechanism.plain(username, password)
-      ),
+      AuthenticationConfig(SaslMechanism.plain(username, password)),
       path = vhost
     )
   }

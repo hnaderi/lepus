@@ -32,10 +32,9 @@ import java.util.concurrent.TimeoutException
 
 class StartupNegotiationSuite extends InternalTestSuite {
   private val fakeSaslMechanism =
-    SaslMechanism(IO(LongString("initial")), IO(_))
-  private val auth = AuthenticationConfig(
-    ShortString("fake1") -> fakeSaslMechanism
-  )
+    SaslMechanism(ShortString("fake1"), IO(LongString("initial")), IO(_))
+  private val auth = AuthenticationConfig(fakeSaslMechanism)
+
   private val clientProps = FieldTable(
     ShortString("product") -> 1,
     ShortString("version") -> 1,
