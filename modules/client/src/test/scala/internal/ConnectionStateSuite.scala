@@ -34,7 +34,8 @@ import scala.concurrent.duration.*
 import Connection.Status
 
 class ConnectionStateSuite extends InternalTestSuite {
-  private val SUT = ConnectionState(_ => IO.unit)
+  private val SUT =
+    OutputWriter[IO, Frame](_ => IO.unit).flatMap(ConnectionState(_))
   private val config = NegotiatedConfig(1, 2, 3)
 
   test("Initial state is connecting") {
@@ -56,13 +57,15 @@ class ConnectionStateSuite extends InternalTestSuite {
   test("Sends open command onConnected") {
     forAllF(DomainGenerators.path) { vhost =>
       for {
-        sent <- IO.deferred[Frame]
-        s <- ConnectionState(sent.complete(_).void, vhost)
+        sent <- FakeFrameOutput()
+        s <- ConnectionState(sent, vhost)
         _ <- s.onConnected(config)
         _ <- s.config.assertEquals(config)
         _ <- s.get.assertEquals(Status.Connected)
-        _ <- sent.tryGet.assertEquals(
-          Some(Frame.Method(ChannelNumber(0), ConnectionClass.Open(vhost)))
+        _ <- sent.interactions.assert(
+          FakeFrameOutput.Interaction.Wrote(
+            Frame.Method(ChannelNumber(0), ConnectionClass.Open(vhost))
+          )
         )
       } yield ()
     }
@@ -164,13 +167,16 @@ class ConnectionStateSuite extends InternalTestSuite {
   test("Accepts server close request if is opened") {
     forAllF(ConnectionDataGenerator.closeGen) { close =>
       for {
-        sent <- IO.ref(Option.empty[Frame])
-        s <- ConnectionState(m => sent.set(Some(m)))
+        sent <- FakeFrameOutput()
+        s <- ConnectionState(sent)
         _ <- s.onConnected(config)
         _ <- s.onOpened
+        _ <- sent.interactions.reset
         _ <- s.onCloseRequest(close)
-        _ <- sent.get.assertEquals(
-          Some(Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk))
+        _ <- sent.interactions.assert(
+          FakeFrameOutput.Interaction.Wrote(
+            Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk)
+          )
         )
         _ <- s.get.assertEquals(Status.Opened)
       } yield ()
@@ -180,13 +186,14 @@ class ConnectionStateSuite extends InternalTestSuite {
   test("Accepts client close request if is opened") {
     forAllF(ConnectionDataGenerator.closeGen) { close =>
       for {
-        sent <- IO.ref(Option.empty[Frame])
-        s <- ConnectionState(m => sent.set(Some(m)))
+        sent <- FakeFrameOutput()
+        s <- ConnectionState(sent)
         _ <- s.onConnected(config)
         _ <- s.onOpened
+        _ <- sent.interactions.reset
         _ <- s.onCloseRequest
-        _ <- sent.get.assertEquals(
-          Some(
+        _ <- sent.interactions.assert(
+          FakeFrameOutput.Interaction.Wrote(
             Frame.Method(
               ChannelNumber(0),
               ConnectionClass.Close(
@@ -205,21 +212,32 @@ class ConnectionStateSuite extends InternalTestSuite {
 
   test("Responds to heartbeats if is opened") {
     for {
-      sent <- IO.ref(Option.empty[Frame])
-      s <- ConnectionState(m => sent.set(Some(m)))
+      sent <- FakeFrameOutput()
+      s <- ConnectionState(sent)
       _ <- s.onConnected(config)
       _ <- s.onOpened
+      _ <- sent.interactions.reset
       _ <- s.onHeartbeat
-      _ <- sent.get.assertEquals(Some(Frame.Heartbeat))
+      _ <- sent.interactions.assert(
+        FakeFrameOutput.Interaction.Wrote(Frame.Heartbeat)
+      )
     } yield ()
   }
 
   test("Raises error if onHeartbeat is called and is not opened") {
     for {
-      sent <- IO.ref(Option.empty[Frame])
-      s <- ConnectionState(m => sent.set(Some(m)))
+      s <- SUT
       _ <- s.onConnected(config)
       _ <- s.onHeartbeat.intercept[IllegalStateException]
+    } yield ()
+  }
+
+  test("Output terminates after getting closed") {
+    for {
+      sent <- FakeFrameOutput()
+      s <- ConnectionState(sent)
+      _ <- s.onClosed
+      _ <- sent.interactions.assert(FakeFrameOutput.Interaction.Closed)
     } yield ()
   }
 }

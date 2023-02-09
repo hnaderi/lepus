@@ -46,7 +46,7 @@ private[client] trait ConnectionState[F[_]] extends Signal[F, Status] {
 
 object ConnectionState {
   def apply[F[_]](
-      send: Frame => F[Unit],
+      output: OutputWriter[F, Frame],
       path: Path = Path("/")
   )(using F: Concurrent[F]): F[ConnectionState[F]] = for {
     underlying <- SignallingRef[F, Status](Status.Connecting)
@@ -61,17 +61,17 @@ object ConnectionState {
           case other             => (other, false)
         }
         .ifM(
-          configDef.complete(Right(config)) *> send(
+          configDef.complete(Right(config)) *> output.write(
             Frame.Method(ChannelNumber(0), ConnectionClass.Open(path))
           ),
           F.raiseError(new IllegalStateException)
         )
 
     override def onCloseRequest(req: Close): F[Unit] =
-      send(Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk))
+      output.write(Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk))
 
     override def onCloseRequest: F[Unit] =
-      send(
+      output.write(
         Frame.Method(
           ChannelNumber(0),
           ConnectionClass.Close(
@@ -86,6 +86,7 @@ object ConnectionState {
     override def onClosed: F[Unit] =
       hasOpened.complete(Left(TerminalState)) *>
         configDef.complete(Left(TerminalState)) *>
+        output.onClose *>
         underlying.set(Status.Closed)
 
     override def onOpened: F[Unit] = hasOpened.complete(Right(())) *> underlying
@@ -96,7 +97,7 @@ object ConnectionState {
       .ifM(F.unit, F.raiseError(new IllegalStateException))
 
     override def onHeartbeat: F[Unit] = underlying.get.flatMap {
-      case Status.Opened => send(Frame.Heartbeat)
+      case Status.Opened => output.write(Frame.Heartbeat)
       case _             => F.raiseError(new IllegalStateException)
     }
 

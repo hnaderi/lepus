@@ -69,9 +69,10 @@ object Connection {
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
     negotiation <- StartupNegotiation(auth, path).toResource
     dispatcher <- FrameDispatcher[F].toResource
-    state <- ConnectionState(sendQ.offer, path).toResource
+    output <- OutputWriter(sendQ.offer).toResource
+    state <- ConnectionState(output, path).toResource
     newChannel = ChannelBuilder(
-      sendQ.offer,
+      output.write,
       state,
       dispatcher,
       in => LowlevelChannel.from(in.number, queueFrom(in.output))
@@ -80,7 +81,7 @@ object Connection {
     transfer = Stream
       .fromQueueUnterminated(sendQ, bufferSize)
       .through(transport)
-      .through(negotiation.pipe(sendQ.offer))
+      .through(negotiation.pipe(output.write))
       .through(receive(state, dispatcher))
     life = lifetime(negotiation.config, state)
     _ <- transfer.merge(life).compile.drain.background

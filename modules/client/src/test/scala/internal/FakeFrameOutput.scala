@@ -21,12 +21,13 @@ import lepus.client.internal.FakeFrameOutput.Interaction
 import lepus.client.internal.OutputWriter
 import lepus.protocol.Frame
 
-final class FakeFrameOutput(val data: InteractionList[Interaction])
+final class FakeFrameOutput(val interactions: InteractionList[Interaction])
     extends OutputWriter[IO, Frame] {
 
-  override def write(t: Frame): IO[Unit] = data.add(Interaction.Wrote(t))
+  override def write(t: Frame): IO[Unit] =
+    interactions.add(Interaction.Wrote(t))
 
-  override def onClose: IO[Unit] = data.add(Interaction.Closed)
+  override def onClose: IO[Unit] = interactions.add(Interaction.Closed)
 
 }
 
@@ -35,4 +36,7 @@ object FakeFrameOutput {
     case Wrote(f: Frame)
     case Closed
   }
+
+  def apply(): IO[FakeFrameOutput] =
+    InteractionList[Interaction].map(new FakeFrameOutput(_))
 }

@@ -43,7 +43,8 @@ class ConnectionReceiveSuite extends InternalTestSuite {
   check("Connection become closed when handler terminates") {
     for {
       fd <- FakeFrameDispatcher()
-      st <- ConnectionState[IO](_ => IO.unit)
+      output <- FakeFrameOutput()
+      st <- ConnectionState[IO](output)
       _ <- Stream.empty.through(Connection.receive(st, fd)).compile.drain
       _ <- st.get.assertEquals(Status.Closed)
     } yield ()
@@ -52,7 +53,8 @@ class ConnectionReceiveSuite extends InternalTestSuite {
   check("Connection become closed when handler terminates with error") {
     for {
       fd <- FakeFrameDispatcher()
-      st <- ConnectionState[IO](_ => IO.unit)
+      output <- FakeFrameOutput()
+      st <- ConnectionState[IO](output)
       _ <- Stream
         .raiseError(new Exception)
         .through(Connection.receive(st, fd))
@@ -66,16 +68,18 @@ class ConnectionReceiveSuite extends InternalTestSuite {
   private val config = NegotiatedConfig(1, 2, 3)
   check("Responds to pings") {
     for {
-      sent <- InteractionList[Frame]
       fd <- FakeFrameDispatcher()
-      st <- ConnectionState[IO](sent.add)
+      output <- FakeFrameOutput()
+      st <- ConnectionState[IO](output)
       _ <- st.onConnected(config)
       _ <- st.onOpened
       _ <- Stream(Frame.Heartbeat)
         .through(Connection.receive(st, fd))
         .compile
         .drain
-      _ <- sent.assertLast(Frame.Heartbeat)
+      _ <- output.interactions.assertLast(
+        FakeFrameOutput.Interaction.Wrote(Frame.Heartbeat)
+      )
     } yield ()
   }
 
@@ -85,7 +89,8 @@ class ConnectionReceiveSuite extends InternalTestSuite {
     forAllF(frames) { frame =>
       for {
         fd <- FakeFrameDispatcher()
-        st <- ConnectionState[IO](_ => IO.unit)
+        output <- FakeFrameOutput()
+        st <- ConnectionState[IO](output)
         _ <- st.onConnected(config)
         _ <- st.onOpened
         _ <- Stream(frame)
@@ -103,7 +108,8 @@ class ConnectionReceiveSuite extends InternalTestSuite {
     forAllF(channelMethods) { method =>
       for {
         fd <- FakeFrameDispatcher()
-        st <- ConnectionState[IO](_ => IO.unit)
+        output <- FakeFrameOutput()
+        st <- ConnectionState[IO](output)
         _ <- st.onConnected(config)
         _ <- st.onOpened
         _ <- Stream(method)

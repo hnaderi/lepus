@@ -21,9 +21,10 @@ import cats.effect.IOApp
 import com.comcast.ip4s.*
 import lepus.client.Connection
 import lepus.client.LepusClient
-import lepus.protocol.domains.*
 import lepus.client.Message
+import lepus.protocol.domains.*
 import scodec.bits.ByteVector
+
 import scala.concurrent.duration.*
 
 object Main extends IOApp.Simple {
