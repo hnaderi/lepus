@@ -41,9 +41,9 @@ import scala.concurrent.duration.*
 import Connection.Status
 
 class ConnectionLifetimeSuite extends InternalTestSuite {
-  private val config = NegotiatedConfig(1, 2, 3)
 
   check("sends onConnected when negotation succeeds") {
+    val config = NegotiatedConfig(1, 2, 3)
     for {
       fcon <- FakeConnectionState()
       _ <- fcon.setAsWontOpen
@@ -55,9 +55,10 @@ class ConnectionLifetimeSuite extends InternalTestSuite {
   }
 
   check("Must send heartbeats as agreed on negotiation") {
+    val config = NegotiatedConfig(1, 1, 60)
     for {
       fcon <- FakeConnectionState()
-      _ <- fcon.onConnected(NegotiatedConfig(1, 1, 60))
+
       _ <- fcon.onOpened
 
       _ <- Connection
@@ -72,182 +73,25 @@ class ConnectionLifetimeSuite extends InternalTestSuite {
     } yield ()
   }
 
-  // check("waits to become open before") {
-  //   for {
-  //     fcon <- FakeConnectionState()
-  //     _ <- fcon.setAsWontOpen
-  //     _ <- Connection.lifetime(IO(config), fcon).compile.drain.attempt
-  //     _ <- fcon.interactions.assertFirst(
-  //       FakeConnectionState.Interaction.Connected(config)
-  //     )
-  //   } yield ()
-  // }
-
-  // check("Sends Close command on finalization if it is opened") {
-  //   for {
-  //     fcon <- FakeConnectionState()
-  //     _ <- fcon.setAsWontOpen
-  //     _ <- Connection.lifetime(IO(config), fcon).compile.drain.attempt
-  //     _ <- fcon.interactions.assertFirst(
-  //       FakeConnectionState.Interaction.Connected(config)
-  //     )
-  //   } yield ()
-  // }
-
-  //   ConnectionLowLevelContext().use(ctx =>
-  //     ctx.con
-  //       .handler(ctx.waitWhileOpened)
-  //       .compile
-  //       .drain >>
-  //       ctx.send.data.assertLast(
-  //         Frame.Method(
-  //           ChannelNumber(0),
-  //           ConnectionClass.Close(
-  //             ReplyCode.ReplySuccess,
-  //             ShortString(""),
-  //             ClassId(0),
-  //             MethodId(0)
-  //           )
-  //         )
-  //       )
-  //   )
-  // }
-
-  // test("Closes when server sends connection.close".ignore) {
-  //   val closeMethods =
-  //     ConnectionDataGenerator.closeGen.map(Frame.Method(ChannelNumber(0), _))
-
-  //   forAllF(closeMethods) { method =>
-  //     TestControl.executeEmbed(
-  //       ConnectionLowLevelContext().use { ctx =>
-  //         ctx.con
-  //           .handler(
-  //             ctx.waitWhileOpened ++
-  //               Stream(method) ++
-  //               ctx.waitUntilClosed ++
-  //               Stream.exec(
-  //                 ctx.con.signal.get.assertEquals(Status.Closed) >>
-  //                   ctx.dispatcher.assertNotDispatched >>
-  //                   ctx.send.data.assertLast(
-  //                     Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk)
-  //                   )
-  //               )
-  //           )
-  //           .compile
-  //           .drain
-  //       }
-  //     )
-  //   }
-  // }
-
-  // test("Closes when server sends connection.close-ok".ignore) {
-  //   val method = Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk)
-
-  //   ConnectionLowLevelContext().use(ctx =>
-  //     for {
-  //       l0 <- CountDownLatch[IO](1)
-  //       l1 <- CountDownLatch[IO](1)
-  //       handler =
-  //         ctx.con
-  //           .handler(
-  //             ctx.waitWhileOpened ++ Stream(method) ++ Stream.exec(
-  //               l0.release >> l1.await
-  //             )
-  //           )
-  //           .compile
-  //           .drain
-  //       assert = l0.await >>
-  //         ctx.con.signal.get.assertEquals(Status.Closed) >>
-  //         ctx.dispatcher.assertNotDispatched >>
-  //         ctx.send.data.assert(
-  //           Frame.Method(ChannelNumber(0), ConnectionClass.Open(Path("/")))
-  //         ) >>
-  //         l1.release
-  //       _ <- IO.both(handler, assert)
-  //     } yield ()
-  //   )
-  // }
-
-  // check("Must send heartbeats as agreed on negotiation".ignore) {
-  //   ConnectionLowLevelContext(config = IO(NegotiatedConfig(1, 1, 60))).use(
-  //     ctx =>
-  //       ctx.con.handler(Stream.sleep_(1.hour + 1.nanosecond)).compile.drain >>
-  //         ctx.send.data.assertContainsSlice(List.fill(60)(Frame.Heartbeat): _*)
-  //   )
-  // }
-
-  // check("Adds channels".ignore) {
-  //   val config = IO(NegotiatedConfig(1, 1, 60))
-
-  //   for {
-  //     ch <- FakeLowLevelChannel()
-  //     builder: ChannelFactory[IO] =
-  //       in => LowlevelChannel.from(in.number, in.output).flatMap(ch.setChannel)
-
-  //     server <- ServerScenario.ok
-  //     fd <- FrameDispatcher[IO]
-  //     con <- ConnectionLowLevel.from(
-  //       config,
-  //       Path("/"),
-  //       fd,
-  //       server.messages,
-  //       builder
-  //     )
-  //     handler = con.handler(server.responses).compile.drain
-  //     assert = con.newChannel.use(_ =>
-  //       ch.interactions.assert(
-  //         FakeLowLevelChannel.Interaction.SendWait(ChannelClass.Open)
-  //       ) >>
-  //         ch.interactions.reset >>
-  //         con.channels.get.assertEquals(Set(ChannelNumber(1)))
-  //     ) >> ch.interactions.assert(
-  //       FakeLowLevelChannel.Interaction.SendWait(
-  //         ChannelClass.Close(
-  //           ReplyCode.ReplySuccess,
-  //           ShortString(""),
-  //           ClassId(0),
-  //           MethodId(0)
-  //         )
-  //       )
-  //     )
-
-  //     _ <- IO.both(handler, assert)
-  //   } yield ()
-  // }
-
-  // test("Add channel waits for connection to become opened".ignore) {
-  //   for {
-  //     built <- IO.ref(false)
-  //     builder: ChannelFactory[IO] = _ =>
-  //       built.set(true) >> IO.raiseError(new RuntimeException)
-  //     _ <- ConnectionLowLevelContext(builder = builder)
-  //       .use(ctx =>
-  //         IO.both(
-  //           ctx.con.newChannel.use_,
-  //           built.get.map(!_).assert >>
-  //             ctx.con
-  //               .handler(
-  //                 ctx.waitWhileOpened
-  //               )
-  //               .compile
-  //               .drain >>
-  //             built.get.assert
-  //         )
-  //       )
-  //       .intercept[Exception]
-
-  //   } yield ()
-  // }
-
-  // check("Add channel fails if connection fails to become opened") {
-  //   val builder: ChannelFactory[IO] = _ => IO.raiseError(new RuntimeException)
-  //   ConnectionLowLevelContext(builder = builder)
-  //     .use(ctx =>
-  //       IO.both(
-  //         ctx.con.newChannel.use_,
-  //         ctx.con.handler(Stream.empty).compile.drain
-  //       )
-  //     )
-  //     .interceptMessage[Exception]("Connection failed")
-  // }
+  check("waits to become open before sending heartbeats") {
+    val config = NegotiatedConfig(1, 1, 60)
+    for {
+      fcon <- FakeConnectionState()
+      _ <- Connection
+        .lifetime(IO(config), fcon)
+        .compile
+        .drain
+        .background
+        .use(fib =>
+          fcon.config >> // wait to become connected
+            fcon.interactions
+              .assert(FakeConnectionState.Interaction.Connected(config)) >>
+            fcon.interactions.reset >>
+            fcon.onOpened >> fcon.interactions.reset >> IO.sleep(61.second) >>
+            fcon.interactions
+              .assert(FakeConnectionState.Interaction.Heartbeat) >>
+            fcon.onClosed
+        )
+    } yield ()
+  }
 }

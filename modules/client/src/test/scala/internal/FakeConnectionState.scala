@@ -25,6 +25,7 @@ import cats.syntax.all.*
 import fs2.Stream
 import fs2.Stream.*
 import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
 import lepus.client.internal.FakeConnectionState.Interaction
 import lepus.codecs.ConnectionDataGenerator
 import lepus.codecs.DomainGenerators
@@ -45,17 +46,19 @@ final class FakeConnectionState(
     val interactions: InteractionList[Interaction],
     openedDef: Deferred[IO, Either[Throwable, Unit]],
     val heartbeatError: PlannedError,
-    connectedDef: Deferred[IO, NegotiatedConfig]
+    connectedDef: Deferred[IO, NegotiatedConfig],
+    state: SignallingRef[IO, Status]
 ) extends ConnectionState[IO] {
 
-  override def discrete: Stream[cats.effect.IO, Status] = Stream.empty
+  override def discrete: Stream[cats.effect.IO, Status] = state.discrete
 
   override def awaitOpened: IO[Unit] = openedDef.get.flatMap(IO.fromEither)
 
   override def onConnected(config: NegotiatedConfig): IO[Unit] =
-    connectedDef.complete(config) >> interactions.add(
-      Interaction.Connected(config)
-    )
+    state.set(Status.Connected) >>
+      connectedDef.complete(config) >> interactions.add(
+        Interaction.Connected(config)
+      )
 
   override def onCloseRequest(req: Close): IO[Unit] =
     interactions.add(Interaction.CloseRequest(req))
@@ -63,16 +66,17 @@ final class FakeConnectionState(
   override def onCloseRequest: IO[Unit] =
     interactions.add(Interaction.ClientCloseRequest)
 
-  override def get: IO[Status] = ???
+  override def get: IO[Status] = state.get
 
-  override def onClosed: IO[Unit] = interactions.add(Interaction.Closed)
+  override def onClosed: IO[Unit] =
+    interactions.add(Interaction.Closed) >> state.set(Status.Closed)
 
-  override def onOpened: IO[Unit] =
+  override def onOpened: IO[Unit] = state.set(Status.Opened) >>
     openedDef.complete(Right(())) >> interactions.add(Interaction.Opened)
 
   override def config: IO[NegotiatedConfig] = connectedDef.get
 
-  override def continuous: Stream[cats.effect.IO, Status] = Stream.empty
+  override def continuous: Stream[cats.effect.IO, Status] = state.continuous
 
   override def onHeartbeat: IO[Unit] =
     interactions.add(Interaction.Heartbeat) *> heartbeatError.run
@@ -87,10 +91,31 @@ object FakeConnectionState {
     case ClientCloseRequest, Opened, Closed, Heartbeat
   }
 
-  def apply() = (
-    InteractionList[Interaction],
-    IO.deferred[Either[Throwable, Unit]],
-    PlannedError(),
-    IO.deferred[NegotiatedConfig],
-  ).mapN(new FakeConnectionState(_, _, _, _))
+  def apply(
+      currentState: Status = Status.Connecting,
+      defaultConfig: NegotiatedConfig = NegotiatedConfig(1, 2, 3)
+  ) = for {
+    interactions <- InteractionList[Interaction]
+    opened <- IO.deferred[Either[Throwable, Unit]]
+    heartbeatErrors <- PlannedError()
+    connected <- IO.deferred[NegotiatedConfig]
+    state <- SignallingRef[IO].of(currentState)
+
+    _ <-
+      if currentState != Status.Connecting
+      then connected.complete(defaultConfig).void
+      else IO.unit
+
+    _ <-
+      if currentState == Status.Opened
+      then opened.complete(Right(())).void
+      else IO.unit
+
+  } yield new FakeConnectionState(
+    interactions,
+    opened,
+    heartbeatErrors,
+    connected,
+    state
+  )
 }

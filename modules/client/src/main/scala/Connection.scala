@@ -132,8 +132,8 @@ object Connection {
 
     eval(config)
       .flatMap(config =>
-        eval(state.onConnected(config)) *>
-          eval(state.awaitOpened) *>
+        eval(state.onConnected(config)) >>
+          eval(state.awaitOpened) >>
           heartbeats(config)
       )
       .onFinalize(state.onCloseRequest)

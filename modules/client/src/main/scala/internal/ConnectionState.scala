@@ -41,7 +41,7 @@ private[client] trait ConnectionState[F[_]] extends Signal[F, Status] {
   def config: F[NegotiatedConfig]
   def awaitOpened: F[Unit]
   final def whenClosed: fs2.Stream[F, Boolean] =
-    discrete.forall(_ != Status.Closed)
+    discrete.map(_ == Status.Closed)
 }
 
 object ConnectionState {
