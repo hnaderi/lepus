@@ -31,7 +31,7 @@ import Connection.Status
 import Frame.*
 
 final class FakeFrameDispatcher(
-    dispatched: Ref[IO, List[Frame]],
+    val dispatched: InteractionList[Frame],
     error: Option[Exception]
 ) extends FrameDispatcher[IO] {
 
@@ -49,14 +49,10 @@ final class FakeFrameDispatcher(
   ): Resource[IO, CHANNEL] = build(ChannelNumber(1))
 
   private def dispatch(frame: Frame) =
-    dispatched.update(frame :: _) >> error.fold(IO.unit)(IO.raiseError)
-
-  def assertDispatched(frame: Frame)(using Location) =
-    dispatched.get.assertEquals(List(frame))
-  def assertNotDispatched(using Location) = dispatched.get.assertEquals(Nil)
+    dispatched.add(frame) >> error.fold(IO.unit)(IO.raiseError)
 }
 
 object FakeFrameDispatcher {
   def apply(error: Option[Exception] = None): IO[FakeFrameDispatcher] =
-    IO.ref(List.empty[Frame]).map(new FakeFrameDispatcher(_, error))
+    InteractionList[Frame].map(new FakeFrameDispatcher(_, error))
 }

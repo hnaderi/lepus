@@ -16,30 +16,42 @@
 
 package com.example
 
-import cats.effect.IOApp
 import cats.effect.IO
+import cats.effect.IOApp
+import com.comcast.ip4s.*
 import lepus.client.Connection
 import lepus.client.LepusClient
 import lepus.protocol.domains.*
-import com.comcast.ip4s.*
 
 object Main extends IOApp.Simple {
 
-  override def run: IO[Unit] =
-    LepusClient[IO](host"localhost", port"5672", "guest", "guest")
-      .flatMap(_.channel)
-      .use(ch =>
-        for {
-          q <- ch.queue.declare(
-            QueueName(""),
-            passive = false,
-            durable = false,
-            exclusive = false,
-            autoDelete = true,
-            noWait = false,
-            FieldTable.empty
-          )
-          _ <- IO.println(q)
-        } yield ()
+  override def run: IO[Unit] = connect.use((con, ch) =>
+    for {
+      q <- ch.queue.declare(
+        QueueName(""),
+        passive = false,
+        durable = false,
+        exclusive = false,
+        autoDelete = true,
+        noWait = false,
+        FieldTable.empty
       )
+      _ <- IO.println(q)
+    } yield ()
+  )
+
+  val connect = for {
+    con <- LepusClient[IO](host"localhost", port"5672", "guest", "guest")
+    _ <- con.status.discrete
+      .foreach(s => IO.println(s"connection: $s"))
+      .compile
+      .drain
+      .background
+    ch <- con.channel
+    _ <- ch.status.discrete
+      .foreach(s => IO.println(s"channel: $s"))
+      .compile
+      .drain
+      .background
+  } yield (con, ch)
 }

@@ -19,6 +19,7 @@ package lepus.client
 import cats.effect.*
 import cats.effect.implicits.*
 import cats.effect.std.Queue
+import cats.effect.std.QueueSink
 import cats.effect.std.QueueSource
 import cats.implicits.*
 import fs2.Pipe
@@ -47,6 +48,18 @@ trait Connection[F[_]] {
 }
 
 object Connection {
+
+  // TODO this prevents unneeded changes for now, but should be removed after replacing types
+  private def queueFrom[F[_]: Concurrent](
+      f: Frame => F[Unit]
+  ): QueueSink[F, Frame] = new {
+
+    override def offer(a: Frame): F[Unit] = f(a)
+
+    override def tryOffer(a: Frame): F[Boolean] = f(a).as(true)
+
+  }
+
   def from[F[_]: Temporal](
       transport: Transport[F],
       auth: AuthenticationConfig[F],
@@ -55,59 +68,82 @@ object Connection {
   ): Resource[F, Connection[F]] = for {
     sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
     negotiation <- StartupNegotiation(auth, path).toResource
-    con <- run2(sendQ, negotiation, transport, path, bufferSize)
-  } yield ConnectionImpl[F](con)
+    dispatcher <- FrameDispatcher[F].toResource
+    state <- ConnectionState(sendQ.offer, path).toResource
+    newChannel = ChannelBuilder(
+      sendQ.offer,
+      state,
+      dispatcher,
+      in => LowlevelChannel.from(in.number, queueFrom(in.output))
+    )
+
+    transfer = Stream
+      .fromQueueUnterminated(sendQ, bufferSize)
+      .through(transport)
+      .through(negotiation.pipe(sendQ.offer))
+      .through(receive(state, dispatcher))
+    life = lifetime(negotiation.config, state)
+    _ <- transfer.merge(life).compile.drain.background
+  } yield new {
+
+    override def channels: Signal[F, Set[ChannelNumber]] = dispatcher.channels
+
+    override def status: Signal[F, Status] = state
+
+    override def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] =
+      newChannel.map(Channel.normal)
+
+    override def reliableChannel
+        : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
+      newChannel.evalMap(Channel.reliable)
+
+    override def transactionalChannel
+        : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
+      newChannel.evalMap(Channel.transactional)
+
+  }
+
+  private[client] def receive[F[_]: Concurrent](
+      state: ConnectionState[F],
+      dispatcher: FrameDispatcher[F]
+  ): Pipe[F, Frame, Nothing] = _.foreach {
+    case b: Frame.Body   => dispatcher.body(b)
+    case h: Frame.Header => dispatcher.header(h)
+    case Frame.Method(0, value) =>
+      value match {
+        case m @ ConnectionClass.OpenOk  => state.onOpened
+        case m @ ConnectionClass.CloseOk => state.onClosed
+        case m: ConnectionClass.Close    => state.onCloseRequest(m)
+        case _                           => ???
+      }
+    case m: Frame.Method => dispatcher.invoke(m)
+    case Frame.Heartbeat => state.onHeartbeat
+  }.onFinalize(state.onClosed).interruptWhen(state.whenClosed)
+
+  private[client] def lifetime[F[_]: Temporal](
+      config: F[NegotiatedConfig],
+      state: ConnectionState[F]
+  ): Stream[F, Nothing] = {
+    import fs2.Stream.*
+
+    def heartbeats(config: NegotiatedConfig) =
+      awakeEvery(config.heartbeat.toInt.seconds)
+        .foreach(_ => state.onHeartbeat)
+
+    eval(config)
+      .flatMap(config =>
+        eval(state.onConnected(config)) *>
+          eval(state.awaitOpened) *>
+          heartbeats(config)
+      )
+      .onFinalize(state.onCloseRequest)
+      .interruptWhen(state.whenClosed)
+  }
 
   enum Status {
     case Connecting
     case Connected
+    case Opened
     case Closed
   }
-
-  private[client] final class ConnectionImpl[F[_]](
-      underlying: ConnectionLowLevel[F]
-  )(using F: Concurrent[F])
-      extends Connection[F] {
-
-    def channel: Resource[F, Channel[F, NormalMessagingChannel[F]]] =
-      underlying.newChannel.map(Channel.normal)
-
-    def reliableChannel
-        : Resource[F, Channel[F, ReliablePublishingMessagingChannel[F]]] =
-      underlying.newChannel.evalMap(Channel.reliable)
-
-    def transactionalChannel
-        : Resource[F, Channel[F, TransactionalMessagingChannel[F]]] =
-      underlying.newChannel.evalMap(Channel.transactional)
-
-    final def status: Signal[F, Status] = underlying.signal
-    final def channels: Signal[F, Set[ChannelNumber]] = underlying.channels
-  }
-
-  private[client] def run2[F[_]: Temporal](
-      sendQ: Queue[F, Frame],
-      negotiation: StartupNegotiation[F],
-      transport: Transport[F],
-      vhost: Path,
-      bufferSize: Int
-  ): Resource[F, ConnectionLowLevel[F]] = {
-    val frames = Stream
-      .fromQueueUnterminated(sendQ, bufferSize)
-      .through(transport)
-      .through(negotiation.pipe(sendQ.offer))
-
-    val con = negotiation.config.toResource.flatMap {
-      case Some(config) =>
-        ConnectionLowLevel(
-          config,
-          vhost,
-          sendQ,
-          in => LowlevelChannel.from(in.number, in.output)
-        )
-      case None => ???
-    }
-
-    con.flatTap(con => frames.through(con.handler).compile.drain.background)
-  }
-
 }

@@ -27,6 +27,8 @@ import lepus.protocol.Method
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.Location
+import scala.concurrent.duration.*
+import java.util.concurrent.TimeoutException
 
 class StartupNegotiationSuite extends InternalTestSuite {
   private val fakeSaslMechanism =
@@ -42,11 +44,25 @@ class StartupNegotiationSuite extends InternalTestSuite {
   private def noSend(using Location) = (_: Frame) =>
     IO(fail("No send expected"))
 
-  check("Closes connection when transfer is terminate") {
+  check("Closes connection when transfer is terminated") {
     for {
       sut <- StartupNegotiation(auth)
       _ <- sut.pipe(noSend)(Stream.empty).compile.toList.assertEquals(Nil)
-      _ <- sut.config.assertEquals(None)
+      _ <- sut.config.intercept[NegotiationFailed.type]
+    } yield ()
+  }
+
+  check("Closes connection when encounters an error") {
+    val error = new Exception()
+    for {
+      sut <- StartupNegotiation(auth)
+      _ <- sut
+        .pipe(noSend)(Stream.raiseError(error))
+        .compile
+        .drain
+        .attempt
+        .assertEquals(Left(error))
+      _ <- sut.config.attempt.assertEquals(Left(error))
     } yield ()
   }
 
@@ -70,7 +86,7 @@ class StartupNegotiationSuite extends InternalTestSuite {
         .compile
         .drain
         .intercept[NoSupportedSASLMechanism.type]
-      _ <- sut.config.assertEquals(None)
+      _ <- sut.config.intercept[NoSupportedSASLMechanism.type]
     } yield ()
   }
 
@@ -94,7 +110,7 @@ class StartupNegotiationSuite extends InternalTestSuite {
         .compile
         .drain
         .intercept[NegotiationError.type]
-      _ <- sut.config.assertEquals(None)
+      _ <- sut.config.intercept[NegotiationError.type]
     } yield ()
   }
 
@@ -127,7 +143,7 @@ class StartupNegotiationSuite extends InternalTestSuite {
         .compile
         .toList
         .assertEquals(Nil)
-      _ <- sut.config.assertEquals(None)
+      _ <- sut.config.intercept[NegotiationFailed.type]
     } yield ()
   }
 
@@ -169,7 +185,7 @@ class StartupNegotiationSuite extends InternalTestSuite {
         .compile
         .toList
         .assertEquals(Nil)
-      _ <- sut.config.assertEquals(None)
+      _ <- sut.config.intercept[NegotiationFailed.type]
     } yield ()
   }
 
@@ -207,7 +223,7 @@ class StartupNegotiationSuite extends InternalTestSuite {
         .compile
         .toList
         .assertEquals(Nil)
-      _ <- sut.config.assertEquals(Some(NegotiatedConfig(1, 2, 3)))
+      _ <- sut.config.assertEquals(NegotiatedConfig(1, 2, 3))
       _ <- send.assertEmpty
     } yield ()
   }

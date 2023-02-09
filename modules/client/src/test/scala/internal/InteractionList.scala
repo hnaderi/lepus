@@ -30,10 +30,18 @@ final class InteractionList[T](interactions: Ref[IO, List[T]]) extends AnyVal {
   def assert(vs: T*)(using Location): IO[Unit] =
     interactions.get.assertEquals(vs.toList)
 
+  def assertContains(vs: T*)(using Location): IO[Unit] =
+    interactions.get.map(list => vs.forall(v => list.contains(v))).assert
+
+  def assertContainsSlice(vs: T*)(using Location): IO[Unit] =
+    interactions.get.map(_.containsSlice(vs)).assert
+
   def assertLast(v: T)(using Location) = last.assertEquals(Some(v))
+  def assertFirst(v: T)(using Location) = first.assertEquals(Some(v))
 
   def all: IO[List[T]] = interactions.get
   def last = all.map(_.headOption)
+  def first = all.map(_.lastOption)
 }
 
 object InteractionList {

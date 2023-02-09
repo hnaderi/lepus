@@ -50,6 +50,9 @@ def module2(mname: String): CrossProject => CrossProject =
         "org.typelevel" %%% "cats-effect-testkit" % Versions.catsEffect % Test
       )
     )
+    .jvmSettings(
+      Test / fork := true
+    )
 
 val protocol = module2("protocol") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)

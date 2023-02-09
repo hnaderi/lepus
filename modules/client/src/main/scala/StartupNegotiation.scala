@@ -34,14 +34,14 @@ import lepus.protocol.domains.*
 
 trait StartupNegotiation[F[_]] {
   def pipe(sendQ: Frame => F[Unit]): Pipe[F, Frame, Frame]
-  def config: F[Option[NegotiatedConfig]]
+  def config: F[NegotiatedConfig]
 }
 object StartupNegotiation {
   def apply[F[_]: Concurrent](
       auth: AuthenticationConfig[F],
       vhost: Path = Path("/")
   ): F[StartupNegotiation[F]] = for {
-    conf <- Deferred[F, Option[NegotiatedConfig]]
+    conf <- Deferred[F, Either[Throwable, NegotiatedConfig]]
   } yield new StartupNegotiation[F] {
 
     override def pipe(sendQ: Frame => F[Unit]): Pipe[F, Frame, Frame] = in => {
@@ -49,26 +49,28 @@ object StartupNegotiation {
           step: Negotiation[F],
           frames: Stream[F, Frame]
       ): Pull[F, Frame, Unit] =
-        frames.pull.uncons1.flatMap {
-          case Some((frame, nextFrames)) =>
-            Pull
-              .eval(step(frame).onError(_ => conf.complete(None).void))
-              .flatMap {
-                case NegotiationResult.Continue(response, nextStep) =>
-                  Pull
-                    .eval(sendQ(response)) >> go(nextStep, nextFrames)
-                case NegotiationResult.Completed(response, config) =>
-                  Pull.eval(
-                    sendQ(response) >> conf.complete(Some(config))
-                  ) >> nextFrames.pull.echo
-              }
-          case None => Pull.eval(conf.complete(None).void)
-        }
+        frames.pull.uncons1
+          .onError(ex => Pull.eval(conf.complete(Left(ex)).void))
+          .flatMap {
+            case Some((frame, nextFrames)) =>
+              Pull
+                .eval(step(frame).onError(ex => conf.complete(Left(ex)).void))
+                .flatMap {
+                  case NegotiationResult.Continue(response, nextStep) =>
+                    Pull
+                      .eval(sendQ(response)) >> go(nextStep, nextFrames)
+                  case NegotiationResult.Completed(response, config) =>
+                    Pull.eval(
+                      sendQ(response) >> conf.complete(Right(config))
+                    ) >> nextFrames.pull.echo
+                }
+            case None => Pull.eval(conf.complete(Left(NegotiationFailed)).void)
+          }
 
       go(start, in).stream
     }
 
-    override def config: F[Option[NegotiatedConfig]] = conf.get
+    override def config: F[NegotiatedConfig] = conf.get.flatMap(_.liftTo)
 
     private def method(
         f: PartialFunction[ConnectionClass, F[NegotiationResult[F]]]
@@ -167,3 +169,5 @@ case object NoSupportedSASLMechanism
     extends Exception(
       "Server does not support any of your requested SASL mechanisms!"
     )
+case object NegotiationFailed
+    extends Exception("Negotiation with server failed!")
