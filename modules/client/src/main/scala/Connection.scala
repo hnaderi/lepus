@@ -49,17 +49,6 @@ trait Connection[F[_]] {
 
 object Connection {
 
-  // TODO this prevents unneeded changes for now, but should be removed after replacing types
-  private def queueFrom[F[_]: Concurrent](
-      f: Frame => F[Unit]
-  ): QueueSink[F, Frame] = new {
-
-    override def offer(a: Frame): F[Unit] = f(a)
-
-    override def tryOffer(a: Frame): F[Boolean] = f(a).as(true)
-
-  }
-
   def from[F[_]: Temporal](
       transport: Transport[F],
       auth: AuthenticationConfig[F],
@@ -72,10 +61,10 @@ object Connection {
     output <- OutputWriter(sendQ.offer).toResource
     state <- ConnectionState(output, path).toResource
     newChannel = ChannelBuilder(
-      output.write,
+      output,
       state,
       dispatcher,
-      in => LowlevelChannel.from(in.number, queueFrom(in.output))
+      in => LowlevelChannel.from(in.number, in.output)
     )
 
     transfer = Stream

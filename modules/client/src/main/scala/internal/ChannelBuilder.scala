@@ -43,7 +43,7 @@ private[client] type ChannelBuilder[F[_]] = Resource[F, ChannelTransmitter[F]]
 
 private[client] object ChannelBuilder {
   def apply[F[_]: Concurrent](
-      send: Frame => F[Unit],
+      send: OutputWriterSink[F, Frame],
       status: ConnectionState[F],
       dispatcher: FrameDispatcher[F],
       buildChannel: ChannelFactory[F]
@@ -78,5 +78,5 @@ type ChannelFactory[F[_]] = ChannelBuildInput[F] => F[LowlevelChannel[F]]
 
 final case class ChannelBuildInput[F[_]](
     number: ChannelNumber,
-    output: Frame => F[Unit]
+    output: OutputWriterSink[F, Frame]
 )

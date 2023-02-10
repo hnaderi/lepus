@@ -33,12 +33,11 @@ class ChannelOutputSuite extends InternalTestSuite {
   test("Must write single frame") {
     forAllF { (f: Int) =>
       for {
-        q <- Queue.unbounded[IO, Int]
+        q <- FakeOutputWriterSink.of[Int]
         out <- ChannelOutput(q, 1)
-        _ <- q.size.assertEquals(0)
+        _ <- q.assertEmpty
         _ <- out.writeOne(f)
-        _ <- q.size.assertEquals(1)
-        _ <- q.take.assertEquals(f)
+        _ <- q.assert(f)
       } yield ()
     }
   }
@@ -46,7 +45,7 @@ class ChannelOutputSuite extends InternalTestSuite {
   test("Must write all frames strictly sequentially") {
     forAllF { (is1: Vector[Int], is2: Vector[Int]) =>
       for {
-        q <- Queue.unbounded[IO, Int]
+        q <- FakeOutputWriterSink.of[Int]
         out <- ChannelOutput(q, 1)
         _ <- writeConcurrently(is1, is2, out)
         _ <- assertStrictlySequential(is1, is2, q)
@@ -57,7 +56,7 @@ class ChannelOutputSuite extends InternalTestSuite {
   test("Must write all frames strictly sequentially: concurrent unblock") {
     forAllF { (is1: Vector[Int], is2: Vector[Int]) =>
       for {
-        q <- Queue.unbounded[IO, Int]
+        q <- FakeOutputWriterSink.of[Int]
         out <- ChannelOutput(q, 1)
         _ <- writeConcurrently(is1, is2, out).both(out.unblock)
         _ <- assertStrictlySequential(is1, is2, q)
@@ -74,12 +73,12 @@ class ChannelOutputSuite extends InternalTestSuite {
   private def assertStrictlySequential(
       is1: Vector[Int],
       is2: Vector[Int],
-      q: QueueSource[IO, Int]
+      q: FakeOutputWriterSink[Int]
   ) =
     val totalSize = is1.size + is2.size
     for {
       _ <- q.size.assertEquals(totalSize)
-      all <- Vector.range(0, totalSize).traverse(_ => q.take)
+      all <- q.all.map(_.toVector)
     } yield {
       assertEquals(all.size, totalSize)
       val idx = all.indexOfSlice(is2)
@@ -91,20 +90,20 @@ class ChannelOutputSuite extends InternalTestSuite {
 
   check("Must respect blocking: writeOne") {
     for {
-      q <- Queue.unbounded[IO, Int]
+      q <- FakeOutputWriterSink.of[Int]
       out <- ChannelOutput(q, 1)
       _ <- out.block
       _ <- out.writeOne(1).timeout(1000.days).attempt
-      _ <- q.size.assertEquals(0)
+      _ <- q.assertEmpty
       _ <- out.unblock
       _ <- out.writeOne(2)
-      _ <- q.take.assertEquals(2)
+      _ <- q.assert(2)
     } yield ()
   }
 
   check("Must wait when blocked: writeOne") {
     for {
-      q <- Queue.unbounded[IO, Int]
+      q <- FakeOutputWriterSink.of[Int]
       out <- ChannelOutput(q, 1)
       _ <- out.block
       _ <- out
@@ -112,29 +111,29 @@ class ChannelOutputSuite extends InternalTestSuite {
         .background
         .use(_ =>
           IO.sleep(1000.days) >>
-            q.size.assertEquals(0) >>
+            q.assertEmpty >>
             out.unblock >>
-            q.take.assertEquals(1)
+            q.assert(1)
         )
     } yield ()
   }
 
   check("Must respect blocking: writeAll") {
     for {
-      q <- Queue.unbounded[IO, Int]
+      q <- FakeOutputWriterSink.of[Int]
       out <- ChannelOutput(q, 1)
       _ <- out.block
       _ <- out.writeAll(1, 2, 3).timeout(1000.days).attempt
-      _ <- q.size.assertEquals(0)
+      _ <- q.assertEmpty
       _ <- out.unblock
       _ <- out.writeAll(1, 2, 3)
-      _ <- List.range(0, 3).traverse(_ => q.take).assertEquals(List(1, 2, 3))
+      _ <- q.assert(1, 2, 3)
     } yield ()
   }
 
   check("Must wait when blocked: writeAll") {
     for {
-      q <- Queue.unbounded[IO, Int]
+      q <- FakeOutputWriterSink.of[Int]
       out <- ChannelOutput(q, 1)
       _ <- out.block
       _ <- out
@@ -142,9 +141,9 @@ class ChannelOutputSuite extends InternalTestSuite {
         .background
         .use(_ =>
           IO.sleep(1000.days) >>
-            q.size.assertEquals(0) >>
+            q.assertEmpty >>
             out.unblock >>
-            List.range(0, 3).traverse(_ => q.take).assertEquals(List(1, 2, 3))
+            q.assert(1, 2, 3)
         )
     } yield ()
   }

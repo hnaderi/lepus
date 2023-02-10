@@ -35,7 +35,7 @@ private[client] trait ChannelOutput[F[_], T] extends SequentialOutput[F, T] {
 
 private[client] object ChannelOutput {
   def apply[F[_], T](
-      q: QueueSink[F, T],
+      q: OutputWriterSink[F, T],
       maxMethods: Int = 10
   )(using F: Concurrent[F]): F[ChannelOutput[F, T]] =
     for {
@@ -46,10 +46,10 @@ private[client] object ChannelOutput {
       lock <- ReusableLatch[F]
     } yield new {
 
-      def writeOne(f: T): F[Unit] = lock.run(sem.permit.use(_ => q.offer(f)))
+      def writeOne(f: T): F[Unit] = lock.run(sem.permit.use(_ => q.write(f)))
 
       def writeAll(fs: T*): F[Unit] =
-        lock.run(writer.use(_ => fs.traverse(q.offer).void))
+        lock.run(writer.use(_ => fs.traverse(q.write).void))
 
       def block: F[Unit] = lock.block
       def unblock: F[Unit] = lock.unblock

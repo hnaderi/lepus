@@ -22,6 +22,8 @@ import cats.syntax.all.*
 import munit.CatsEffectAssertions.*
 import munit.Location
 
+/** Helper data structure that holds a stack of data
+  */
 final class InteractionList[T](interactions: Ref[IO, List[T]]) extends AnyVal {
   def add(value: T) = interactions.update(value :: _)
 
@@ -29,6 +31,9 @@ final class InteractionList[T](interactions: Ref[IO, List[T]]) extends AnyVal {
 
   def assert(vs: T*)(using Location): IO[Unit] =
     interactions.get.assertEquals(vs.toList)
+
+  def assertQ(vs: T*)(using Location): IO[Unit] =
+    interactions.get.assertEquals(vs.toList.reverse)
 
   def assertContains(vs: T*)(using Location): IO[Unit] =
     interactions.get.map(list => vs.forall(v => list.contains(v))).assert
@@ -42,6 +47,8 @@ final class InteractionList[T](interactions: Ref[IO, List[T]]) extends AnyVal {
   def all: IO[List[T]] = interactions.get
   def last = all.map(_.headOption)
   def first = all.map(_.lastOption)
+
+  def size = all.map(_.size)
 }
 
 object InteractionList {

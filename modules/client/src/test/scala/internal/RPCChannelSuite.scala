@@ -31,16 +31,16 @@ import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 
 import RPCChannelSuite.*
+import cats.effect.std.QueueSink
 
 class RPCChannelSuite extends InternalTestSuite {
   test("send no wait") {
     forAllF(methods, channelNumber) { (m, ch) =>
       for {
         sut <- newSut(ch)
-        _ <- sut.q.size.assertEquals(0)
+        _ <- sut.q.assertEmpty
         _ <- sut.rpc.sendNoWait(m)
-        _ <- sut.q.size.assertEquals(1)
-        _ <- sut.q.take.assertEquals(Frame.Method(ch, m))
+        _ <- sut.q.assert(Frame.Method(ch, m))
       } yield ()
 
     }
@@ -50,11 +50,11 @@ class RPCChannelSuite extends InternalTestSuite {
     forAllF(methods, methods, channelNumber) { (m1, m2, ch) =>
       for {
         sut <- newSut(ch)
-        _ <- sut.q.size.assertEquals(0)
+        _ <- sut.q.assertEmpty
         _ <- sut.rpc
           .sendWait(m1)
           .both(
-            sut.q.take.assertEquals(Frame.Method(ch, m1)) >> sut.rpc.recv(m2)
+            sut.q.assert(Frame.Method(ch, m1)) >> sut.rpc.recv(m2)
           )
           .map(_._1)
           .assertEquals(m2)
@@ -66,8 +66,8 @@ class RPCChannelSuite extends InternalTestSuite {
   test("send wait ordering") {
     forAllF(methodPairs, channelNumber) { (mps, ch) =>
       for {
-        sut <- newSut(ch, mps.size)
-        _ <- sut.q.size.assertEquals(0)
+        sut <- newSut(ch)
+        _ <- sut.q.assertEmpty
         pairs = mps.toList.unzip
         requests = pairs._1
         responses = pairs._2
@@ -97,7 +97,7 @@ class RPCChannelSuite extends InternalTestSuite {
       for {
         sut <- newSut(ch)
         _ <- sut.rpc.recv(m).intercept[AMQPError]
-        _ <- sut.q.size.assertEquals(0)
+        _ <- sut.q.assertEmpty
       } yield ()
 
     }
@@ -105,16 +105,16 @@ class RPCChannelSuite extends InternalTestSuite {
 }
 
 object RPCChannelSuite {
-  final case class SUT(
-      q: Queue[IO, Frame],
+  private final case class SUT(
+      q: FakeOutputWriterSinkQueue,
       rpc: RPCChannel[IO]
   )
 
-  def newSut(ch: ChannelNumber, size: Int = 1) = for {
-    q <- Queue.bounded[IO, Frame](size)
-    p <- ChannelOutput(q, size)
+  private def newSut(ch: ChannelNumber, size: Int = 1) = for {
+    out <- FakeOutputWriterSinkQueue()
+    p <- ChannelOutput(out, size)
     rpc <- RPCChannel(p, ch)
-  } yield SUT(q, rpc)
+  } yield SUT(out, rpc)
 
   private val methodPair = for {
     m1 <- methods
@@ -125,4 +125,5 @@ object RPCChannelSuite {
     n <- Gen.choose(2, 20)
     m <- Gen.mapOfN(n, methodPair)
   } yield m
+
 }

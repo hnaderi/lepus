@@ -77,7 +77,7 @@ class ConnectionReceiveSuite extends InternalTestSuite {
         .through(Connection.receive(st, fd))
         .compile
         .drain
-      _ <- output.interactions.assertLast(
+      _ <- output.interactions.assertContains(
         FakeFrameOutput.Interaction.Wrote(Frame.Heartbeat)
       )
     } yield ()

@@ -63,7 +63,7 @@ private[client] trait LowlevelChannel[F[_]]
 private[client] object LowlevelChannel {
   def from[F[_]](
       channelNumber: ChannelNumber,
-      sendQ: QueueSink[F, Frame]
+      sendQ: OutputWriterSink[F, Frame]
   )(using F: Concurrent[F]): F[LowlevelChannel[F]] = for {
     disp <- MessageDispatcher[F]
     out <- ChannelOutput(sendQ)

@@ -45,7 +45,7 @@ class ChannelPublisherSuite extends InternalTestSuite {
     ) { (publishMethod, ch, size, data, props) =>
       val frameCount = Math.ceil(data.size.toDouble / size.toDouble).toInt
       for {
-        pq <- Queue.unbounded[IO, Frame]
+        pq <- FakeOutputWriterSink()
         sout <- ChannelOutput(pq, 1000)
         sut = ChannelPublisher[IO](ch, size, sout)
 
@@ -53,8 +53,8 @@ class ChannelPublisherSuite extends InternalTestSuite {
 
         _ <- pq.size.assertEquals(frameCount + 2)
 
-        _ <- pq.take.assertEquals(Frame.Method(ch, publishMethod))
-        _ <- pq.take.assertEquals(
+        head = List(
+          Frame.Method(ch, publishMethod),
           Frame.Header(
             ch,
             publishMethod._classId,
@@ -62,24 +62,16 @@ class ChannelPublisherSuite extends InternalTestSuite {
             props
           )
         )
-        _ <- pq.size.assertEquals(frameCount)
 
-        all <- (1 to frameCount).toList.traverse(_ => pq.take)
-
-        expected = Range
+        chunks = Range
           .Long(0, data.size, size)
           .map(i => Frame.Body(ch, data.slice(i, i + size)))
           .toList
 
-      } yield {
-        assertEquals(all, expected)
-        val merged = all
-          .collect { case Frame.Body(_, pl) =>
-            pl
-          }
-          .foldLeft(ByteVector.empty)(_ ++ _)
-        assertEquals(merged, data)
-      }
+        expected = head ::: chunks
+
+        _ <- pq.assert(expected: _*)
+      } yield ()
     }
   }
 }

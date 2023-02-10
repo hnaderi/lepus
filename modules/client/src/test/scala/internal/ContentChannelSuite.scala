@@ -215,15 +215,14 @@ object ContentChannelSuite {
 
   final case class SUT(
       dispatcher: FakeMessageDispatcher,
-      cc: ContentChannel[IO],
-      pq: QueueSource[IO, Frame]
+      cc: ContentChannel[IO]
   )
 
   private def newChannel(
       ch: ChannelNumber = ChannelNumber(1),
       size: Int = 0
   ) = for {
-    pq <- Queue.unbounded[IO, Frame]
+    pq <- FakeFrameOutput()
     s <- ChannelOutput(pq)
     gl <- Waitlist[IO, Option[SynchronousGet]](size)
     fd <- FakeMessageDispatcher()
@@ -233,7 +232,7 @@ object ContentChannelSuite {
       dispatcher = fd,
       gl
     )
-  } yield SUT(fd, cc, pq)
+  } yield SUT(fd, cc)
 
   val channel = DomainGenerators.channelNumber
   val binary = Gen

@@ -20,8 +20,11 @@ import cats.effect.Concurrent
 import cats.effect.kernel.Deferred
 import cats.implicits.*
 
-private[client] trait OutputWriter[F[_], T] {
+private[client] trait OutputWriterSink[F[_], T] {
   def write(t: T): F[Unit]
+}
+
+private[client] trait OutputWriter[F[_], T] extends OutputWriterSink[F, T] {
   def onClose: F[Unit]
 }
 
@@ -41,6 +44,7 @@ private[client] object OutputWriter {
             closed.complete(ConnectionIsClosed).void
         }
       )
+
   case object ConnectionIsClosed
       extends RuntimeException("Connection is already closed!")
 }
