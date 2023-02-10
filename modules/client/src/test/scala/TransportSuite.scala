@@ -17,7 +17,8 @@
 package lepus.client
 
 import cats.effect.IO
-import cats.effect.std.Queue
+import cats.effect.kernel.Ref
+import cats.effect.std.CountDownLatch
 import cats.implicits.*
 import fs2.Chunk
 import fs2.Stream
@@ -28,21 +29,21 @@ import scodec.bits.ByteVector
 import java.io.OutputStream
 
 class TransportSuite extends CatsEffectSuite {
-  // TODO fix
-  test("Transmission starts with sending protocol header".flaky) {
+  test("Transmission starts with sending protocol header") {
     for {
-      q <- Queue.unbounded[IO, Option[Chunk[Byte]]]
+      out <- IO.ref(Chunk.empty[Byte])
+      finished <- CountDownLatch[IO](1)
       _ <- Transport
         .build[IO](
-          empty,
-          _.chunks.evalMap(c => q.offer(c.some)).onFinalize(q.offer(None)).drain
+          exec(finished.await),
+          _.chunks.foreach(c => out.update(_ ++ c)).onFinalize(finished.release)
         )
         .apply(empty)
         .compile
         .toList
         .assertEquals(Nil)
-      _ <- fromQueueNoneTerminated(q).unchunks.compile
-        .to(ByteVector)
+      _ <- out.get
+        .map(_.toByteVector)
         .assertEquals(ByteVector('A', 'M', 'Q', 'P', 0, 0, 9, 1))
     } yield ()
   }
