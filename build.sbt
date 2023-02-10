@@ -21,6 +21,7 @@ inThisBuild(
     tlCiReleaseBranches := Seq(), // No snapshots while not ready!
     tlSitePublishBranch := Some("main"),
     githubWorkflowJavaVersions := Seq(PrimaryJava, LTSJava),
+    githubWorkflowBuildMatrixFailFast := Some(false),
     licenses := Seq(License.Apache2),
     developers := List(
       Developer(
