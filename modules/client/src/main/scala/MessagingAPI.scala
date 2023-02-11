@@ -32,7 +32,7 @@ sealed trait MessagingChannel
 trait Consuming[F[_]] {
 
   def qos(
-      prefetchSize: Int,
+      prefetchSize: Int = 0,
       prefetchCount: Short,
       global: Boolean
   ): F[BasicClass.QosOk.type]

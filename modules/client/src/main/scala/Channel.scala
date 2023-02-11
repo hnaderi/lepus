@@ -19,6 +19,9 @@ package lepus.client
 import cats.MonadError
 import cats.effect.Concurrent
 import cats.effect.kernel.Resource
+import cats.effect.kernel.Resource.ExitCase.Canceled
+import cats.effect.kernel.Resource.ExitCase.Errored
+import cats.effect.kernel.Resource.ExitCase.Succeeded
 import cats.effect.std.Queue
 import cats.implicits.*
 import fs2.Pipe
@@ -179,7 +182,18 @@ object Channel {
       channel: ChannelTransmitter[F]
   ) extends NormalPublishingImpl(channel),
         TransactionalMessagingChannel[F] {
-    def transaction: Resource[F, Transaction[F]] = ???
+    private def trx = new Transaction[F] {
+      def commit: F[Unit] = channel.call(TxClass.Commit).void
+      def rollback: F[Unit] = channel.call(TxClass.Rollback).void
+    }
+
+    def transaction: Resource[F, Transaction[F]] = Resource
+      .onFinalizeCase {
+        case Succeeded  => trx.commit
+        case Errored(e) => trx.rollback
+        case Canceled   => trx.rollback
+      }
+      .as(trx)
   }
 
   private[client] def normal[F[_]: Concurrent](
