@@ -18,7 +18,7 @@ inThisBuild(
     organizationName := "Hossein Naderi",
     startYear := Some(2021),
     tlSonatypeUseLegacyHost := false,
-    tlCiReleaseBranches := Seq(), // No snapshots while not ready!
+    tlCiReleaseBranches := Seq("main"),
     tlSitePublishBranch := Some("main"),
     githubWorkflowJavaVersions := Seq(PrimaryJava, LTSJava),
     githubWorkflowBuildMatrixFailFast := Some(false),
