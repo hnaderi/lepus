@@ -24,22 +24,27 @@ import com.comcast.ip4s.SocketAddress
 import fs2.io.net.Network
 import lepus.protocol.domains.Path
 import lepus.protocol.domains.ShortString
+import cats.Functor
 
 object LepusClient {
-  def apply[F[_]: Temporal: Network: cats.effect.std.Console](
+  inline def apply[F[_]: Temporal: Network](
       host: Host,
       port: Port,
       username: String,
       password: String,
-      vhost: Path = Path("/")
+      vhost: Path = Path("/"),
+      inline debug: Boolean = false
   ): Resource[F, Connection[F]] = {
-    val transport = Transport
-      .connect[F](SocketAddress(host, port))
-      .andThen(_.through(Transport.debug(true)))
-      .compose(Transport.debug(false))
+    val transport = Transport.connect[F](SocketAddress(host, port))
+    val t =
+      inline if debug
+      then {
+        val console = compiletime.summonInline[cats.effect.std.Console[F]]
+        Transport.debug(transport)(using Functor[F], console)
+      } else transport
 
     Connection.from(
-      transport,
+      t,
       AuthenticationConfig(SaslMechanism.plain(username, password)),
       path = vhost
     )

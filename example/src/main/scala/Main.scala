@@ -49,7 +49,13 @@ object Main extends IOApp.Simple {
   )
 
   val connect = for {
-    con <- LepusClient[IO](host"localhost", port"5672", "guest", "guest")
+    con <- LepusClient[IO](
+      host"localhost",
+      port"5672",
+      "guest",
+      "guest",
+      debug = true
+    )
     _ <- con.status.discrete
       .foreach(s => IO.println(s"connection: $s"))
       .compile

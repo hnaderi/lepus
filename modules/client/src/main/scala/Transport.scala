@@ -40,7 +40,7 @@ import scala.{Console => SCon}
 type Transport[F[_]] = Pipe[F, Frame, Frame]
 
 object Transport {
-  private[lepus] def decoderServer[F[_]](using
+  private[client] def decoderServer[F[_]](using
       F: MonadError[F, Throwable]
   ): Pipe[F, Byte, Frame] =
     StreamDecoder
@@ -53,24 +53,29 @@ object Transport {
   ): Pipe[F, Byte, Frame] =
     StreamDecoder.many(logFailuresToStdOut(FrameCodec.frame)).toPipeByte
 
-  private[lepus] def decoder[F[_]](using
+  private[client] def decoder[F[_]](using
       F: MonadError[F, Throwable]
   ): Pipe[F, Byte, Frame] =
     StreamDecoder.many(logFailuresToStdOut(FrameCodec.frame)).toPipeByte
 
-  private[lepus] def encoder[F[_]](using
+  private[client] def encoder[F[_]](using
       F: MonadError[F, Throwable]
   ): Pipe[F, Frame, Byte] =
     StreamEncoder.many(logFailuresToStdOut(FrameCodec.frame)).toPipeByte
 
   private val protocolHeader = chunk(Chunk.byteVector(ProtocolHeader))
 
-  inline def debug[F[_]: Functor](
+  private[client] inline def debugSide[F[_]: Functor](
       send: Boolean
   )(using C: Console[F]): Pipe[F, Frame, Frame] =
     inline if send then
       _.evalTap(f => C.println(s"${SCon.CYAN}S> $f${SCon.RESET}"))
     else _.evalTap(f => C.println(s"${SCon.GREEN}C> $f${SCon.RESET}"))
+
+  private[client] inline def debug[F[_]: Functor: Console](
+      transport: Transport[F]
+  ): Transport[F] =
+    _.through(debugSide(false)).through(transport).through(debugSide(true))
 
   def build[F[_]: Concurrent](
       reads: Stream[F, Byte],
