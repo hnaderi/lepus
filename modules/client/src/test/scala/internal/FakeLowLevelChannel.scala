@@ -22,6 +22,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
 import lepus.client.Channel.Status
 import lepus.client.DeliveredMessage
 import lepus.client.Message
@@ -36,7 +37,6 @@ import lepus.protocol.BasicClass.Publish
 import lepus.protocol.*
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import fs2.concurrent.SignallingRef
 
 final class FakeLowLevelChannel(
     val interactions: InteractionList[Interaction],
@@ -61,10 +61,9 @@ final class FakeLowLevelChannel(
 
   }
 
-  override def delivered(
-      ctag: ConsumerTag
-  ): Stream[cats.effect.IO, DeliveredMessage] =
-    channelS.flatMap(_.delivered(ctag))
+  override def delivered
+      : Resource[IO, (ConsumerTag, Stream[IO, DeliveredMessage])] =
+    Resource.eval(channel.get).flatMap(_.delivered)
 
   override def header(h: Frame.Header): IO[Unit] = call(_.header(h))
 

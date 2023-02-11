@@ -29,6 +29,7 @@ import lepus.protocol.ChannelClass.Close
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 import lepus.protocol.domains.ConsumerTag
+import cats.effect.kernel.Resource
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
@@ -49,7 +50,7 @@ private[client] trait ChannelTransmitter[F[_]] {
 
   def get(m: BasicClass.Get): F[Option[SynchronousGet]]
 
-  def delivered(ctag: ConsumerTag): Stream[F, DeliveredMessage]
+  def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessage])]
   def returned: Stream[F, ReturnedMessage]
 
   def status: Signal[F, Status]
@@ -139,9 +140,11 @@ private[client] object LowlevelChannel {
     def get(m: BasicClass.Get): F[Option[SynchronousGet]] =
       content.get(m).flatMap(_.get)
 
-    def delivered(ctag: ConsumerTag): Stream[F, DeliveredMessage] = Stream
-      .resource(disp.deliveryQ(ctag))
-      .flatMap(Stream.fromQueueUnterminated(_, 100))
+    def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessage])] =
+      disp.deliveryQ.map { case (ctag, q) =>
+        (ctag, Stream.fromQueueUnterminated(q, 100))
+      }
+
     def returned: Stream[F, ReturnedMessage] =
       Stream.fromQueueUnterminated(disp.returnQ, 100)
   }

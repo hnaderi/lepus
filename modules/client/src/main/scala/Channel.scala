@@ -88,25 +88,25 @@ object Channel {
         arguments: FieldTable = FieldTable.empty
     ): Stream[F, DeliveredMessage] =
       import Stream.*
-      val ctag: ConsumerTag = ConsumerTag.from("consumer1") // TODO automated
-      eval(
-        channel.call(
-          BasicClass.Consume(
-            queue,
-            ctag,
-            noLocal = noLocal,
-            noAck = noAck,
-            exclusive = exclusive,
-            noWait = noWait,
-            arguments
+      resource(channel.delivered).flatMap { case (ctag, data) =>
+        val recv = eval(
+          channel.call(
+            BasicClass.Consume(
+              queue,
+              ctag,
+              noLocal = noLocal,
+              noAck = noAck,
+              exclusive = exclusive,
+              noWait = noWait,
+              arguments
+            )
           )
+        ) >> data
+
+        recv.onFinalize(
+          channel.call(BasicClass.Cancel(ctag, true)).void
         )
-      ) >>
-        channel
-          .delivered(ctag)
-          .onFinalize(
-            channel.call(BasicClass.Cancel(ctag, true)).void
-          )
+      }
 
     def get(
         queue: QueueName,

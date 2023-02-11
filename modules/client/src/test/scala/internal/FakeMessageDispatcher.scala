@@ -24,7 +24,9 @@ import cats.effect.std.Queue
 import cats.effect.std.QueueSource
 import cats.implicits.*
 import lepus.protocol.domains.ConsumerTag
+import lepus.protocol.domains.ShortString
 import munit.Assertions.*
+import cats.effect.std.UUIDGen
 
 final class FakeMessageDispatcher(
     delivered: Ref[IO, List[DeliveredMessage]],
@@ -40,13 +42,23 @@ final class FakeMessageDispatcher(
   def `return`(msg: ReturnedMessage): IO[Unit] =
     returns.update(_.prepended(msg)) >> returned.offer(msg)
 
-  def deliveryQ(
-      ctag: ConsumerTag
-  ): Resource[IO, QueueSource[IO, DeliveredMessage]] = Resource.make(
-    Queue
-      .unbounded[IO, DeliveredMessage]
-      .flatTap(q => deliveries.update(_.updated(ctag, q)))
-  )(_ => deliveries.update(_ - ctag))
+  private val newCtag = UUIDGen.randomString[IO].map(ShortString.from).flatMap {
+    case Right(value) => IO(ConsumerTag(value))
+    case Left(value)  => IO.raiseError(new RuntimeException(value))
+  }
+
+  def deliveryQ
+      : Resource[IO, (ConsumerTag, QueueSource[IO, DeliveredMessage])] =
+    Resource
+      .eval(newCtag)
+      .flatMap(ctag =>
+        Resource.make(
+          Queue
+            .unbounded[IO, DeliveredMessage]
+            .flatTap(q => deliveries.update(_.updated(ctag, q)))
+            .map((ctag, _))
+        )(_ => deliveries.update(_ - ctag))
+      )
 
   def returnQ: QueueSource[IO, ReturnedMessage] = returned
 

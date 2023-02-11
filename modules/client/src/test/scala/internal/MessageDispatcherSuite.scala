@@ -50,49 +50,39 @@ class MessageDispatcherSuite extends InternalTestSuite {
     msg = Message(data, props)
   } yield ReturnedMessage(rcode, rtxt, ex, rkey, msg)
 
-  private def assertDelivered(d: MessageDispatcher[IO], msg: DeliveredMessage) =
-    d
-      .deliveryQ(msg.consumerTag)
-      .use(q =>
-        q.size.assertEquals(0) >>
-          d.deliver(msg) >>
-          q.size.assertEquals(1) >>
-          q.take.assertEquals(msg)
-      )
-
   test("Must dispatch delivered messages") {
-    forAllF(deliveries) { msg =>
+    forAllF(deliveries) { someMsg =>
       for {
         d <- MessageDispatcher[IO]
-        _ <- assertDelivered(d, msg)
+        _ <- d.deliveryQ.use { (ctag, q) =>
+          val msg = someMsg.copy(consumerTag = ctag)
+
+          q.size.assertEquals(0) >>
+            d.deliver(msg) >>
+            q.size.assertEquals(1) >>
+            q.take.assertEquals(msg)
+        }
       } yield ()
     }
   }
 
-  test("Must allow reusing consumer tags") {
-    forAllF(deliveries) { msg =>
+  test("Must ignore messages after removing the queue") {
+    // We are using async consumer cancel,
+    // So we might receive messages after cancelling the consumer
+    forAllF(deliveries) { someMsg =>
       for {
         d <- MessageDispatcher[IO]
-        _ <- assertDelivered(d, msg)
-        _ <- assertDelivered(d, msg)
+        out <- d.deliveryQ.use { (ctag, q) =>
+          val msg = someMsg.copy(consumerTag = ctag)
+
+          IO(msg, q)
+        }
+        (msg, q) = out
+        _ <- q.size.assertEquals(0)
+        _ <- d.deliver(msg)
+        _ <- q.size.assertEquals(0)
       } yield ()
     }
-  }
-
-  test("Must throw error on duplicated consumer tag retrieval") {
-    val ctag = ConsumerTag.empty
-
-    for {
-      d <- MessageDispatcher[IO]
-      _ <- d
-        .deliveryQ(ctag)
-        .use(_ =>
-          d.deliveryQ(ctag)
-            .use_
-            .attempt
-            .assertEquals(MessageDispatcher.AlreadyExists(ctag).asLeft)
-        )
-    } yield ()
   }
 
   test("Must dispatch returned messages") {
