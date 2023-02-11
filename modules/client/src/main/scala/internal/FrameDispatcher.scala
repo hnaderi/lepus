@@ -40,7 +40,7 @@ private[client] trait FrameDispatcher[F[_]] {
   def channels: Signal[F, Set[ChannelNumber]]
 }
 
-object FrameDispatcher {
+private[client] object FrameDispatcher {
   private final case class State[F[_]](
       channels: Map[ChannelNumber, ChannelReceiver[F]] =
         Map.empty[ChannelNumber, ChannelReceiver[F]],

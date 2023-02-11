@@ -69,5 +69,13 @@ object Helpers {
   def obj(name: String)(lines: Seq[String]): Lines =
     obj(name)(Stream.emits(lines))
 
+  def objPrivate(name: String, scope: String)(lines: Lines): Lines =
+    (Stream(s"private[$scope] object ${idName(name)} {") ++ lines ++ Stream(
+      "}"
+    ))
+
+  def objPrivate(name: String, scope: String)(lines: Seq[String]): Lines =
+    objPrivate(name, scope)(Stream.emits(lines))
+
   def headers(hs: String*): Lines = Stream.emits(hs)
 }

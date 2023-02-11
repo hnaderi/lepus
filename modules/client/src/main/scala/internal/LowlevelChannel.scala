@@ -32,8 +32,9 @@ import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 import lepus.protocol.domains.ConsumerTag
 
-type ContentMethod = BasicClass.Deliver | BasicClass.Return
-type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
+private[client] type ContentMethod = BasicClass.Deliver | BasicClass.Return
+private[client] type ContentSyncResponse =
+  BasicClass.GetOk | BasicClass.GetEmpty.type
 
 private[client] trait ChannelReceiver[F[_]] {
   def asyncContent(m: ContentMethod): F[Unit]

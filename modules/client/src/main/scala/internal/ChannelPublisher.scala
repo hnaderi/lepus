@@ -25,11 +25,11 @@ import lepus.protocol.*
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
 
-trait ChannelPublisher[F[_]] {
+private[client] trait ChannelPublisher[F[_]] {
   def send(method: BasicClass.Publish, msg: Message): F[Unit]
 }
 
-object ChannelPublisher {
+private[client] object ChannelPublisher {
   def apply[F[_]: Concurrent](
       channelNumber: ChannelNumber,
       maxSize: Long,

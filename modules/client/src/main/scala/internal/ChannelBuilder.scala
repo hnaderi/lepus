@@ -74,9 +74,10 @@ private[client] object ChannelBuilder {
     // )
 }
 
-type ChannelFactory[F[_]] = ChannelBuildInput[F] => F[LowlevelChannel[F]]
+private[client] type ChannelFactory[F[_]] =
+  ChannelBuildInput[F] => F[LowlevelChannel[F]]
 
-final case class ChannelBuildInput[F[_]](
+private[client] final case class ChannelBuildInput[F[_]](
     number: ChannelNumber,
     output: OutputWriterSink[F, Frame]
 )

@@ -44,7 +44,7 @@ private[client] trait ConnectionState[F[_]] extends Signal[F, Status] {
     discrete.map(_ == Status.Closed)
 }
 
-object ConnectionState {
+private[client] object ConnectionState {
   def apply[F[_]](
       output: OutputWriter[F, Frame],
       path: Path = Path("/")

@@ -29,11 +29,11 @@ import scala.annotation.implicitNotFound
 @implicitNotFound(
   "${M} is not a client side method, or you can't use ${F} as an effect for rpc calls"
 )
-sealed trait RPCCallDef[F[_], M <: Method, O] {
+private[client] sealed trait RPCCallDef[F[_], M <: Method, O] {
   def call(rpc: ChannelTransmitter[F])(i: M): F[O]
 }
 
-object RPCCallDef {
+private[client] object RPCCallDef {
   given ConnectionClass_StartOk[F[_]](using
       F: MonadError[F, Throwable]
   ): RPCCallDef[F, ConnectionClass.StartOk, Unit] = new {

@@ -44,12 +44,12 @@ object CallDefs {
 @implicitNotFound(
   "${M} is not a client side method, or you can't use ${F} as an effect for rpc calls"
 )
-sealed trait RPCCallDef[F[_], M <: Method, O] {
+private[client] sealed trait RPCCallDef[F[_], M <: Method, O] {
   def call(rpc: ChannelTransmitter[F])(i: M): F[O]
 }
 """
     ) ++
-      obj("RPCCallDef")(
+      objPrivate("RPCCallDef", "client")(
         for {
           cls <- clss
           m <- cls.methods if m.receiver.isRequest

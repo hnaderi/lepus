@@ -33,7 +33,7 @@ private[client] trait MessageDispatcher[F[_]] {
   def returnQ: QueueSource[F, ReturnedMessage]
 }
 
-object MessageDispatcher {
+private[client] object MessageDispatcher {
   def apply[F[_]](using F: Concurrent[F]): F[MessageDispatcher[F]] = for {
     dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, DeliveredMessage]])
     rq <- Queue.bounded[F, ReturnedMessage](1) // TODO queue size
