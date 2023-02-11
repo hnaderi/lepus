@@ -152,6 +152,10 @@ val example =
     .jvmSettings(
       fork := true
     )
+    .jsSettings(
+      scalaJSUseMainModuleInitializer := true,
+      scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
+    )
     .nativeSettings(
       libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.3"
     )
