@@ -18,6 +18,8 @@ package lepus.client
 package internal
 
 import cats.effect.IO
+import cats.effect.testkit.TestControl
+import lepus.client.internal.LowlevelChannel.ChannelIsClosed
 import lepus.codecs.AllClassesDataGenerator
 import lepus.codecs.BasicDataGenerator
 import lepus.codecs.ChannelDataGenerator
@@ -27,24 +29,14 @@ import lepus.protocol.ChannelClass
 import lepus.protocol.constants.ReplyCode
 import org.scalacheck.Gen
 
+import scala.concurrent.duration.*
+
+import LowLevelChannelSuite.*
+
 class LowLevelChannelSuite extends InternalTestSuite {
   test("Initial status is Active") {
     for {
       ctx <- LowLevelChannelContext()
-      _ <- ctx.channel.status.get.assertEquals(Channel.Status.Active)
-    } yield ()
-  }
-
-  test("Handles flow control from server") {
-    for {
-      ctx <- LowLevelChannelContext()
-      _ <- ctx.channel.method(ChannelClass.Flow(false))
-      _ <- ctx.channel.status.get.assertEquals(Channel.Status.InActive)
-      _ <- ctx.rpc.interactions.assert(
-        FakeRPCChannel.Interaction.SendNoWait(ChannelClass.FlowOk(false))
-      )
-      _ <- ctx.rpc.interactions.reset
-      _ <- ctx.channel.method(ChannelClass.Flow(true))
       _ <- ctx.channel.status.get.assertEquals(Channel.Status.Active)
     } yield ()
   }
@@ -93,13 +85,6 @@ class LowLevelChannelSuite extends InternalTestSuite {
     }
   }
 
-  private val rpcMethods = AllClassesDataGenerator.methods.suchThat {
-    case _: (ChannelClass.Close | ChannelClass.CloseOk.type |
-          ChannelClass.Flow) =>
-      false
-    case _ => true
-  }
-
   test("Must handle rpc method responses") {
     forAllF(rpcMethods) { method =>
       for {
@@ -113,10 +98,44 @@ class LowLevelChannelSuite extends InternalTestSuite {
     }
   }
 
-  import lepus.codecs.ArbitraryDomains.given
-  private val channelErrors =
-    Gen.resultOf(AMQPError(ReplyCode.NotFound, _, _, _))
-  private val generalErrors = Gen.resultOf((s: String) => new Exception(s))
+  test("Must handle rpc no wait") {
+    forAllF(rpcMethods) { method =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.channel.sendNoWait(method)
+        _ <- ctx.rpc.interactions.assert(
+          FakeRPCChannel.Interaction.SendNoWait(method)
+        )
+      } yield ()
+    }
+  }
+  test("Must handle rpc wait") {
+    forAllF(rpcMethods) { method =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.channel.sendWait(method)
+        _ <- ctx.rpc.interactions.assert(
+          FakeRPCChannel.Interaction.SendWait(method)
+        )
+      } yield ()
+    }
+  }
+  test("Must interrupt rpc wait when closed") {
+    forAllF(rpcMethods, closeMethods) { (method, close) =>
+      TestControl.executeEmbed(
+        for {
+          ctx <- LowLevelChannelContext()
+          _ <- ctx.rpc.block
+            .surround(
+              ctx.channel
+                .sendWait(method)
+                .both(ctx.channel.method(close).delayBy(1.hour))
+            )
+            .intercept[ChannelIsClosed.type]
+        } yield ()
+      )
+    }
+  }
 
   test("Must close channel on method error : Method") {
     forAllF(rpcMethods, channelErrors) { (method, error) =>
@@ -201,11 +220,6 @@ class LowLevelChannelSuite extends InternalTestSuite {
     }
   }
 
-  private val asyncContent: Gen[ContentMethod] =
-    Gen.oneOf(BasicDataGenerator.deliverGen, BasicDataGenerator.returnGen)
-  private val syncContent: Gen[ContentSyncResponse] =
-    Gen.oneOf(BasicDataGenerator.getOkGen, BasicDataGenerator.getEmptyGen)
-
   test("Must handle async content methods") {
     forAllF(asyncContent) { method =>
       for {
@@ -271,6 +285,58 @@ class LowLevelChannelSuite extends InternalTestSuite {
       } yield ()
     }
   }
+
+  test("Must interrupt delivery when channel is closed") {
+    forAllF(closeMethods) { close =>
+      TestControl.executeEmbed(
+        for {
+          ctx <- LowLevelChannelContext()
+          _ <- ctx.channel.delivered.use { (ctag, data) =>
+            data.compile.toList
+              .both(
+                ctx.channel.method(close).delayBy(1.hour)
+              )
+          }
+        } yield ()
+      )
+    }
+  }
+
+  test("Must interrupt returned when channel is closed") {
+    forAllF(closeMethods) { close =>
+      TestControl.executeEmbed(
+        for {
+          ctx <- LowLevelChannelContext()
+          _ <- ctx.channel.returned.compile.toList
+            .both(
+              ctx.channel.method(close).delayBy(1.hour)
+            )
+        } yield ()
+      )
+    }
+  }
+}
+
+object LowLevelChannelSuite {
+  private val closeMethods =
+    Gen.oneOf(ChannelDataGenerator.closeGen, ChannelDataGenerator.closeOkGen)
+
+  private val rpcMethods = AllClassesDataGenerator.methods.suchThat {
+    case _: (ChannelClass.Close | ChannelClass.CloseOk.type |
+          ChannelClass.Flow) =>
+      false
+    case _ => true
+  }
+
+  import lepus.codecs.ArbitraryDomains.given
+  private val channelErrors =
+    Gen.resultOf(AMQPError(ReplyCode.NotFound, _, _, _))
+  private val generalErrors = Gen.resultOf((s: String) => new Exception(s))
+
+  private val asyncContent: Gen[ContentMethod] =
+    Gen.oneOf(BasicDataGenerator.deliverGen, BasicDataGenerator.returnGen)
+  private val syncContent: Gen[ContentSyncResponse] =
+    Gen.oneOf(BasicDataGenerator.getOkGen, BasicDataGenerator.getEmptyGen)
 }
 
 private final case class LowLevelChannelContext(

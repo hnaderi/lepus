@@ -18,6 +18,8 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
+import cats.effect.kernel.Deferred
+import cats.effect.kernel.Resource
 import cats.effect.std.Queue
 import cats.effect.std.QueueSink
 import cats.implicits.*
@@ -29,7 +31,6 @@ import lepus.protocol.ChannelClass.Close
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
 import lepus.protocol.domains.ConsumerTag
-import cats.effect.kernel.Resource
 
 type ContentMethod = BasicClass.Deliver | BasicClass.Return
 type ContentSyncResponse = BasicClass.GetOk | BasicClass.GetEmpty.type
@@ -135,18 +136,25 @@ private[client] object LowlevelChannel {
     def publish(method: BasicClass.Publish, msg: Message): F[Unit] =
       pub.send(method, msg)
 
-    def sendWait(m: Method): F[Method] = rpc.sendWait(m)
+    def sendWait(m: Method): F[Method] =
+      F.race(rpc.sendWait(m), isClosed.waitUntil(identity)).flatMap {
+        case Right(_)    => F.raiseError(ChannelIsClosed)
+        case Left(value) => F.pure(value)
+      }
+
     def sendNoWait(m: Method): F[Unit] = rpc.sendNoWait(m)
     def get(m: BasicClass.Get): F[Option[SynchronousGet]] =
       content.get(m).flatMap(_.get)
 
     def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessage])] =
       disp.deliveryQ.map { case (ctag, q) =>
-        (ctag, Stream.fromQueueUnterminated(q, 100))
+        (ctag, Stream.fromQueueUnterminated(q, 100).interruptWhen(isClosed))
       }
 
     def returned: Stream[F, ReturnedMessage] =
-      Stream.fromQueueUnterminated(disp.returnQ, 100)
+      Stream.fromQueueUnterminated(disp.returnQ, 100).interruptWhen(isClosed)
   }
 
+  case object ChannelIsClosed
+      extends RuntimeException("Channel is already closed!")
 }
