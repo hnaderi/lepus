@@ -33,3 +33,12 @@ class: $classId
 method: $methodId
 """
     )
+
+private[client] final case class UnexpectedResponse(
+    response: Method,
+    expectedClass: ClassId,
+    expectedMethod: MethodId
+) extends RuntimeException(s"""Received unexpected method response from server!
+Expected class: $expectedClass method: $expectedMethod
+Received $response
+""")

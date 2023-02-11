@@ -87,7 +87,9 @@ sealed trait RPCCallDef[F[_], M <: Method, O] {
         s"rpc.sendWait(msg).flatMap{ " +
           respTypes
             .map(s => s"case m: ${s.fullTypeName(cls)} => m.pure")
-            .appended("case _=> F.raiseError(???)")
+            .appended(
+              s"case other => F.raiseError(UnexpectedResponse(other, ClassId(${cls.id}), MethodId(${method.id})))"
+            )
             .mkString("\n") + "}"
       else ""
     val noWaitBody = "rpc.sendNoWait(msg)"
