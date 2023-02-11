@@ -45,7 +45,7 @@ object FrameGenerators {
     Gen.const(Frame.Heartbeat)
 
   val frames: Gen[Frame] =
-    Gen.oneOf(method, header, body, header)
+    Gen.oneOf(method, header, body, heartbeat)
 
   val blob: Gen[ByteVector] =
     Gen.containerOf[Array, Byte](Arbitrary.arbitrary[Byte]).map(ByteVector(_))

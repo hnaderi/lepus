@@ -57,7 +57,7 @@ object FrameCodec {
     .typecase(1, methodFP)
     .typecase(2, headerFP)
     .typecase(3, bodyFP)
-    .typecase(8, headerFP)
+    .typecase(8, heartbeat)
     .withContext("Frame")
     .as[Frame] <~ frameEnd
 
