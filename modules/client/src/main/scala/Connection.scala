@@ -45,10 +45,10 @@ trait Connection[F[_]] {
 
   def status: Signal[F, Connection.Status]
   def channels: Signal[F, Set[ChannelNumber]]
+  def capabilities: Capabilities
 }
 
 object Connection {
-
   def from[F[_]: Temporal](
       transport: Transport[F],
       auth: AuthenticationConfig[F],
@@ -56,7 +56,11 @@ object Connection {
       config: ConnectionConfig
   ): Resource[F, Connection[F]] = for {
     sendQ <- Resource.eval(Queue.bounded[F, Frame](config.frameBufSize))
-    negotiation <- StartupNegotiation(auth, path).toResource
+    negotiation <- StartupNegotiation(
+      auth,
+      path,
+      connectionName = config.name
+    ).toResource
     dispatcher <- FrameDispatcher[F].toResource
     output <- OutputWriter(sendQ.offer).toResource
     state <- ConnectionState(output, path).toResource
@@ -74,7 +78,10 @@ object Connection {
       .through(receive(state, dispatcher))
     life = lifetime(negotiation.config, state)
     _ <- transfer.merge(life).compile.drain.background
+    caps <- negotiation.capabilities.toResource
   } yield new {
+
+    override def capabilities: Capabilities = caps
 
     override def channels: Signal[F, Set[ChannelNumber]] = dispatcher.channels
 

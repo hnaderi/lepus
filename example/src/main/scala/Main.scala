@@ -33,6 +33,7 @@ object Main extends IOApp.Simple {
 
   override def run: IO[Unit] = connect.use((con, ch) =>
     for {
+      _ <- IO.println(con.capabilities.toFieldTable)
       q <- ch.queue.declare(autoDelete = true)
       q <- IO.fromOption(q)(new Exception())
       print = ch.messaging.consume(q.queue).printlns

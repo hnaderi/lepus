@@ -35,14 +35,22 @@ import lepus.protocol.domains.*
 trait StartupNegotiation[F[_]] {
   def pipe(sendQ: Frame => F[Unit]): Pipe[F, Frame, Frame]
   def config: F[NegotiatedConfig]
+  def capabilities: F[Capabilities]
 }
 object StartupNegotiation {
   def apply[F[_]: Concurrent](
       auth: AuthenticationConfig[F],
-      vhost: Path = Path("/")
+      vhost: Path = Path("/"),
+      connectionName: Option[ShortString] = None
   ): F[StartupNegotiation[F]] = for {
     conf <- Deferred[F, Either[Throwable, NegotiatedConfig]]
+    caps <- Deferred[F, Either[Throwable, Capabilities]]
   } yield new StartupNegotiation[F] {
+
+    override def capabilities: F[Capabilities] = caps.get.flatMap(_.liftTo)
+
+    private def terminate(ex: Throwable) =
+      conf.complete(Left(ex)) >> caps.complete(Left(ex)).void
 
     override def pipe(sendQ: Frame => F[Unit]): Pipe[F, Frame, Frame] = in => {
       def go(
@@ -50,11 +58,11 @@ object StartupNegotiation {
           frames: Stream[F, Frame]
       ): Pull[F, Frame, Unit] =
         frames.pull.uncons1
-          .onError(ex => Pull.eval(conf.complete(Left(ex)).void))
+          .onError(ex => Pull.eval(terminate(ex)))
           .flatMap {
             case Some((frame, nextFrames)) =>
               Pull
-                .eval(step(frame).onError(ex => conf.complete(Left(ex)).void))
+                .eval(step(frame).onError(terminate(_)))
                 .flatMap {
                   case NegotiationResult.Continue(response, nextStep) =>
                     Pull
@@ -64,7 +72,7 @@ object StartupNegotiation {
                       sendQ(response) >> conf.complete(Right(config))
                     ) >> nextFrames.pull.echo
                 }
-            case None => Pull.eval(conf.complete(Left(NegotiationFailed)).void)
+            case None => Pull.eval(terminate(NegotiationFailed))
           }
 
       go(start, in).stream
@@ -83,19 +91,25 @@ object StartupNegotiation {
     private def start: Negotiation[F] = method {
       case Start(0, 9, serverProperties, mechanisms, locales) =>
         val proposedMechanisms = mechanisms.split(" ")
+        val serverCaps = serverProperties
+          .get(ShortString("capabilities"))
+          .collect { case t: FieldTable => t }
+          .fold(Capabilities.none)(Capabilities.from(_))
+
         auth.get(proposedMechanisms: _*) match {
           case None => NoSupportedSASLMechanism.raiseError
           case Some(mechanism) =>
-            mechanism.first.map(response =>
-              NegotiationResult.continue(
-                ConnectionClass.StartOk(
-                  clientProps,
-                  mechanism.name,
-                  response,
-                  ShortString("en-US")
-                )
-              )(handleChallenge(mechanism))
-            )
+            caps.complete(Right(serverCaps)) >>
+              mechanism.first.map(response =>
+                NegotiationResult.continue(
+                  ConnectionClass.StartOk(
+                    clientProps(connectionName),
+                    mechanism.name,
+                    response,
+                    ShortString("en-US")
+                  )
+                )(handleChallenge(mechanism))
+              )
         }
 
     }
@@ -128,12 +142,20 @@ object StartupNegotiation {
 
   }
 
-  // TODO real properties
-  private val clientProps = FieldTable(
-    ShortString("product") -> 1,
-    ShortString("version") -> 1,
-    ShortString("platform") -> 1
-  )
+  private[client] def clientProps(connectionName: Option[ShortString]) =
+    FieldTable(
+      ShortString("product") -> ShortString("Lepus"),
+      ShortString("version") -> ShortString(BuildInfo.version),
+      ShortString("platform") -> ShortString("scala"),
+      ShortString("scala-version") -> ShortString(BuildInfo.scalaVersion),
+      ShortString("capabilities") -> FieldTable(
+        ShortString("publisher_confirms") -> true,
+        // ShortString("authentication_failure_close") -> true,
+        // ShortString("consumer_cancel_notify") -> true,
+        ShortString("basic.nack") -> true
+        // ShortString("connection.blocked") -> true
+      ).updated(ShortString("connection_name"), connectionName)
+    )
 }
 
 final case class NegotiatedConfig(

@@ -122,8 +122,15 @@ val client = module2("client") {
     .crossType(CrossType.Pure)
     .dependsOn(core, wire, protocol)
     .dependsOn(protocolTestkit % Test)
+    .enablePlugins(BuildInfoPlugin)
     .settings(
-      libraryDependencies ++= // rabbit ++
+      buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion),
+      buildInfoPackage := "lepus.client",
+      buildInfoOptions ++= Seq(
+        BuildInfoOption.ConstantValue,
+        BuildInfoOption.PackagePrivate
+      ),
+      libraryDependencies ++=
         Seq(
           "co.fs2" %%% "fs2-io" % Versions.fs2,
           "co.fs2" %%% "fs2-scodec" % Versions.fs2,
@@ -173,6 +180,19 @@ val docs = project
     tlSiteHeliumConfig := SiteConfigs(mdocVariables.value)
   )
 
+lazy val unidocs = project
+  .in(file("unidocs"))
+  .enablePlugins(TypelevelUnidocPlugin)
+  .settings(
+    name := "lepus-docs",
+    description := "unified docs for lepus",
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
+      client.jvm,
+      protocol.jvm,
+      wire.jvm
+    )
+  )
+
 val root = tlCrossRootProject
   .settings(name := "lepus")
   .aggregate(
@@ -185,6 +205,7 @@ val root = tlCrossRootProject
     std,
     data,
     docs,
+    unidocs,
     example
   )
 
