@@ -16,23 +16,39 @@
 
 package lepus.client
 
+import cats.Functor
 import cats.effect.Temporal
 import cats.effect.kernel.Resource
-import com.comcast.ip4s.Host
-import com.comcast.ip4s.Port
-import com.comcast.ip4s.SocketAddress
+import com.comcast.ip4s.*
 import fs2.io.net.Network
 import lepus.protocol.domains.Path
 import lepus.protocol.domains.ShortString
-import cats.Functor
 
 object LepusClient {
   inline def apply[F[_]: Temporal: Network](
-      host: Host,
-      port: Port,
-      username: String,
-      password: String,
+      host: Host = host"localhost",
+      port: Port = port"5672",
+      username: String = "guest",
+      password: String = "guest",
       vhost: Path = Path("/"),
+      config: ConnectionConfig = ConnectionConfig.default,
+      inline debug: Boolean = false
+  ): Resource[F, Connection[F]] =
+    from(
+      AuthenticationConfig.default(username = username, password = password),
+      host = host,
+      port = port,
+      vhost = vhost,
+      config = config,
+      debug = debug
+    )
+
+  inline def from[F[_]: Temporal: Network](
+      auth: AuthenticationConfig[F],
+      host: Host = host"localhost",
+      port: Port = port"5672",
+      vhost: Path = Path("/"),
+      config: ConnectionConfig = ConnectionConfig.default,
       inline debug: Boolean = false
   ): Resource[F, Connection[F]] = {
     val transport = Transport.connect[F](SocketAddress(host, port))
@@ -43,10 +59,6 @@ object LepusClient {
         Transport.debug(transport)(using Functor[F], console)
       } else transport
 
-    Connection.from(
-      t,
-      AuthenticationConfig(SaslMechanism.plain(username, password)),
-      path = vhost
-    )
+    Connection.from(t, auth, path = vhost, config = config)
   }
 }

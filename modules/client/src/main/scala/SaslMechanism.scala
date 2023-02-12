@@ -16,8 +16,8 @@
 
 package lepus.client
 
+import cats.MonadThrow
 import cats.data.NonEmptyList
-import cats.effect.Concurrent
 import cats.syntax.all.*
 import lepus.protocol.domains.LongString
 import lepus.protocol.domains.ShortString
@@ -30,12 +30,19 @@ final case class SaslMechanism[F[_]](
 
 object SaslMechanism {
   // TODO Sasl prep and stuff...
-  def plain[F[_]: Concurrent](username: String, password: String) = {
+  def plain[F[_]: MonadThrow](username: String, password: String) = {
     val s = LongString
       .from(s"\u0000$username\u0000$password")
       .leftMap(new Exception(_))
       .liftTo[F]
-    SaslMechanism(ShortString("PLAIN"), s, _ => s)
+    SaslMechanism(
+      ShortString("PLAIN"),
+      s,
+      _ =>
+        new IllegalStateException(
+          "SASL plain is a single step mechanism"
+        ).raiseError
+    )
   }
 }
 
@@ -62,4 +69,9 @@ object AuthenticationConfig {
   ): AuthenticationConfig[F] = new AuthenticationConfig(
     NonEmptyList.of(m, ms: _*)
   )
+
+  def default[F[_]: MonadThrow](
+      username: String,
+      password: String
+  ): AuthenticationConfig[F] = apply(SaslMechanism.plain(username, password))
 }

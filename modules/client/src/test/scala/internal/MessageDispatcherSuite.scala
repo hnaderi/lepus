@@ -56,7 +56,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
   test("Must dispatch delivered messages") {
     forAllF(deliveries) { someMsg =>
       for {
-        d <- MessageDispatcher[IO]
+        d <- MessageDispatcher[IO]()
         _ <- d.deliveryQ.use { (ctag, q) =>
           val msg = someMsg.copy(consumerTag = ctag)
 
@@ -74,7 +74,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
     // So we might receive messages after cancelling the consumer
     forAllF(deliveries) { someMsg =>
       for {
-        d <- MessageDispatcher[IO]
+        d <- MessageDispatcher[IO]()
         out <- d.deliveryQ.use { (ctag, q) =>
           val msg = someMsg.copy(consumerTag = ctag)
 
@@ -91,7 +91,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
   test("Must dispatch returned messages") {
     forAllF(returns) { msg =>
       for {
-        d <- MessageDispatcher[IO]
+        d <- MessageDispatcher[IO]()
         _ <- d.returnQ.size.assertEquals(0)
         _ <- d.`return`(msg)
         _ <- d.returnQ.size.assertEquals(1)
@@ -103,7 +103,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
   test("Must dispatch confirmation messages") {
     forAllF(confirmations) { msg =>
       for {
-        d <- MessageDispatcher[IO]
+        d <- MessageDispatcher[IO]()
         _ <- d.confirmationQ.size.assertEquals(0)
         _ <- d.confirm(msg)
         _ <- d.confirmationQ.size.assertEquals(1)

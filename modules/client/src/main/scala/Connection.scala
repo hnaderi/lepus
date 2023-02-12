@@ -53,9 +53,9 @@ object Connection {
       transport: Transport[F],
       auth: AuthenticationConfig[F],
       path: Path = Path("/"),
-      bufferSize: Int = 100
+      config: ConnectionConfig
   ): Resource[F, Connection[F]] = for {
-    sendQ <- Resource.eval(Queue.bounded[F, Frame](bufferSize))
+    sendQ <- Resource.eval(Queue.bounded[F, Frame](config.frameBufSize))
     negotiation <- StartupNegotiation(auth, path).toResource
     dispatcher <- FrameDispatcher[F].toResource
     output <- OutputWriter(sendQ.offer).toResource
@@ -64,11 +64,11 @@ object Connection {
       output,
       state,
       dispatcher,
-      in => LowlevelChannel.from(in.number, in.output)
+      LowlevelChannel.from[F](config.globalChannelConfig)
     )
 
     transfer = Stream
-      .fromQueueUnterminated(sendQ, bufferSize)
+      .fromQueueUnterminated(sendQ)
       .through(transport)
       .through(negotiation.pipe(output.write))
       .through(receive(state, dispatcher))
