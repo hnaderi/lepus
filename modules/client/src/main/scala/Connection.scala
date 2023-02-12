@@ -64,7 +64,7 @@ object Connection {
       output,
       state,
       dispatcher,
-      in => LowlevelChannel.from(in.number, in.output)
+      in => LowlevelChannel.from(in.number, in.output, in.frameMax)
     )
 
     transfer = Stream

@@ -49,8 +49,9 @@ private[client] object ChannelBuilder {
       buildChannel: ChannelFactory[F]
   ): ChannelBuilder[F] = for {
     _ <- status.awaitOpened.toResource
+    config <- status.config.toResource
     ch <- dispatcher.add(n =>
-      buildChannel(ChannelBuildInput(n, send)).toResource
+      buildChannel(ChannelBuildInput(n, send, config.frameMax)).toResource
     )
     _ <- openChannel(ch)
   } yield ch
@@ -79,5 +80,6 @@ private[client] type ChannelFactory[F[_]] =
 
 private[client] final case class ChannelBuildInput[F[_]](
     number: ChannelNumber,
-    output: OutputWriterSink[F, Frame]
+    output: OutputWriterSink[F, Frame],
+    frameMax: Int
 )

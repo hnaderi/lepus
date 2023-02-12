@@ -69,14 +69,15 @@ private[client] trait LowlevelChannel[F[_]]
 private[client] object LowlevelChannel {
   def from[F[_]](
       channelNumber: ChannelNumber,
-      sendQ: OutputWriterSink[F, Frame]
+      sendQ: OutputWriterSink[F, Frame],
+      frameMax: Int
   )(using F: Concurrent[F]): F[LowlevelChannel[F]] = for {
     disp <- MessageDispatcher[F]
     out <- ChannelOutput(sendQ)
     wlist <- Waitlist[F, Option[SynchronousGet]]()
     content <- ContentChannel(channelNumber, out, disp, wlist)
     rpc <- RPCChannel(out, channelNumber, 10)
-    pub = ChannelPublisher(channelNumber, 100, out)
+    pub = ChannelPublisher(channelNumber, frameMax, out)
     ch <- apply(content, rpc, pub, disp, out)
   } yield ch
 
