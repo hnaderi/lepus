@@ -37,10 +37,12 @@ private[client] trait MessageDispatcher[F[_]] {
 }
 
 private[client] object MessageDispatcher {
-  def apply[F[_]](using F: Concurrent[F]): F[MessageDispatcher[F]] = for {
+  def apply[F[_]](returnedBufSize: Int = 10, confirmBufSize: Int = 10)(using
+      F: Concurrent[F]
+  ): F[MessageDispatcher[F]] = for {
     dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, DeliveredMessage]])
-    rq <- Queue.bounded[F, ReturnedMessage](1) // TODO queue size
-    cq <- Queue.bounded[F, ConfirmationResponse](1) // TODO queue size
+    rq <- Queue.bounded[F, ReturnedMessage](returnedBufSize)
+    cq <- Queue.bounded[F, ConfirmationResponse](confirmBufSize)
     counter <- F.ref(0)
   } yield new {
 

@@ -67,19 +67,21 @@ private[client] trait LowlevelChannel[F[_]]
 
 /** Facade over other small components */
 private[client] object LowlevelChannel {
-  def from[F[_]](
-      channelNumber: ChannelNumber,
-      sendQ: OutputWriterSink[F, Frame],
-      frameMax: Int
-  )(using F: Concurrent[F]): F[LowlevelChannel[F]] = for {
-    disp <- MessageDispatcher[F]
-    out <- ChannelOutput(sendQ)
-    wlist <- Waitlist[F, Option[SynchronousGet]]()
-    content <- ContentChannel(channelNumber, out, disp, wlist)
-    rpc <- RPCChannel(out, channelNumber, 10)
-    pub = ChannelPublisher(channelNumber, frameMax, out)
-    ch <- apply(content, rpc, pub, disp, out)
-  } yield ch
+  def from[F[_]: Concurrent](config: ChannelConfig): ChannelFactory[F] = in =>
+    for {
+      disp <- MessageDispatcher[F](
+        returnedBufSize = config.returnedBufSize,
+        confirmBufSize = config.confirmBufSize
+      )
+      out <- ChannelOutput(in.output, maxMethods = config.maxConcurrentPublish)
+      wlist <- Waitlist[F, Option[SynchronousGet]](size =
+        config.maxConcurrentGet
+      )
+      content <- ContentChannel(in.number, out, disp, wlist)
+      rpc <- RPCChannel(out, in.number, maxMethods = config.maxConcurrentRPC)
+      pub = ChannelPublisher(in.number, in.frameMax, out)
+      ch <- apply(content, rpc, pub, disp, out)
+    } yield ch
 
   def apply[F[_]](
       content: ContentChannel[F],
@@ -88,7 +90,6 @@ private[client] object LowlevelChannel {
       disp: MessageDispatcher[F],
       out: ChannelOutput[F, Frame]
   )(using F: Concurrent[F]): F[LowlevelChannel[F]] = for {
-    _ <- Queue.bounded[F, Frame](10)
     state <- SignallingRef[F].of(Status.Active)
   } yield new LowlevelChannel[F] {
 
@@ -154,14 +155,14 @@ private[client] object LowlevelChannel {
 
     def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessage])] =
       disp.deliveryQ.map { case (ctag, q) =>
-        (ctag, Stream.fromQueueUnterminated(q, 100).interruptWhen(isClosed))
+        (ctag, Stream.fromQueueUnterminated(q).interruptWhen(isClosed))
       }
 
     def returned: Stream[F, ReturnedMessage] =
-      Stream.fromQueueUnterminated(disp.returnQ, 100).interruptWhen(isClosed)
+      Stream.fromQueueUnterminated(disp.returnQ).interruptWhen(isClosed)
 
     def confirmed: Stream[F, Confirmation] = Stream
-      .fromQueueUnterminated(disp.confirmationQ, 100)
+      .fromQueueUnterminated(disp.confirmationQ)
       .map {
         case BasicClass.Ack(tag, multi) =>
           Confirmation(Acknowledgment.Ack, tag, multi)
