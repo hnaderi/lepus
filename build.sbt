@@ -180,6 +180,19 @@ val docs = project
     tlSiteHeliumConfig := SiteConfigs(mdocVariables.value)
   )
 
+lazy val unidocs = project
+  .in(file("unidocs"))
+  .enablePlugins(TypelevelUnidocPlugin)
+  .settings(
+    name := "lepus-docs",
+    description := "unified docs for lepus",
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
+      client.jvm,
+      protocol.jvm,
+      wire.jvm
+    )
+  )
+
 val root = tlCrossRootProject
   .settings(name := "lepus")
   .aggregate(
@@ -192,6 +205,7 @@ val root = tlCrossRootProject
     std,
     data,
     docs,
+    unidocs,
     example
   )
 
