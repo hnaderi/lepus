@@ -28,6 +28,7 @@ import lepus.protocol.domains.ConsumerTag
 import lepus.protocol.domains.ShortString
 import munit.Assertions.*
 import munit.CatsEffectAssertions.*
+import munit.Location
 
 final class FakeMessageDispatcher(
     delivered: Ref[IO, List[DeliveredMessage]],
@@ -72,15 +73,17 @@ final class FakeMessageDispatcher(
   override def confirm(msg: ConfirmationResponse): IO[Unit] =
     confirms.update(_.prepended(msg)) >> confirmed.offer(msg)
 
-  def assertDelivered(msg: DeliveredMessage): IO[Unit] =
+  def assertDelivered(msg: DeliveredMessage)(using Location): IO[Unit] =
     delivered.get.map(_.contains(msg)).assert
-  def assertReturned(msg: ReturnedMessage): IO[Unit] =
+  def assertReturned(msg: ReturnedMessage)(using Location): IO[Unit] =
     returns.get.map(_.contains(msg)).assert
-  def assertConfirmed(msg: ConfirmationResponse): IO[Unit] =
+  def assertConfirmed(msg: ConfirmationResponse)(using Location): IO[Unit] =
     confirms.get.map(_.contains(msg)).assert
-  def assertNoDelivery: IO[Unit] = delivered.get.assertEquals(Nil)
-  def assertNoReturn: IO[Unit] = returns.get.assertEquals(Nil)
-  def assertNoContent: IO[Unit] = assertNoDelivery >> assertNoReturn
+  def assertNoDelivery(using Location): IO[Unit] =
+    delivered.get.assertEquals(Nil)
+  def assertNoReturn(using Location): IO[Unit] = returns.get.assertEquals(Nil)
+  def assertNoContent(using Location): IO[Unit] =
+    assertNoDelivery >> assertNoReturn
 
 }
 

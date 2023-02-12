@@ -62,3 +62,12 @@ final case class SynchronousGet(
     messageCount: MessageCount,
     message: Message
 )
+
+enum Acknowledgment {
+  case Ack, Nack
+}
+final case class Confirmation(
+    kind: Acknowledgment,
+    tag: DeliveryTag,
+    multiple: Boolean
+)

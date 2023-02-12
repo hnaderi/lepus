@@ -33,6 +33,7 @@ import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 import scodec.bits.ByteVector
+import lepus.codecs.BasicDataGenerator
 
 class FrameDispatcherSuite extends InternalTestSuite {
   test("Must assign channel number") {

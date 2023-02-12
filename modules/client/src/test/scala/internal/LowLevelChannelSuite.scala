@@ -315,6 +315,43 @@ class LowLevelChannelSuite extends InternalTestSuite {
       )
     }
   }
+
+  test("Must dispatch publish confirmations") {
+    val confirmations: Gen[ConfirmationResponse] =
+      Gen.oneOf(BasicDataGenerator.ackGen, BasicDataGenerator.nackGen)
+
+    forAllF(confirmations) { msg =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.channel.method(msg)
+        _ <- ctx.dispatcher.assertConfirmed(msg)
+        _ <- ctx.channel.confirmed.head.compile.toList.assertEquals(
+          List(
+            msg match {
+              case BasicClass.Ack(tag, multi) =>
+                Confirmation(Acknowledgment.Ack, tag, multi)
+              case BasicClass.Nack(tag, multi, _) =>
+                Confirmation(Acknowledgment.Nack, tag, multi)
+            }
+          )
+        )
+      } yield ()
+    }
+  }
+
+  test("Must interrupt confirmations when channel is closed") {
+    forAllF(closeMethods) { close =>
+      TestControl.executeEmbed(
+        for {
+          ctx <- LowLevelChannelContext()
+          _ <- ctx.channel.confirmed.compile.toList
+            .both(
+              ctx.channel.method(close).delayBy(1.hour)
+            )
+        } yield ()
+      )
+    }
+  }
 }
 
 object LowLevelChannelSuite {
@@ -323,7 +360,7 @@ object LowLevelChannelSuite {
 
   private val rpcMethods = AllClassesDataGenerator.methods.suchThat {
     case _: (ChannelClass.Close | ChannelClass.CloseOk.type |
-          ChannelClass.Flow) =>
+          ChannelClass.Flow | ConfirmationResponse) =>
       false
     case _ => true
   }
