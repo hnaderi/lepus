@@ -22,18 +22,22 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.std.Queue
 import cats.effect.std.QueueSource
+import cats.effect.std.UUIDGen
 import cats.implicits.*
 import lepus.protocol.domains.ConsumerTag
 import lepus.protocol.domains.ShortString
 import munit.Assertions.*
-import cats.effect.std.UUIDGen
+import munit.CatsEffectAssertions.*
 
 final class FakeMessageDispatcher(
     delivered: Ref[IO, List[DeliveredMessage]],
     returns: Ref[IO, List[ReturnedMessage]],
     returned: Queue[IO, ReturnedMessage],
-    deliveries: Ref[IO, Map[ConsumerTag, Queue[IO, DeliveredMessage]]]
+    deliveries: Ref[IO, Map[ConsumerTag, Queue[IO, DeliveredMessage]]],
+    confirms: Ref[IO, List[ConfirmationResponse]],
+    confirmed: Queue[IO, ConfirmationResponse]
 ) extends MessageDispatcher[IO] {
+
   def deliver(msg: DeliveredMessage): IO[Unit] =
     delivered.update(_.prepended(msg)) >> deliveries.get.flatMap(
       _.get(msg.consumerTag).fold(IO.unit)(_.offer(msg))
@@ -62,12 +66,20 @@ final class FakeMessageDispatcher(
 
   def returnQ: QueueSource[IO, ReturnedMessage] = returned
 
+  override def confirmationQ
+      : QueueSource[cats.effect.IO, ConfirmationResponse] = confirmed
+
+  override def confirm(msg: ConfirmationResponse): IO[Unit] =
+    confirms.update(_.prepended(msg)) >> confirmed.offer(msg)
+
   def assertDelivered(msg: DeliveredMessage): IO[Unit] =
-    delivered.get.map(l => assert(l.contains(msg)))
+    delivered.get.map(_.contains(msg)).assert
   def assertReturned(msg: ReturnedMessage): IO[Unit] =
-    returns.get.map(l => assert(l.contains(msg)))
-  def assertNoDelivery: IO[Unit] = delivered.get.map(assertEquals(_, Nil))
-  def assertNoReturn: IO[Unit] = returns.get.map(assertEquals(_, Nil))
+    returns.get.map(_.contains(msg)).assert
+  def assertConfirmed(msg: ConfirmationResponse): IO[Unit] =
+    confirms.get.map(_.contains(msg)).assert
+  def assertNoDelivery: IO[Unit] = delivered.get.assertEquals(Nil)
+  def assertNoReturn: IO[Unit] = returns.get.assertEquals(Nil)
   def assertNoContent: IO[Unit] = assertNoDelivery >> assertNoReturn
 
 }
@@ -78,7 +90,9 @@ object FakeMessageDispatcher {
       IO.ref(List.empty[DeliveredMessage]),
       IO.ref(List.empty[ReturnedMessage]),
       Queue.unbounded[IO, ReturnedMessage],
-      IO.ref(Map.empty[ConsumerTag, Queue[IO, DeliveredMessage]])
+      IO.ref(Map.empty[ConsumerTag, Queue[IO, DeliveredMessage]]),
+      IO.ref(List.empty[ConfirmationResponse]),
+      Queue.unbounded[IO, ConfirmationResponse],
     )
-      .mapN(new FakeMessageDispatcher(_, _, _, _))
+      .mapN(new FakeMessageDispatcher(_, _, _, _, _, _))
 }

@@ -27,6 +27,7 @@ import munit.ScalaCheckEffectSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
+import lepus.codecs.BasicDataGenerator
 
 class MessageDispatcherSuite extends InternalTestSuite {
   private val consumers = DomainGenerators.consumerTag
@@ -49,6 +50,8 @@ class MessageDispatcherSuite extends InternalTestSuite {
     data <- FrameGenerators.blob
     msg = Message(data, props)
   } yield ReturnedMessage(rcode, rtxt, ex, rkey, msg)
+  private val confirmations: Gen[ConfirmationResponse] =
+    Gen.oneOf(BasicDataGenerator.ackGen, BasicDataGenerator.nackGen)
 
   test("Must dispatch delivered messages") {
     forAllF(deliveries) { someMsg =>
@@ -93,6 +96,18 @@ class MessageDispatcherSuite extends InternalTestSuite {
         _ <- d.`return`(msg)
         _ <- d.returnQ.size.assertEquals(1)
         _ <- d.returnQ.take.assertEquals(msg)
+      } yield ()
+    }
+  }
+
+  test("Must dispatch confirmation messages") {
+    forAllF(confirmations) { msg =>
+      for {
+        d <- MessageDispatcher[IO]
+        _ <- d.confirmationQ.size.assertEquals(0)
+        _ <- d.confirm(msg)
+        _ <- d.confirmationQ.size.assertEquals(1)
+        _ <- d.confirmationQ.take.assertEquals(msg)
       } yield ()
     }
   }

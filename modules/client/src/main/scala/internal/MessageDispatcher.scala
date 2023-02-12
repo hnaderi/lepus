@@ -29,14 +29,18 @@ import lepus.protocol.constants.ReplyCode
 private[client] trait MessageDispatcher[F[_]] {
   def deliver(msg: DeliveredMessage): F[Unit]
   def `return`(msg: ReturnedMessage): F[Unit]
+  def confirm(msg: ConfirmationResponse): F[Unit]
+
   def deliveryQ: Resource[F, (ConsumerTag, QueueSource[F, DeliveredMessage])]
   def returnQ: QueueSource[F, ReturnedMessage]
+  def confirmationQ: QueueSource[F, ConfirmationResponse]
 }
 
 private[client] object MessageDispatcher {
   def apply[F[_]](using F: Concurrent[F]): F[MessageDispatcher[F]] = for {
     dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, DeliveredMessage]])
     rq <- Queue.bounded[F, ReturnedMessage](1) // TODO queue size
+    cq <- Queue.bounded[F, ConfirmationResponse](1) // TODO queue size
     counter <- F.ref(0)
   } yield new {
 
@@ -71,5 +75,9 @@ private[client] object MessageDispatcher {
     private def removeQ(ctag: ConsumerTag) = dqs.update(_ - ctag)
 
     override def returnQ: QueueSource[F, ReturnedMessage] = rq
+
+    override def confirm(msg: ConfirmationResponse): F[Unit] = cq.offer(msg)
+
+    override def confirmationQ: QueueSource[F, ConfirmationResponse] = cq
   }
 }
