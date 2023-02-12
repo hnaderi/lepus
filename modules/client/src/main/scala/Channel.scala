@@ -33,6 +33,7 @@ import lepus.client.internal.*
 import lepus.protocol.*
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
+import cats.effect.kernel.Ref
 
 trait Channel[F[_], M <: MessagingChannel] {
   def exchange: ExchangeAPI[F]
@@ -59,7 +60,9 @@ object Channel {
   }
 
   extension [F[_]](rpc: ChannelTransmitter[F]) {
-    def call[M <: Method, O](m: M)(using d: RPCCallDef[F, M, O]): F[O] =
+    private[client] def call[M <: Method, O](m: M)(using
+        d: RPCCallDef[F, M, O]
+    ): F[O] =
       d.call(rpc)(m)
   }
 
@@ -172,10 +175,24 @@ object Channel {
   }
 
   private final class ReliablePublishingImpl[F[_]: Concurrent](
-      channel: ChannelTransmitter[F]
+      channel: ChannelTransmitter[F],
+      tagger: SequentialTagger[F]
   ) extends ConsumingImpl(channel),
         ReliablePublishingMessagingChannel[F] {
-    def publish(env: Envelope): F[ReliableEnvelope[F]] = ???
+    def publish(env: Envelope): F[DeliveryTag] = tagger.next(
+      channel
+        .publish(
+          BasicClass.Publish(
+            env.exchange,
+            env.routingKey,
+            mandatory = env.mandatory,
+            immediate = false
+          ),
+          env.message
+        )
+    )
+
+    def confirmations: Stream[F, Confirmation] = channel.confirmed
   }
 
   private final class TransactionalMessagingImpl[F[_]: Concurrent](
@@ -203,10 +220,10 @@ object Channel {
 
   private[client] def reliable[F[_]: Concurrent](
       channel: ChannelTransmitter[F]
-  ): F[Channel[F, ReliablePublishingMessagingChannel[F]]] =
-    channel
-      .call(ConfirmClass.Select(true))
-      .as(ChannelImpl(channel, ReliablePublishingImpl(channel)))
+  ): F[Channel[F, ReliablePublishingMessagingChannel[F]]] = for {
+    _ <- channel.call(ConfirmClass.Select(true))
+    tagger <- SequentialTagger[F]
+  } yield ChannelImpl(channel, ReliablePublishingImpl(channel, tagger))
 
   private[client] def transactional[F[_]: Concurrent](
       channel: ChannelTransmitter[F]

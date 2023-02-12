@@ -78,7 +78,8 @@ trait Publishing[F[_]] {
 }
 
 trait ReliablePublishing[F[_]] {
-  def publish(env: Envelope): F[ReliableEnvelope[F]]
+  def publish(env: Envelope): F[DeliveryTag]
+  def confirmations: Stream[F, Confirmation]
 }
 
 trait Transaction[F[_]] {

@@ -30,15 +30,6 @@ final case class Envelope(
     message: Message
 )
 
-final case class ReliableEnvelope[F[_]](
-    envelope: Envelope,
-    status: Signal[F, EnvelopeStatus]
-)
-
-enum EnvelopeStatus {
-  case InMail, Posted, Delivered, Rejected, Returned
-}
-
 final case class Message(
     payload: ByteVector,
     properties: Properties = Properties()
@@ -70,4 +61,13 @@ final case class SynchronousGet(
     routingKey: ShortString,
     messageCount: MessageCount,
     message: Message
+)
+
+enum Acknowledgment {
+  case Ack, Nack
+}
+final case class Confirmation(
+    kind: Acknowledgment,
+    tag: DeliveryTag,
+    multiple: Boolean
 )

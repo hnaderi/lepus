@@ -37,11 +37,13 @@ import lepus.protocol.BasicClass.Publish
 import lepus.protocol.*
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
+import lepus.client.Confirmation
 
 final class FakeLowLevelChannel(
     val interactions: InteractionList[Interaction],
     channel: Deferred[IO, LowlevelChannel[IO]]
 ) extends LowlevelChannel[IO] {
+
   private def call[T](f: LowlevelChannel[IO] => IO[T]) = channel.get.flatMap(f)
   private val channelS = Stream.eval(channel.get)
 
@@ -88,6 +90,9 @@ final class FakeLowLevelChannel(
 
   override def sendNoWait(m: Method): IO[Unit] =
     interactions.add(Interaction.SendNoWait(m)) >> call(_.sendNoWait(m))
+
+  override def confirmed: Stream[IO, Confirmation] =
+    channelS.flatMap(_.confirmed)
 
   def setChannel(ch: LowlevelChannel[IO]): IO[FakeLowLevelChannel] = channel
     .complete(ch)

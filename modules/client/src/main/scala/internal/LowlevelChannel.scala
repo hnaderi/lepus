@@ -35,6 +35,8 @@ import lepus.protocol.domains.ConsumerTag
 private[client] type ContentMethod = BasicClass.Deliver | BasicClass.Return
 private[client] type ContentSyncResponse =
   BasicClass.GetOk | BasicClass.GetEmpty.type
+private[client] type ConfirmationResponse =
+  BasicClass.Ack | BasicClass.Nack
 
 private[client] trait ChannelReceiver[F[_]] {
   def asyncContent(m: ContentMethod): F[Unit]
@@ -54,6 +56,7 @@ private[client] trait ChannelTransmitter[F[_]] {
 
   def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessage])]
   def returned: Stream[F, ReturnedMessage]
+  def confirmed: Stream[F, Confirmation]
 
   def status: Signal[F, Status]
 }
@@ -131,6 +134,7 @@ private[client] object LowlevelChannel {
         case ChannelClass.Close(replyCode, replyText, classId, methodId) =>
           onClose
         case m @ ChannelClass.CloseOk => state.set(Status.Closed) >> rpc.recv(m)
+        case m: ConfirmationResponse  => disp.confirm(m)
         case _                        => content.abort >> rpc.recv(m)
       })
 
@@ -154,6 +158,16 @@ private[client] object LowlevelChannel {
 
     def returned: Stream[F, ReturnedMessage] =
       Stream.fromQueueUnterminated(disp.returnQ, 100).interruptWhen(isClosed)
+
+    def confirmed: Stream[F, Confirmation] = Stream
+      .fromQueueUnterminated(disp.confirmationQ, 100)
+      .map {
+        case BasicClass.Ack(tag, multi) =>
+          Confirmation(Acknowledgment.Ack, tag, multi)
+        case BasicClass.Nack(tag, multi, _) =>
+          Confirmation(Acknowledgment.Nack, tag, multi)
+      }
+      .interruptWhen(isClosed)
   }
 
   case object ChannelIsClosed
