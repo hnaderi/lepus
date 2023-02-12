@@ -145,8 +145,9 @@ object StartupNegotiation {
   private[client] def clientProps(connectionName: Option[ShortString]) =
     FieldTable(
       ShortString("product") -> ShortString("Lepus"),
-      ShortString("version") -> ShortString("0"),
+      ShortString("version") -> ShortString(BuildInfo.version),
       ShortString("platform") -> ShortString("scala"),
+      ShortString("scala-version") -> ShortString(BuildInfo.scalaVersion),
       ShortString("capabilities") -> FieldTable(
         ShortString("publisher_confirms") -> true,
         // ShortString("authentication_failure_close") -> true,

@@ -122,8 +122,15 @@ val client = module2("client") {
     .crossType(CrossType.Pure)
     .dependsOn(core, wire, protocol)
     .dependsOn(protocolTestkit % Test)
+    .enablePlugins(BuildInfoPlugin)
     .settings(
-      libraryDependencies ++= // rabbit ++
+      buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion),
+      buildInfoPackage := "lepus.client",
+      buildInfoOptions ++= Seq(
+        BuildInfoOption.ConstantValue,
+        BuildInfoOption.PackagePrivate
+      ),
+      libraryDependencies ++=
         Seq(
           "co.fs2" %%% "fs2-io" % Versions.fs2,
           "co.fs2" %%% "fs2-scodec" % Versions.fs2,
