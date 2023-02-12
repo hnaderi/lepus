@@ -16,6 +16,9 @@
 
 package lepus.client
 
+import lepus.protocol.domains.ShortString
+import scala.annotation.targetName
+
 final class ChannelConfig private (
     val returnedBufSize: Int = 10,
     val confirmBufSize: Int = 10,
@@ -53,17 +56,27 @@ object ChannelConfig {
 }
 final class ConnectionConfig private (
     val frameBufSize: Int = 100,
+    val name: Option[ShortString] = None,
     val globalChannelConfig: ChannelConfig = ChannelConfig.default
 ) {
   private def copy(
       frameBufSize: Int = frameBufSize,
+      name: Option[ShortString] = name,
       globalChannelConfig: ChannelConfig = globalChannelConfig
-  ): ConnectionConfig = new ConnectionConfig(frameBufSize, globalChannelConfig)
+  ): ConnectionConfig =
+    new ConnectionConfig(frameBufSize, name, globalChannelConfig)
 
   def withBufferSize(size: Int): ConnectionConfig = copy(frameBufSize = size)
 
   def withChannelConfig(config: ChannelConfig): ConnectionConfig =
     copy(globalChannelConfig = config)
+
+  def withName(name: ShortString): ConnectionConfig =
+    copy(name = Some(name))
+  def noConnectionName: ConnectionConfig = copy(name = None)
+
+  inline def withNameInline(name: String): ConnectionConfig =
+    withName(ShortString(name))
 }
 object ConnectionConfig {
   val default: ConnectionConfig = new ConnectionConfig()

@@ -69,7 +69,15 @@ type FieldData =
   ShortString | LongString | Boolean | Byte | Short | Int | Long | Float |
     Double | Decimal | Timestamp | FieldTable
 
-final case class FieldTable(values: Map[ShortString, FieldData]) extends AnyVal
+final case class FieldTable(values: Map[ShortString, FieldData])
+    extends AnyVal {
+  def get(key: ShortString): Option[FieldData] = values.get(key)
+  def updated(key: ShortString, value: FieldData): FieldTable = FieldTable(
+    values.updated(key, value)
+  )
+  def updated(key: ShortString, value: Option[FieldData]): FieldTable =
+    value.fold(this)(this.updated(key, _))
+}
 object FieldTable {
   def apply(entries: (ShortString, FieldData)*): FieldTable = new FieldTable(
     entries.toMap

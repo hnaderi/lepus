@@ -19,7 +19,10 @@ package internal
 
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.testkit.TestControl
+import cats.syntax.all.*
 import fs2.Stream
+import lepus.codecs.DomainGenerators
 import lepus.protocol.BasicClass
 import lepus.protocol.ConnectionClass
 import lepus.protocol.Frame
@@ -27,19 +30,19 @@ import lepus.protocol.Method
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.Location
-import scala.concurrent.duration.*
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
+
 import java.util.concurrent.TimeoutException
+import scala.concurrent.duration.*
 
 class StartupNegotiationSuite extends InternalTestSuite {
   private val fakeSaslMechanism =
     SaslMechanism(ShortString("fake1"), IO(LongString("initial")), IO(_))
   private val auth = AuthenticationConfig(fakeSaslMechanism)
 
-  private val clientProps = FieldTable(
-    ShortString("product") -> 1,
-    ShortString("version") -> 1,
-    ShortString("platform") -> 1
-  )
+  private val clientProps = StartupNegotiation.clientProps(None)
+
   private def noSend(using Location) = (_: Frame) =>
     IO(fail("No send expected"))
 
@@ -113,18 +116,13 @@ class StartupNegotiationSuite extends InternalTestSuite {
     } yield ()
   }
 
-  check("Selects first matching mechanism") {
-    val serverResponses = fs2.Stream.emit(
-      method(
-        ConnectionClass.Start(
-          0,
-          9,
-          FieldTable.empty,
-          LongString("fake1 fake2"),
-          locales = LongString("")
-        )
-      )
-    )
+  test("Selects first matching mechanism") {
+    val capabilities: Gen[Capabilities] = Gen.resultOf(Capabilities.apply)
+    val serverProperties = for {
+      b <- DomainGenerators.fieldTable
+      caps <- capabilities
+    } yield (b.updated(ShortString("capabilities"), caps.toFieldTable), caps)
+
     val expected = method(
       ConnectionClass.StartOk(
         clientProps,
@@ -134,16 +132,33 @@ class StartupNegotiationSuite extends InternalTestSuite {
       )
     )
 
-    for {
-      sut <- StartupNegotiation(auth)
-      send <- ExpectedQueue(expected)
-      _ <- sut
-        .pipe(send.assert)(serverResponses)
-        .compile
-        .toList
-        .assertEquals(Nil)
-      _ <- sut.config.intercept[NegotiationFailed.type]
-    } yield ()
+    forAllF(serverProperties) { (serverProps, caps) =>
+      val serverResponses = fs2.Stream.emit(
+        method(
+          ConnectionClass.Start(
+            0,
+            9,
+            serverProps,
+            LongString("fake1 fake2"),
+            locales = LongString("")
+          )
+        )
+      )
+
+      TestControl.executeEmbed(
+        for {
+          sut <- StartupNegotiation(auth)
+          send <- ExpectedQueue(expected)
+          _ <- sut
+            .pipe(send.assert)(serverResponses)
+            .compile
+            .toList
+            .assertEquals(Nil)
+          _ <- sut.config.intercept[NegotiationFailed.type]
+          _ <- sut.capabilities.assertEquals(caps)
+        } yield ()
+      )
+    }
   }
 
   check("Responds to all SASL challenges") {
