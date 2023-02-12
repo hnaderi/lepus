@@ -59,7 +59,9 @@ object Channel {
   }
 
   extension [F[_]](rpc: ChannelTransmitter[F]) {
-    def call[M <: Method, O](m: M)(using d: RPCCallDef[F, M, O]): F[O] =
+    private[client] def call[M <: Method, O](m: M)(using
+        d: RPCCallDef[F, M, O]
+    ): F[O] =
       d.call(rpc)(m)
   }
 
@@ -175,7 +177,8 @@ object Channel {
       channel: ChannelTransmitter[F]
   ) extends ConsumingImpl(channel),
         ReliablePublishingMessagingChannel[F] {
-    def publish(env: Envelope): F[ReliableEnvelope[F]] = ???
+    def publish(env: Envelope): F[DeliveryTag] = ???
+    def confirmations: Stream[F, Confirmation] = ???
   }
 
   private final class TransactionalMessagingImpl[F[_]: Concurrent](

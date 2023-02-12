@@ -77,8 +77,18 @@ trait Publishing[F[_]] {
   def publisher: Pipe[F, Envelope, ReturnedMessage]
 }
 
+enum Acknowledgment {
+  case Ack, Nack
+}
+final case class Confirmation(
+    kind: Acknowledgment,
+    tag: DeliveryTag,
+    multiple: Boolean
+)
+
 trait ReliablePublishing[F[_]] {
-  def publish(env: Envelope): F[ReliableEnvelope[F]]
+  def publish(env: Envelope): F[DeliveryTag]
+  def confirmations: Stream[F, Confirmation]
 }
 
 trait Transaction[F[_]] {
