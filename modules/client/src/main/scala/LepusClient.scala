@@ -33,6 +33,23 @@ object LepusClient {
       vhost: Path = Path("/"),
       config: ConnectionConfig = ConnectionConfig.default,
       inline debug: Boolean = false
+  ): Resource[F, Connection[F]] =
+    from(
+      AuthenticationConfig.default(username = username, password = password),
+      host = host,
+      port = port,
+      vhost = vhost,
+      config = config,
+      debug = debug
+    )
+
+  inline def from[F[_]: Temporal: Network](
+      auth: AuthenticationConfig[F],
+      host: Host = host"localhost",
+      port: Port = port"5672",
+      vhost: Path = Path("/"),
+      config: ConnectionConfig = ConnectionConfig.default,
+      inline debug: Boolean = false
   ): Resource[F, Connection[F]] = {
     val transport = Transport.connect[F](SocketAddress(host, port))
     val t =
@@ -42,11 +59,6 @@ object LepusClient {
         Transport.debug(transport)(using Functor[F], console)
       } else transport
 
-    Connection.from(
-      t,
-      AuthenticationConfig(SaslMechanism.plain(username, password)),
-      path = vhost,
-      config = config
-    )
+    Connection.from(t, auth, path = vhost, config = config)
   }
 }
