@@ -164,16 +164,8 @@ val example =
 
 val docs = project
   .in(file("site"))
-  .enablePlugins(TypelevelSitePlugin)
-  .dependsOn(core.jvm)
-  .settings(
-    tlSiteRelatedProjects := Seq(
-      TypelevelProject.Cats,
-      TypelevelProject.CatsEffect,
-      TypelevelProject.Fs2
-    ),
-    tlSiteHeliumConfig := SiteConfigs(mdocVariables.value)
-  )
+  .enablePlugins(LepusSitePlugin)
+  .dependsOn(client.jvm)
 
 lazy val unidocs = project
   .in(file("unidocs"))
