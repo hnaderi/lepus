@@ -67,12 +67,12 @@ object LepusSitePlugin extends AutoPlugin {
           ),
           license = licenses.value.headOption.map(_._1),
           documentationLinks = Seq(
-            TextLink.internal(Root / "introduction.md", "Getting Started"),
+            TextLink.internal(Root / "introduction.md", "Introduction"),
+            TextLink.internal(Root / "getting-started.md", "Getting Started"),
             TextLink.internal(
               Root / "tutorials" / "hello-world.md",
               "Tutorials"
             ),
-            TextLink.internal(Root / "advanced" / "other.md", "Advanced"),
             TextLink.internal(
               Root / "standard-library" / "0.md",
               "Standard library"
