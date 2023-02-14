@@ -98,6 +98,7 @@ trait QueueAPI[F[_]] {
   ): F[Option[QueueClass.DeleteOk]]
 }
 
+//TODO channel.call
 private[client] final class ExchangeAPIImpl[F[_]](rpc: ChannelTransmitter[F])(
     using F: MonadError[F, Throwable]
 ) extends ExchangeAPI[F] {

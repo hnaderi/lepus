@@ -34,4 +34,31 @@ final case class Properties(
     userId: Option[ShortString] = None,
     appId: Option[ShortString] = None,
     clusterId: Option[ShortString] = None
-)
+) {
+  def withContentType(value: ShortString): Properties =
+    copy(contentType = Some(value))
+  def withContentEncoding(value: ShortString): Properties =
+    copy(contentEncoding = Some(value))
+  def withHeaders(value: FieldTable): Properties = copy(headers = Some(value))
+  def withDeliveryMode(value: DeliveryMode): Properties =
+    copy(deliveryMode = Some(value))
+  def withPriority(value: Priority): Properties = copy(priority = Some(value))
+  def withCorrelationId(value: ShortString): Properties =
+    copy(correlationId = Some(value))
+  def withReplyTo(value: ShortString): Properties = copy(replyTo = Some(value))
+  def withExpiration(value: ShortString): Properties =
+    copy(expiration = Some(value))
+  def withMessageId(value: ShortString): Properties =
+    copy(messageId = Some(value))
+  def withTimestamp(value: Timestamp): Properties =
+    copy(timestamp = Some(value))
+  def withMsgType(value: ShortString): Properties = copy(msgType = Some(value))
+  def withUserId(value: ShortString): Properties = copy(userId = Some(value))
+  def withAppId(value: ShortString): Properties = copy(appId = Some(value))
+  def withClusterId(value: ShortString): Properties =
+    copy(clusterId = Some(value))
+}
+
+object Properties {
+  val empty: Properties = Properties()
+}
