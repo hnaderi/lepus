@@ -144,7 +144,7 @@ object Channel {
       channel: ChannelTransmitter[F]
   ) extends ConsumingImpl[F](channel),
         NormalMessagingChannel[F] {
-    def publish(
+    def publishRaw(
         exchange: ExchangeName,
         routingKey: ShortString,
         message: MessageRaw
@@ -154,7 +154,7 @@ object Channel {
       message
     )
 
-    def publisher: Pipe[F, EnvelopeRaw, ReturnedMessage] = in =>
+    def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessage] = in =>
       val send = in
         .evalMap(e =>
           channel.publish(
@@ -179,7 +179,7 @@ object Channel {
       tagger: SequentialTagger[F]
   ) extends ConsumingImpl(channel),
         ReliablePublishingMessagingChannel[F] {
-    def publish(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
+    def publishRaw(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
       channel
         .publish(
           BasicClass.Publish(

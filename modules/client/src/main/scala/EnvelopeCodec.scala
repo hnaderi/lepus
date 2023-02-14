@@ -31,6 +31,8 @@ trait EnvelopeEncoder[B] { self =>
       contentEncoding = contentEncoding
     )
   )
+  final def encode(env: Envelope[B]): Envelope[ByteVector] =
+    env.copy(message = encode(env.message))
 
   final def withContentType(value: ShortString): EnvelopeEncoder[B] = new {
     def encode(b: B): ByteVector = self.encode(b)
@@ -66,6 +68,8 @@ trait EnvelopeDecoder[A] { self =>
     contentType = msg.properties.contentType,
     contentEncoding = msg.properties.contentEncoding
   ).map(a => msg.copy(payload = a))
+  final def decode(env: EnvelopeRaw): Either[Throwable, Envelope[A]] =
+    decode(env.message).map(m => env.copy(message = m))
 
   final def map[B](f: A => B): EnvelopeDecoder[B] = new {
     override def decode(

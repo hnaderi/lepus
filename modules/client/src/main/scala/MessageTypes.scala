@@ -87,6 +87,9 @@ object MessageRaw {
       payload: ByteVector,
       properties: Properties = Properties.empty
   ): MessageRaw = Message(payload, properties)
+  def from[T](payload: T, properties: Properties = Properties.empty)(using
+      enc: EnvelopeEncoder[T]
+  ): MessageRaw = enc.encode(Message(payload, properties))
 }
 
 type AsyncContent = ReturnedMessage | DeliveredMessage

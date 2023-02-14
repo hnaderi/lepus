@@ -68,17 +68,33 @@ trait Consuming[F[_]] {
 }
 
 trait Publishing[F[_]] {
-  def publish(
+  def publishRaw(
       exchange: ExchangeName,
       routingKey: ShortString,
       message: MessageRaw
   ): F[Unit]
 
-  def publisher: Pipe[F, EnvelopeRaw, ReturnedMessage]
+  final def publish[T](
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      message: Message[T]
+  )(using enc: EnvelopeEncoder[T]): F[Unit] =
+    publishRaw(exchange, routingKey, enc.encode(message))
+
+  def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessage]
+
+  final def publisher[T](using
+      enc: EnvelopeEncoder[T]
+  ): Pipe[F, Envelope[T], ReturnedMessage] =
+    _.map(enc.encode(_)).through(publisherRaw)
 }
 
 trait ReliablePublishing[F[_]] {
-  def publish(env: EnvelopeRaw): F[DeliveryTag]
+  def publishRaw(env: EnvelopeRaw): F[DeliveryTag]
+  final def publish[T](env: Envelope[T])(using
+      enc: EnvelopeEncoder[T]
+  ): F[DeliveryTag] =
+    publishRaw(enc.encode(env))
   def confirmations: Stream[F, Confirmation]
 }
 

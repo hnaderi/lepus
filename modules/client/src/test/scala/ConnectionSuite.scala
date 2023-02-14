@@ -37,7 +37,7 @@ abstract class ConnectionSuite extends CatsEffectSuite {
     val app3 = con.transactionalChannel.use(ch =>
       ch.messaging.transaction.use(trx =>
         ch.messaging
-          .publish(
+          .publishRaw(
             ExchangeName("hello"),
             ShortString("havij"),
             ???

@@ -42,7 +42,7 @@ object Main extends IOApp.Simple {
         .map(_.toMillis)
         .evalTap(l => IO.println(s"publishing $l"))
         .map(l => MessageRaw(ByteVector.fromLong(l)))
-        .evalMap(ch.messaging.publish(exchange, q.queue, _))
+        .evalMap(ch.messaging.publishRaw(exchange, q.queue, _))
       _ <- IO.println(q)
 
       _ <- print.merge(publish).interruptAfter(10.seconds).compile.drain
