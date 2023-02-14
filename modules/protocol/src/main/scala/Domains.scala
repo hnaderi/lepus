@@ -218,3 +218,16 @@ object Priority extends Literally[Int, Priority] {
     case _           => Left("Valid priorities are 0-9")
   }
 }
+
+opaque type ExchangeType <: ShortString = ShortString
+object ExchangeType extends Literally[String, ExchangeType] {
+  inline def apply(t: String): ExchangeType = ${ build('t) }
+
+  override def from(str: String): Either[String, ExchangeType] =
+    ShortString.from(str)
+
+  val Direct: ExchangeType = "direct"
+  val Topic: ExchangeType = "topic"
+  val Fanout: ExchangeType = "fanout"
+  val Headers: ExchangeType = "headers"
+}
