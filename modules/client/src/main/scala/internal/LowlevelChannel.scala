@@ -71,7 +71,8 @@ private[client] object LowlevelChannel {
     for {
       disp <- MessageDispatcher[F](
         returnedBufSize = config.returnedBufSize,
-        confirmBufSize = config.confirmBufSize
+        confirmBufSize = config.confirmBufSize,
+        deliveryBufSize = config.deliveryBufSize
       )
       out <- ChannelOutput(in.output, maxMethods = config.maxConcurrentPublish)
       wlist <- Waitlist[F, Option[SynchronousGet]](size =
