@@ -12,3 +12,9 @@
 Coming soon!  
 THIS IS A WORK IN PROGRESS AND IS NOT READY TO USE YET!  
 Please watch for releases using watch button so you'll get notified when it's ready to use.
+
+-----
+
+<sub>Logo illustration by Catalina Vásquez
+from Los Animales del cielo
+</sub>
