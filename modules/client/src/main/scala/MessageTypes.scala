@@ -16,52 +16,115 @@
 
 package lepus.client
 
-import fs2.concurrent.Signal
 import lepus.protocol.classes.basic.Properties
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
 
-final case class Envelope(
+final case class Envelope[T](
     exchange: ExchangeName,
     routingKey: ShortString,
     mandatory: Boolean,
     // immediate: Boolean, // RabbitMQ does not implement immediate flag
-    message: Message
+    message: Message[T]
 )
-
-final case class Message(
-    payload: ByteVector,
+final case class Message[T](
+    payload: T,
     properties: Properties = Properties()
-)
+) {
+  def withPayload[A](value: A): Message[A] = copy(payload = value)
+  def withProperties(value: Properties): Message[T] = copy(properties = value)
 
-type AsyncContent = ReturnedMessage | DeliveredMessage
+  def withContentType(value: ShortString) =
+    withProperties(properties.withContentType(value))
 
-final case class ReturnedMessage(
+  def withContentEncoding(value: ShortString): Message[T] = withProperties(
+    properties.withContentEncoding(value)
+  )
+  def withHeaders(value: FieldTable): Message[T] = withProperties(
+    properties.withHeaders(value)
+  )
+  def withDeliveryMode(value: DeliveryMode): Message[T] = withProperties(
+    properties.withDeliveryMode(value)
+  )
+  def withPriority(value: Priority): Message[T] = withProperties(
+    properties.withPriority(value)
+  )
+  def withCorrelationId(value: ShortString): Message[T] = withProperties(
+    properties.withCorrelationId(value)
+  )
+  def withReplyTo(value: ShortString): Message[T] = withProperties(
+    properties.withReplyTo(value)
+  )
+  def withExpiration(value: ShortString): Message[T] = withProperties(
+    properties.withExpiration(value)
+  )
+  def withMessageId(value: ShortString): Message[T] = withProperties(
+    properties.withMessageId(value)
+  )
+  def withTimestamp(value: Timestamp): Message[T] = withProperties(
+    properties.withTimestamp(value)
+  )
+  def withMsgType(value: ShortString): Message[T] = withProperties(
+    properties.withMsgType(value)
+  )
+  def withUserId(value: ShortString): Message[T] = withProperties(
+    properties.withUserId(value)
+  )
+  def withAppId(value: ShortString): Message[T] = withProperties(
+    properties.withAppId(value)
+  )
+  def withClusterId(value: ShortString): Message[T] = withProperties(
+    properties.withClusterId(value)
+  )
+}
+
+type EnvelopeRaw = Envelope[ByteVector]
+val EnvelopeRaw = Envelope
+type MessageRaw = Message[ByteVector]
+object MessageRaw {
+  def apply(
+      payload: ByteVector,
+      properties: Properties = Properties.empty
+  ): MessageRaw = Message(payload, properties)
+  def from[T](payload: T, properties: Properties = Properties.empty)(using
+      enc: EnvelopeEncoder[T]
+  ): MessageRaw = enc.encode(Message(payload, properties))
+}
+
+type AsyncContent = ReturnedMessageRaw | DeliveredMessageRaw
+
+final case class ReturnedMessage[T](
     replyCode: ReplyCode,
     replyText: ReplyText,
     exchange: ExchangeName,
     routingKey: ShortString,
-    message: Message
+    message: Message[T]
 )
+type ReturnedMessageRaw = ReturnedMessage[ByteVector]
+val ReturnedMessageRaw = ReturnedMessage
 
-final case class DeliveredMessage(
+final case class DeliveredMessage[T](
     consumerTag: ConsumerTag,
     deliveryTag: DeliveryTag,
     redelivered: Redelivered,
     exchange: ExchangeName,
     routingKey: ShortString,
-    message: Message
+    message: Message[T]
 )
+type DeliveredMessageRaw = DeliveredMessage[ByteVector]
+val DeliveredMessageRaw = DeliveredMessage
 
-final case class SynchronousGet(
+final case class SynchronousGet[T](
     deliveryTag: DeliveryTag,
     redelivered: Redelivered,
     exchange: ExchangeName,
     routingKey: ShortString,
     messageCount: MessageCount,
-    message: Message
+    message: Message[T]
 )
+type SynchronousGetRaw = SynchronousGet[ByteVector]
+val SynchronousGetRaw = SynchronousGet
 
 enum Acknowledgment {
   case Ack, Nack
@@ -71,3 +134,8 @@ final case class Confirmation(
     tag: DeliveryTag,
     multiple: Boolean
 )
+
+enum ConsumeMode {
+  case RaiseOnError(ack: Boolean)
+  case NackOnError
+}

@@ -92,12 +92,13 @@ trait QueueAPI[F[_]] {
 
   def delete(
       queue: QueueName,
-      ifUnused: Boolean,
-      ifEmpty: Boolean,
-      noWait: NoWait
+      ifUnused: Boolean = true,
+      ifEmpty: Boolean = true,
+      noWait: NoWait = false
   ): F[Option[QueueClass.DeleteOk]]
 }
 
+//TODO channel.call
 private[client] final class ExchangeAPIImpl[F[_]](rpc: ChannelTransmitter[F])(
     using F: MonadError[F, Throwable]
 ) extends ExchangeAPI[F] {

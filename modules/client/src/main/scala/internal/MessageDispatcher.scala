@@ -27,21 +27,23 @@ import lepus.protocol.domains.*
 import lepus.protocol.constants.ReplyCode
 
 private[client] trait MessageDispatcher[F[_]] {
-  def deliver(msg: DeliveredMessage): F[Unit]
-  def `return`(msg: ReturnedMessage): F[Unit]
+  def deliver(msg: DeliveredMessageRaw): F[Unit]
+  def `return`(msg: ReturnedMessageRaw): F[Unit]
   def confirm(msg: ConfirmationResponse): F[Unit]
 
-  def deliveryQ: Resource[F, (ConsumerTag, QueueSource[F, DeliveredMessage])]
-  def returnQ: QueueSource[F, ReturnedMessage]
+  def deliveryQ: Resource[F, (ConsumerTag, QueueSource[F, DeliveredMessageRaw])]
+  def returnQ: QueueSource[F, ReturnedMessageRaw]
   def confirmationQ: QueueSource[F, ConfirmationResponse]
 }
 
 private[client] object MessageDispatcher {
-  def apply[F[_]](returnedBufSize: Int = 10, confirmBufSize: Int = 10)(using
-      F: Concurrent[F]
-  ): F[MessageDispatcher[F]] = for {
-    dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, DeliveredMessage]])
-    rq <- Queue.bounded[F, ReturnedMessage](returnedBufSize)
+  def apply[F[_]](
+      returnedBufSize: Int = 10,
+      confirmBufSize: Int = 10,
+      deliveryBufSize: Int = 10
+  )(using F: Concurrent[F]): F[MessageDispatcher[F]] = for {
+    dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, DeliveredMessageRaw]])
+    rq <- Queue.bounded[F, ReturnedMessageRaw](returnedBufSize)
     cq <- Queue.bounded[F, ConfirmationResponse](confirmBufSize)
     counter <- F.ref(0)
   } yield new {
@@ -51,16 +53,16 @@ private[client] object MessageDispatcher {
       .map(i => ConsumerTag.from(s"consumer-$i").getOrElse(???))
       .toResource
 
-    override def deliver(msg: DeliveredMessage): F[Unit] =
+    override def deliver(msg: DeliveredMessageRaw): F[Unit] =
       dqs.get.map(_.get(msg.consumerTag)).flatMap {
         case Some(q) => q.offer(msg)
         case None    => F.unit
       }
 
-    override def `return`(msg: ReturnedMessage): F[Unit] = rq.offer(msg)
+    override def `return`(msg: ReturnedMessageRaw): F[Unit] = rq.offer(msg)
 
     override def deliveryQ
-        : Resource[F, (ConsumerTag, QueueSource[F, DeliveredMessage])] =
+        : Resource[F, (ConsumerTag, QueueSource[F, DeliveredMessageRaw])] =
       for {
         ctag <- newCtag
         q <- addQ(ctag)
@@ -68,15 +70,15 @@ private[client] object MessageDispatcher {
 
     private def addQ(
         ctag: ConsumerTag
-    ): Resource[F, QueueSource[F, DeliveredMessage]] = Resource.make(
+    ): Resource[F, QueueSource[F, DeliveredMessageRaw]] = Resource.make(
       Queue
-        .bounded[F, DeliveredMessage](1) // TODO queue size
+        .bounded[F, DeliveredMessageRaw](deliveryBufSize)
         .flatTap(q => dqs.update(_.updated(ctag, q)))
     )(_ => removeQ(ctag))
 
     private def removeQ(ctag: ConsumerTag) = dqs.update(_ - ctag)
 
-    override def returnQ: QueueSource[F, ReturnedMessage] = rq
+    override def returnQ: QueueSource[F, ReturnedMessageRaw] = rq
 
     override def confirm(msg: ConfirmationResponse): F[Unit] = cq.offer(msg)
 

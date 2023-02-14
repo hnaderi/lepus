@@ -26,7 +26,7 @@ import lepus.protocol.domains.*
 import scodec.bits.ByteVector
 
 private[client] trait ChannelPublisher[F[_]] {
-  def send(method: BasicClass.Publish, msg: Message): F[Unit]
+  def send(method: BasicClass.Publish, msg: MessageRaw): F[Unit]
 }
 
 private[client] object ChannelPublisher {
@@ -35,7 +35,7 @@ private[client] object ChannelPublisher {
       maxSize: Long,
       publisher: SequentialOutput[F, Frame]
   ): ChannelPublisher[F] = new {
-    def send(method: BasicClass.Publish, msg: Message): F[Unit] =
+    def send(method: BasicClass.Publish, msg: MessageRaw): F[Unit] =
       publisher.writeAll(
         List
           .range(0L, msg.payload.size, maxSize)

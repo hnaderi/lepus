@@ -21,6 +21,7 @@ import cats.MonadError
 import cats.effect.kernel.Resource
 import cats.implicits.*
 import fs2.Pipe
+import fs2.RaiseThrowable
 import fs2.Stream
 import lepus.protocol.*
 import lepus.protocol.classes.*
@@ -34,22 +35,53 @@ trait Consuming[F[_]] {
   def qos(
       prefetchSize: Int = 0,
       prefetchCount: Short,
-      global: Boolean
+      global: Boolean = false
   ): F[BasicClass.QosOk.type]
 
-  def consume(
+  def consumeRaw(
       queue: QueueName,
       noLocal: NoLocal = false,
       noAck: NoAck = true,
       exclusive: Boolean = false,
-      noWait: NoWait = false,
       arguments: FieldTable = FieldTable.empty
-  ): Stream[F, DeliveredMessage]
+  ): Stream[F, DeliveredMessageRaw]
+
+  final def consume[T](
+      queue: QueueName,
+      mode: ConsumeMode = ConsumeMode.RaiseOnError(false),
+      noLocal: NoLocal = false,
+      exclusive: Boolean = false,
+      arguments: FieldTable = FieldTable.empty
+  )(using
+      dec: EnvelopeDecoder[T],
+      F: RaiseThrowable[F]
+  ): Stream[F, DeliveredMessage[T]] = {
+    val noAck = mode == ConsumeMode.RaiseOnError(false)
+    val run: DeliveredMessageRaw => Stream[F, DeliveredMessage[T]] =
+      mode match {
+        case ConsumeMode.RaiseOnError(_) =>
+          msg =>
+            Stream.fromEither(
+              dec.decode(msg.message).map(n => msg.copy(message = n))
+            )
+        case ConsumeMode.NackOnError =>
+          msg =>
+            dec
+              .decode(msg.message)
+              .map(n => msg.copy(message = n))
+              .fold(
+                _ => Stream.exec(nack(msg.deliveryTag, false, false)),
+                Stream.emit(_)
+              )
+      }
+
+    consumeRaw(queue, noLocal, noAck, exclusive, arguments).flatMap(run)
+  }
 
   def get(
       queue: QueueName,
       noAck: NoAck
-  ): F[Option[SynchronousGet]]
+  ): F[Option[SynchronousGetRaw]]
 
   def ack(deliveryTag: DeliveryTag, multiple: Boolean = false): F[Unit]
 
@@ -68,17 +100,33 @@ trait Consuming[F[_]] {
 }
 
 trait Publishing[F[_]] {
-  def publish(
+  def publishRaw(
       exchange: ExchangeName,
       routingKey: ShortString,
-      message: Message
+      message: MessageRaw
   ): F[Unit]
 
-  def publisher: Pipe[F, Envelope, ReturnedMessage]
+  final def publish[T](
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      message: Message[T]
+  )(using enc: EnvelopeEncoder[T]): F[Unit] =
+    publishRaw(exchange, routingKey, enc.encode(message))
+
+  def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessageRaw]
+
+  final def publisher[T](using
+      enc: EnvelopeEncoder[T]
+  ): Pipe[F, Envelope[T], ReturnedMessageRaw] =
+    _.map(enc.encode(_)).through(publisherRaw)
 }
 
 trait ReliablePublishing[F[_]] {
-  def publish(env: Envelope): F[DeliveryTag]
+  def publishRaw(env: EnvelopeRaw): F[DeliveryTag]
+  final def publish[T](env: Envelope[T])(using
+      enc: EnvelopeEncoder[T]
+  ): F[DeliveryTag] =
+    publishRaw(enc.encode(env))
   def confirmations: Stream[F, Confirmation]
 }
 

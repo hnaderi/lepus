@@ -20,6 +20,7 @@ import lepus.protocol.domains.ShortString
 import scala.annotation.targetName
 
 final class ChannelConfig private (
+    val deliveryBufSize: Int = 100,
     val returnedBufSize: Int = 10,
     val confirmBufSize: Int = 10,
     val maxConcurrentGet: Int = 10,
@@ -27,12 +28,14 @@ final class ChannelConfig private (
     val maxConcurrentPublish: Int = 10
 ) {
   private def copy(
+      deliveryBufSize: Int = deliveryBufSize,
       returnedBufSize: Int = returnedBufSize,
       confirmBufSize: Int = confirmBufSize,
       maxConcurrentGet: Int = maxConcurrentGet,
       maxConcurrentRPC: Int = maxConcurrentRPC,
       maxConcurrentPublish: Int = maxConcurrentPublish
   ): ChannelConfig = new ChannelConfig(
+    deliveryBufSize = deliveryBufSize,
     returnedBufSize = returnedBufSize,
     confirmBufSize = confirmBufSize,
     maxConcurrentGet = maxConcurrentGet,
@@ -40,6 +43,8 @@ final class ChannelConfig private (
     maxConcurrentPublish = maxConcurrentPublish
   )
 
+  def withDeliveryBufSize(size: Int): ChannelConfig =
+    copy(deliveryBufSize = size)
   def withReturnedBufSize(size: Int): ChannelConfig =
     copy(returnedBufSize = size)
   def withConfirmedBufSize(size: Int): ChannelConfig =

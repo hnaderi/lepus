@@ -82,14 +82,13 @@ object Channel {
       )
     )
 
-    def consume(
+    def consumeRaw(
         queue: QueueName,
         noLocal: NoLocal = false,
         noAck: NoAck = true,
         exclusive: Boolean = false,
-        noWait: NoWait = false,
         arguments: FieldTable = FieldTable.empty
-    ): Stream[F, DeliveredMessage] =
+    ): Stream[F, DeliveredMessageRaw] =
       import Stream.*
       resource(channel.delivered).flatMap { case (ctag, data) =>
         val recv = eval(
@@ -100,7 +99,7 @@ object Channel {
               noLocal = noLocal,
               noAck = noAck,
               exclusive = exclusive,
-              noWait = noWait,
+              noWait = true,
               arguments
             )
           )
@@ -114,7 +113,7 @@ object Channel {
     def get(
         queue: QueueName,
         noAck: NoAck
-    ): F[Option[SynchronousGet]] =
+    ): F[Option[SynchronousGetRaw]] =
       channel.get(BasicClass.Get(queue, noAck))
 
     def ack(deliveryTag: DeliveryTag, multiple: Boolean = false): F[Unit] =
@@ -144,17 +143,17 @@ object Channel {
       channel: ChannelTransmitter[F]
   ) extends ConsumingImpl[F](channel),
         NormalMessagingChannel[F] {
-    def publish(
+    def publishRaw(
         exchange: ExchangeName,
         routingKey: ShortString,
-        message: Message
+        message: MessageRaw
     ): F[Unit] = channel.publish(
       BasicClass
         .Publish(exchange, routingKey, mandatory = false, immediate = false),
       message
     )
 
-    def publisher: Pipe[F, Envelope, ReturnedMessage] = in =>
+    def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessageRaw] = in =>
       val send = in
         .evalMap(e =>
           channel.publish(
@@ -179,7 +178,7 @@ object Channel {
       tagger: SequentialTagger[F]
   ) extends ConsumingImpl(channel),
         ReliablePublishingMessagingChannel[F] {
-    def publish(env: Envelope): F[DeliveryTag] = tagger.next(
+    def publishRaw(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
       channel
         .publish(
           BasicClass.Publish(

@@ -31,7 +31,7 @@ import lepus.codecs.BasicDataGenerator
 
 class MessageDispatcherSuite extends InternalTestSuite {
   private val consumers = DomainGenerators.consumerTag
-  private val deliveries: Gen[DeliveredMessage] = for {
+  private val deliveries: Gen[DeliveredMessageRaw] = for {
     ctag <- consumers
     dtag <- DomainGenerators.deliveryTag
     rdlv <- Arbitrary.arbitrary[Boolean]
@@ -39,17 +39,17 @@ class MessageDispatcherSuite extends InternalTestSuite {
     rkey <- DomainGenerators.shortString
     props <- DomainGenerators.properties
     data <- FrameGenerators.blob
-    msg = Message(data, props)
-  } yield DeliveredMessage(ctag, dtag, rdlv, ex, rkey, msg)
-  private val returns: Gen[ReturnedMessage] = for {
+    msg = MessageRaw(data, props)
+  } yield DeliveredMessageRaw(ctag, dtag, rdlv, ex, rkey, msg)
+  private val returns: Gen[ReturnedMessageRaw] = for {
     ex <- DomainGenerators.exchangeName
     rcode <- DomainGenerators.replyCode
     rtxt <- DomainGenerators.shortString
     rkey <- DomainGenerators.shortString
     props <- DomainGenerators.properties
     data <- FrameGenerators.blob
-    msg = Message(data, props)
-  } yield ReturnedMessage(rcode, rtxt, ex, rkey, msg)
+    msg = MessageRaw(data, props)
+  } yield ReturnedMessageRaw(rcode, rtxt, ex, rkey, msg)
   private val confirmations: Gen[ConfirmationResponse] =
     Gen.oneOf(BasicDataGenerator.ackGen, BasicDataGenerator.nackGen)
 

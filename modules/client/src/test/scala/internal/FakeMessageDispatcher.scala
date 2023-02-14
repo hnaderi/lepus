@@ -31,20 +31,20 @@ import munit.CatsEffectAssertions.*
 import munit.Location
 
 final class FakeMessageDispatcher(
-    delivered: Ref[IO, List[DeliveredMessage]],
-    returns: Ref[IO, List[ReturnedMessage]],
-    returned: Queue[IO, ReturnedMessage],
-    deliveries: Ref[IO, Map[ConsumerTag, Queue[IO, DeliveredMessage]]],
+    delivered: Ref[IO, List[DeliveredMessageRaw]],
+    returns: Ref[IO, List[ReturnedMessageRaw]],
+    returned: Queue[IO, ReturnedMessageRaw],
+    deliveries: Ref[IO, Map[ConsumerTag, Queue[IO, DeliveredMessageRaw]]],
     confirms: Ref[IO, List[ConfirmationResponse]],
     confirmed: Queue[IO, ConfirmationResponse]
 ) extends MessageDispatcher[IO] {
 
-  def deliver(msg: DeliveredMessage): IO[Unit] =
+  def deliver(msg: DeliveredMessageRaw): IO[Unit] =
     delivered.update(_.prepended(msg)) >> deliveries.get.flatMap(
       _.get(msg.consumerTag).fold(IO.unit)(_.offer(msg))
     )
 
-  def `return`(msg: ReturnedMessage): IO[Unit] =
+  def `return`(msg: ReturnedMessageRaw): IO[Unit] =
     returns.update(_.prepended(msg)) >> returned.offer(msg)
 
   private val newCtag = UUIDGen.randomString[IO].map(ShortString.from).flatMap {
@@ -53,19 +53,19 @@ final class FakeMessageDispatcher(
   }
 
   def deliveryQ
-      : Resource[IO, (ConsumerTag, QueueSource[IO, DeliveredMessage])] =
+      : Resource[IO, (ConsumerTag, QueueSource[IO, DeliveredMessageRaw])] =
     Resource
       .eval(newCtag)
       .flatMap(ctag =>
         Resource.make(
           Queue
-            .unbounded[IO, DeliveredMessage]
+            .unbounded[IO, DeliveredMessageRaw]
             .flatTap(q => deliveries.update(_.updated(ctag, q)))
             .map((ctag, _))
         )(_ => deliveries.update(_ - ctag))
       )
 
-  def returnQ: QueueSource[IO, ReturnedMessage] = returned
+  def returnQ: QueueSource[IO, ReturnedMessageRaw] = returned
 
   override def confirmationQ
       : QueueSource[cats.effect.IO, ConfirmationResponse] = confirmed
@@ -73,9 +73,9 @@ final class FakeMessageDispatcher(
   override def confirm(msg: ConfirmationResponse): IO[Unit] =
     confirms.update(_.prepended(msg)) >> confirmed.offer(msg)
 
-  def assertDelivered(msg: DeliveredMessage)(using Location): IO[Unit] =
+  def assertDelivered(msg: DeliveredMessageRaw)(using Location): IO[Unit] =
     delivered.get.map(_.contains(msg)).assert
-  def assertReturned(msg: ReturnedMessage)(using Location): IO[Unit] =
+  def assertReturned(msg: ReturnedMessageRaw)(using Location): IO[Unit] =
     returns.get.map(_.contains(msg)).assert
   def assertConfirmed(msg: ConfirmationResponse)(using Location): IO[Unit] =
     confirms.get.map(_.contains(msg)).assert
@@ -90,10 +90,10 @@ final class FakeMessageDispatcher(
 object FakeMessageDispatcher {
   def apply(): IO[FakeMessageDispatcher] =
     (
-      IO.ref(List.empty[DeliveredMessage]),
-      IO.ref(List.empty[ReturnedMessage]),
-      Queue.unbounded[IO, ReturnedMessage],
-      IO.ref(Map.empty[ConsumerTag, Queue[IO, DeliveredMessage]]),
+      IO.ref(List.empty[DeliveredMessageRaw]),
+      IO.ref(List.empty[ReturnedMessageRaw]),
+      Queue.unbounded[IO, ReturnedMessageRaw],
+      IO.ref(Map.empty[ConsumerTag, Queue[IO, DeliveredMessageRaw]]),
       IO.ref(List.empty[ConfirmationResponse]),
       Queue.unbounded[IO, ConfirmationResponse],
     )

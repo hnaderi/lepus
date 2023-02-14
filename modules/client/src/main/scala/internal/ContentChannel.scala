@@ -41,7 +41,7 @@ private[client] trait ContentChannel[F[_]] {
   def recv(h: Frame.Header | Frame.Body): F[Unit]
   def abort: F[Unit]
 
-  def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]]
+  def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGetRaw]]]
 }
 
 private[client] object ContentChannel {
@@ -50,7 +50,7 @@ private[client] object ContentChannel {
       channelNumber: ChannelNumber,
       publisher: SequentialOutput[F, Frame],
       dispatcher: MessageDispatcher[F],
-      getList: Waitlist[F, Option[SynchronousGet]]
+      getList: Waitlist[F, Option[SynchronousGetRaw]]
   )(using
       F: Concurrent[F]
   ): F[ContentChannel[F]] =
@@ -94,8 +94,8 @@ private[client] object ContentChannel {
       ) =
         if nacc.isCompleted then
           build(m, nacc) match {
-            case d: DeliveredMessage => dispatcher.deliver(d)
-            case r: ReturnedMessage  => dispatcher.`return`(r)
+            case d: DeliveredMessageRaw => dispatcher.deliver(d)
+            case r: ReturnedMessageRaw  => dispatcher.`return`(r)
           }
         else state.set(State.AsyncStarted(m, nacc))
 
@@ -105,13 +105,13 @@ private[client] object ContentChannel {
       ): F[Unit] =
         if nacc.isCompleted then
           respond(
-            SynchronousGet(
+            SynchronousGetRaw(
               m.deliveryTag,
               m.redelivered,
               m.exchange,
               m.routingKey,
               m.messageCount,
-              Message(nacc.content, nacc.header.props)
+              MessageRaw(nacc.content, nacc.header.props)
             ).some
           )
         else state.set(State.SyncStarted(m, nacc)).widen
@@ -121,28 +121,30 @@ private[client] object ContentChannel {
           nacc: Accumulator.Started
       ): AsyncContent = m match {
         case m: BasicClass.Deliver =>
-          DeliveredMessage(
+          DeliveredMessageRaw(
             m.consumerTag,
             m.deliveryTag,
             m.redelivered,
             m.exchange,
             m.routingKey,
-            Message(nacc.content, nacc.header.props)
+            MessageRaw(nacc.content, nacc.header.props)
           )
         case m: BasicClass.Return =>
-          ReturnedMessage(
+          ReturnedMessageRaw(
             m.replyCode,
             m.replyText,
             m.exchange,
             m.routingKey,
-            Message(nacc.content, nacc.header.props)
+            MessageRaw(nacc.content, nacc.header.props)
           )
       }
 
-      def get(m: BasicClass.Get): F[DeferredSource[F, Option[SynchronousGet]]] =
+      def get(
+          m: BasicClass.Get
+      ): F[DeferredSource[F, Option[SynchronousGetRaw]]] =
         getList.checkinAnd(publisher.writeOne(Frame.Method(channelNumber, m)))
 
-      private def respond(o: Option[SynchronousGet]): F[Unit] =
+      private def respond(o: Option[SynchronousGetRaw]): F[Unit] =
         getList.nextTurn(o).map(if _ then () else ReplyCode.SyntaxError)
 
       def syncNotify(m: ContentSyncResponse): F[Unit] = m match {

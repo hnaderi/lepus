@@ -49,7 +49,7 @@ class ChannelPublisherSuite extends InternalTestSuite {
         sout <- ChannelOutput(pq, 1000)
         sut = ChannelPublisher[IO](ch, size, sout)
 
-        _ <- sut.send(publishMethod, Message(data, props))
+        _ <- sut.send(publishMethod, MessageRaw(data, props))
 
         _ <- pq.size.assertEquals(frameCount + 2)
 
