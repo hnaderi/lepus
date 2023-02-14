@@ -18,7 +18,9 @@ package lepus.client
 
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
+import scala.annotation.implicitNotFound
 
+@implicitNotFound("Cannot find a way to encode ${B} into a message envelope")
 trait EnvelopeEncoder[B] { self =>
   def encode(b: B): ByteVector
   val contentType: Option[ShortString] = None
@@ -54,8 +56,12 @@ trait EnvelopeEncoder[B] { self =>
 
 object EnvelopeEncoder {
   inline def apply[T](using ee: EnvelopeEncoder[T]): EnvelopeEncoder[T] = ee
+  given EnvelopeEncoder[String] = new {
+    override def encode(b: String): ByteVector = ByteVector.view(b.getBytes())
+  }
 }
 
+@implicitNotFound("Cannot find a way to decode a message envelope into ${A}")
 trait EnvelopeDecoder[A] { self =>
   def decode(
       payload: ByteVector,
@@ -126,6 +132,13 @@ trait EnvelopeDecoder[A] { self =>
 
 object EnvelopeDecoder {
   inline def apply[T](using ed: EnvelopeDecoder[T]): EnvelopeDecoder[T] = ed
+  given EnvelopeDecoder[String] = new {
+    override def decode(
+        payload: ByteVector,
+        contentType: Option[ShortString],
+        contentEncoding: Option[ShortString]
+    ): Either[Throwable, String] = payload.decodeUtf8
+  }
 }
 
 trait EnvelopeCodec[T] extends EnvelopeEncoder[T], EnvelopeDecoder[T]

@@ -134,3 +134,8 @@ final case class Confirmation(
     tag: DeliveryTag,
     multiple: Boolean
 )
+
+enum ConsumeMode {
+  case RaiseOnError(ack: Boolean)
+  case NackOnError
+}

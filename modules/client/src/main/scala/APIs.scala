@@ -92,9 +92,9 @@ trait QueueAPI[F[_]] {
 
   def delete(
       queue: QueueName,
-      ifUnused: Boolean,
-      ifEmpty: Boolean,
-      noWait: NoWait
+      ifUnused: Boolean = true,
+      ifEmpty: Boolean = true,
+      noWait: NoWait = false
   ): F[Option[QueueClass.DeleteOk]]
 }
 

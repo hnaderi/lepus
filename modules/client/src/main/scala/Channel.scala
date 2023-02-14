@@ -82,12 +82,11 @@ object Channel {
       )
     )
 
-    def consume(
+    def consumeRaw(
         queue: QueueName,
         noLocal: NoLocal = false,
         noAck: NoAck = true,
         exclusive: Boolean = false,
-        noWait: NoWait = false,
         arguments: FieldTable = FieldTable.empty
     ): Stream[F, DeliveredMessageRaw] =
       import Stream.*
@@ -100,7 +99,7 @@ object Channel {
               noLocal = noLocal,
               noAck = noAck,
               exclusive = exclusive,
-              noWait = noWait,
+              noWait = true,
               arguments
             )
           )
