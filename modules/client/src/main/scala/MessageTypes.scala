@@ -92,33 +92,39 @@ object MessageRaw {
   ): MessageRaw = enc.encode(Message(payload, properties))
 }
 
-type AsyncContent = ReturnedMessage | DeliveredMessage
+type AsyncContent = ReturnedMessageRaw | DeliveredMessageRaw
 
-final case class ReturnedMessage(
+final case class ReturnedMessage[T](
     replyCode: ReplyCode,
     replyText: ReplyText,
     exchange: ExchangeName,
     routingKey: ShortString,
-    message: MessageRaw
+    message: Message[T]
 )
+type ReturnedMessageRaw = ReturnedMessage[ByteVector]
+val ReturnedMessageRaw = ReturnedMessage
 
-final case class DeliveredMessage(
+final case class DeliveredMessage[T](
     consumerTag: ConsumerTag,
     deliveryTag: DeliveryTag,
     redelivered: Redelivered,
     exchange: ExchangeName,
     routingKey: ShortString,
-    message: MessageRaw
+    message: Message[T]
 )
+type DeliveredMessageRaw = DeliveredMessage[ByteVector]
+val DeliveredMessageRaw = DeliveredMessage
 
-final case class SynchronousGet(
+final case class SynchronousGet[T](
     deliveryTag: DeliveryTag,
     redelivered: Redelivered,
     exchange: ExchangeName,
     routingKey: ShortString,
     messageCount: MessageCount,
-    message: MessageRaw
+    message: Message[T]
 )
+type SynchronousGetRaw = SynchronousGet[ByteVector]
+val SynchronousGetRaw = SynchronousGet
 
 enum Acknowledgment {
   case Ack, Nack

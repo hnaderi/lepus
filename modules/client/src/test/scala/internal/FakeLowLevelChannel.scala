@@ -61,14 +61,14 @@ final class FakeLowLevelChannel(
   }
 
   override def delivered
-      : Resource[IO, (ConsumerTag, Stream[IO, DeliveredMessage])] =
+      : Resource[IO, (ConsumerTag, Stream[IO, DeliveredMessageRaw])] =
     Resource.eval(channel.get).flatMap(_.delivered)
 
   override def header(h: Frame.Header): IO[Unit] = call(_.header(h))
 
   override def body(h: Frame.Body): IO[Unit] = call(_.body(h))
 
-  override def get(m: Get): IO[Option[SynchronousGet]] = call(_.get(m))
+  override def get(m: Get): IO[Option[SynchronousGetRaw]] = call(_.get(m))
 
   override def method(m: Method): IO[Unit] =
     call(_.method(m))
@@ -79,7 +79,7 @@ final class FakeLowLevelChannel(
   override def syncContent(m: ContentSyncResponse): IO[Unit] =
     call(_.syncContent(m))
 
-  override def returned: Stream[cats.effect.IO, ReturnedMessage] =
+  override def returned: Stream[cats.effect.IO, ReturnedMessageRaw] =
     Stream.eval(channel.get).flatMap(_.returned)
 
   override def sendWait(m: Method): IO[Method] =

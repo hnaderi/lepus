@@ -52,10 +52,10 @@ private[client] trait ChannelTransmitter[F[_]] {
   def sendWait(m: Method): F[Method]
   def sendNoWait(m: Method): F[Unit]
 
-  def get(m: BasicClass.Get): F[Option[SynchronousGet]]
+  def get(m: BasicClass.Get): F[Option[SynchronousGetRaw]]
 
-  def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessage])]
-  def returned: Stream[F, ReturnedMessage]
+  def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])]
+  def returned: Stream[F, ReturnedMessageRaw]
   def confirmed: Stream[F, Confirmation]
 
   def status: Signal[F, Status]
@@ -75,7 +75,7 @@ private[client] object LowlevelChannel {
         deliveryBufSize = config.deliveryBufSize
       )
       out <- ChannelOutput(in.output, maxMethods = config.maxConcurrentPublish)
-      wlist <- Waitlist[F, Option[SynchronousGet]](size =
+      wlist <- Waitlist[F, Option[SynchronousGetRaw]](size =
         config.maxConcurrentGet
       )
       content <- ContentChannel(in.number, out, disp, wlist)
@@ -151,15 +151,15 @@ private[client] object LowlevelChannel {
       }
 
     def sendNoWait(m: Method): F[Unit] = rpc.sendNoWait(m)
-    def get(m: BasicClass.Get): F[Option[SynchronousGet]] =
+    def get(m: BasicClass.Get): F[Option[SynchronousGetRaw]] =
       content.get(m).flatMap(_.get)
 
-    def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessage])] =
+    def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])] =
       disp.deliveryQ.map { case (ctag, q) =>
         (ctag, Stream.fromQueueUnterminated(q).interruptWhen(isClosed))
       }
 
-    def returned: Stream[F, ReturnedMessage] =
+    def returned: Stream[F, ReturnedMessageRaw] =
       Stream.fromQueueUnterminated(disp.returnQ).interruptWhen(isClosed)
 
     def confirmed: Stream[F, Confirmation] = Stream

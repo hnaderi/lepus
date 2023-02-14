@@ -44,12 +44,12 @@ trait Consuming[F[_]] {
       exclusive: Boolean = false,
       noWait: NoWait = false,
       arguments: FieldTable = FieldTable.empty
-  ): Stream[F, DeliveredMessage]
+  ): Stream[F, DeliveredMessageRaw]
 
   def get(
       queue: QueueName,
       noAck: NoAck
-  ): F[Option[SynchronousGet]]
+  ): F[Option[SynchronousGetRaw]]
 
   def ack(deliveryTag: DeliveryTag, multiple: Boolean = false): F[Unit]
 
@@ -81,11 +81,11 @@ trait Publishing[F[_]] {
   )(using enc: EnvelopeEncoder[T]): F[Unit] =
     publishRaw(exchange, routingKey, enc.encode(message))
 
-  def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessage]
+  def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessageRaw]
 
   final def publisher[T](using
       enc: EnvelopeEncoder[T]
-  ): Pipe[F, Envelope[T], ReturnedMessage] =
+  ): Pipe[F, Envelope[T], ReturnedMessageRaw] =
     _.map(enc.encode(_)).through(publisherRaw)
 }
 

@@ -166,7 +166,7 @@ class ContentChannelSuite extends InternalTestSuite {
     _ <- method match {
       case m: BasicClass.Deliver =>
         cc.dispatcher.assertDelivered(
-          DeliveredMessage(
+          DeliveredMessageRaw(
             consumerTag = m.consumerTag,
             deliveryTag = m.deliveryTag,
             redelivered = m.redelivered,
@@ -177,7 +177,7 @@ class ContentChannelSuite extends InternalTestSuite {
         )
       case m: BasicClass.Return =>
         cc.dispatcher.assertReturned(
-          ReturnedMessage(
+          ReturnedMessageRaw(
             replyCode = m.replyCode,
             replyText = m.replyText,
             exchange = m.exchange,
@@ -199,7 +199,7 @@ class ContentChannelSuite extends InternalTestSuite {
       _ <- msgDef.tryGet.assertEquals(None)
       _ <- syncActions(cc)(m, content).traverse(_.assertEquals(()))
       _ <- msgDef.get.assertEquals(
-        SynchronousGet(
+        SynchronousGetRaw(
           deliveryTag = m.deliveryTag,
           redelivered = m.redelivered,
           exchange = m.exchange,
@@ -224,7 +224,7 @@ object ContentChannelSuite {
   ) = for {
     pq <- FakeFrameOutput()
     s <- ChannelOutput(pq)
-    gl <- Waitlist[IO, Option[SynchronousGet]](size)
+    gl <- Waitlist[IO, Option[SynchronousGetRaw]](size)
     fd <- FakeMessageDispatcher()
     cc <- ContentChannel[IO](
       ch,

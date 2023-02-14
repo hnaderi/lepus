@@ -89,7 +89,7 @@ object Channel {
         exclusive: Boolean = false,
         noWait: NoWait = false,
         arguments: FieldTable = FieldTable.empty
-    ): Stream[F, DeliveredMessage] =
+    ): Stream[F, DeliveredMessageRaw] =
       import Stream.*
       resource(channel.delivered).flatMap { case (ctag, data) =>
         val recv = eval(
@@ -114,7 +114,7 @@ object Channel {
     def get(
         queue: QueueName,
         noAck: NoAck
-    ): F[Option[SynchronousGet]] =
+    ): F[Option[SynchronousGetRaw]] =
       channel.get(BasicClass.Get(queue, noAck))
 
     def ack(deliveryTag: DeliveryTag, multiple: Boolean = false): F[Unit] =
@@ -154,7 +154,7 @@ object Channel {
       message
     )
 
-    def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessage] = in =>
+    def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessageRaw] = in =>
       val send = in
         .evalMap(e =>
           channel.publish(

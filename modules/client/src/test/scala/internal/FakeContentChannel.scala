@@ -20,7 +20,7 @@ import cats.effect.IO
 import cats.effect.kernel.DeferredSource
 import cats.effect.kernel.Ref
 import cats.syntax.all.*
-import lepus.client.SynchronousGet
+import lepus.client.SynchronousGetRaw
 import lepus.client.internal.FakeContentChannel.Interaction
 import lepus.protocol.BasicClass
 import lepus.protocol.Frame
@@ -45,7 +45,7 @@ final class FakeContentChannel(
 
   override def get(
       m: BasicClass.Get
-  ): IO[DeferredSource[IO, Option[SynchronousGet]]] =
+  ): IO[DeferredSource[IO, Option[SynchronousGetRaw]]] =
     interact(Interaction.Get(m)) >> IO.deferred.flatTap(_.complete(None))
 
   override def abort: IO[Unit] = interact(Interaction.Abort)
