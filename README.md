@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/docs/lepus-transparent.png" height="200px" alt="Lepus icon" />
+  <img src="/docs/lepus-constellation.jpg" height="200px" alt="Lepus icon" />
   <br/>
   <strong>Lepus</strong><br/>
   <i>Purely functional Scala client for RabbitMQ and other AMQP 0.9.1 brokers</i>
