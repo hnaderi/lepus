@@ -21,7 +21,7 @@ import cats.effect.IOApp
 import com.comcast.ip4s.*
 import lepus.client.Connection
 import lepus.client.LepusClient
-import lepus.client.Message
+import lepus.client.MessageRaw
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
 
@@ -41,7 +41,7 @@ object Main extends IOApp.Simple {
         .awakeEvery[IO](1.second)
         .map(_.toMillis)
         .evalTap(l => IO.println(s"publishing $l"))
-        .map(l => Message(ByteVector.fromLong(l)))
+        .map(l => MessageRaw(ByteVector.fromLong(l)))
         .evalMap(ch.messaging.publish(exchange, q.queue, _))
       _ <- IO.println(q)
 

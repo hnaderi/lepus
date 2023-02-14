@@ -71,14 +71,14 @@ trait Publishing[F[_]] {
   def publish(
       exchange: ExchangeName,
       routingKey: ShortString,
-      message: Message
+      message: MessageRaw
   ): F[Unit]
 
-  def publisher: Pipe[F, Envelope, ReturnedMessage]
+  def publisher: Pipe[F, EnvelopeRaw, ReturnedMessage]
 }
 
 trait ReliablePublishing[F[_]] {
-  def publish(env: Envelope): F[DeliveryTag]
+  def publish(env: EnvelopeRaw): F[DeliveryTag]
   def confirmations: Stream[F, Confirmation]
 }
 

@@ -39,7 +39,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
     rkey <- DomainGenerators.shortString
     props <- DomainGenerators.properties
     data <- FrameGenerators.blob
-    msg = Message(data, props)
+    msg = MessageRaw(data, props)
   } yield DeliveredMessage(ctag, dtag, rdlv, ex, rkey, msg)
   private val returns: Gen[ReturnedMessage] = for {
     ex <- DomainGenerators.exchangeName
@@ -48,7 +48,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
     rkey <- DomainGenerators.shortString
     props <- DomainGenerators.properties
     data <- FrameGenerators.blob
-    msg = Message(data, props)
+    msg = MessageRaw(data, props)
   } yield ReturnedMessage(rcode, rtxt, ex, rkey, msg)
   private val confirmations: Gen[ConfirmationResponse] =
     Gen.oneOf(BasicDataGenerator.ackGen, BasicDataGenerator.nackGen)

@@ -147,14 +147,14 @@ object Channel {
     def publish(
         exchange: ExchangeName,
         routingKey: ShortString,
-        message: Message
+        message: MessageRaw
     ): F[Unit] = channel.publish(
       BasicClass
         .Publish(exchange, routingKey, mandatory = false, immediate = false),
       message
     )
 
-    def publisher: Pipe[F, Envelope, ReturnedMessage] = in =>
+    def publisher: Pipe[F, EnvelopeRaw, ReturnedMessage] = in =>
       val send = in
         .evalMap(e =>
           channel.publish(
@@ -179,7 +179,7 @@ object Channel {
       tagger: SequentialTagger[F]
   ) extends ConsumingImpl(channel),
         ReliablePublishingMessagingChannel[F] {
-    def publish(env: Envelope): F[DeliveryTag] = tagger.next(
+    def publish(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
       channel
         .publish(
           BasicClass.Publish(

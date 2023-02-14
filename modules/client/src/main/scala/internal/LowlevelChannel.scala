@@ -47,7 +47,7 @@ private[client] trait ChannelReceiver[F[_]] {
 }
 
 private[client] trait ChannelTransmitter[F[_]] {
-  def publish(method: BasicClass.Publish, msg: Message): F[Unit]
+  def publish(method: BasicClass.Publish, msg: MessageRaw): F[Unit]
 
   def sendWait(m: Method): F[Method]
   def sendNoWait(m: Method): F[Unit]
@@ -140,7 +140,7 @@ private[client] object LowlevelChannel {
         case _                        => content.abort >> rpc.recv(m)
       })
 
-    def publish(method: BasicClass.Publish, msg: Message): F[Unit] =
+    def publish(method: BasicClass.Publish, msg: MessageRaw): F[Unit] =
       pub.send(method, msg)
 
     def sendWait(m: Method): F[Method] =

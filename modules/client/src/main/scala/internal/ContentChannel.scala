@@ -111,7 +111,7 @@ private[client] object ContentChannel {
               m.exchange,
               m.routingKey,
               m.messageCount,
-              Message(nacc.content, nacc.header.props)
+              MessageRaw(nacc.content, nacc.header.props)
             ).some
           )
         else state.set(State.SyncStarted(m, nacc)).widen
@@ -127,7 +127,7 @@ private[client] object ContentChannel {
             m.redelivered,
             m.exchange,
             m.routingKey,
-            Message(nacc.content, nacc.header.props)
+            MessageRaw(nacc.content, nacc.header.props)
           )
         case m: BasicClass.Return =>
           ReturnedMessage(
@@ -135,7 +135,7 @@ private[client] object ContentChannel {
             m.replyText,
             m.exchange,
             m.routingKey,
-            Message(nacc.content, nacc.header.props)
+            MessageRaw(nacc.content, nacc.header.props)
           )
       }
 

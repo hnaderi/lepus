@@ -162,7 +162,7 @@ class ContentChannelSuite extends InternalTestSuite {
       cc: SUT
   ) = for {
     _ <- asyncActions(cc.cc)(method, content).traverse(_.assertEquals(()))
-    msg = Message(content.payload, content.properties)
+    msg = MessageRaw(content.payload, content.properties)
     _ <- method match {
       case m: BasicClass.Deliver =>
         cc.dispatcher.assertDelivered(
@@ -253,7 +253,7 @@ object ContentChannelSuite {
       bodies.map(_.payload).foldLeft(ByteVector.empty)(_ ++ _)
     def properties: Properties = header.props
 
-    def message: Message = Message(payload, properties)
+    def message: MessageRaw = MessageRaw(payload, properties)
   }
 
   val incomingContent: Gen[IncomingContent] = for {

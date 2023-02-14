@@ -18,21 +18,21 @@ package lepus.client.internal
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
-import lepus.client.Message
+import lepus.client.MessageRaw
 import lepus.protocol.BasicClass.Publish
 import munit.CatsEffectAssertions.*
 
-final class FakeChannelPublisher(sent: Ref[IO, List[(Publish, Message)]])
+final class FakeChannelPublisher(sent: Ref[IO, List[(Publish, MessageRaw)]])
     extends ChannelPublisher[IO] {
 
-  override def send(method: Publish, msg: Message): IO[Unit] =
+  override def send(method: Publish, msg: MessageRaw): IO[Unit] =
     sent.update((method, msg) :: _)
 
-  def assert(values: (Publish, Message)*): IO[Unit] =
+  def assert(values: (Publish, MessageRaw)*): IO[Unit] =
     sent.get.assertEquals(values.toList)
 }
 
 object FakeChannelPublisher {
   def apply() =
-    IO.ref(List.empty[(Publish, Message)]).map(new FakeChannelPublisher(_))
+    IO.ref(List.empty[(Publish, MessageRaw)]).map(new FakeChannelPublisher(_))
 }

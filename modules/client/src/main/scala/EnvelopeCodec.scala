@@ -24,7 +24,7 @@ trait EnvelopeEncoder[B] { self =>
   val contentType: Option[ShortString] = None
   val contentEncoding: Option[ShortString] = None
 
-  final def encode(msg: Message0[B]): Message0[ByteVector] = msg.copy(
+  final def encode(msg: Message[B]): Message[ByteVector] = msg.copy(
     payload = encode(msg.payload),
     properties = msg.properties.copy(
       contentType = contentType,
@@ -61,7 +61,7 @@ trait EnvelopeDecoder[A] { self =>
       contentEncoding: Option[ShortString] = None
   ): Either[Throwable, A]
 
-  final def decode(msg: Message): Either[Throwable, Message0[A]] = decode(
+  final def decode(msg: MessageRaw): Either[Throwable, Message[A]] = decode(
     msg.payload,
     contentType = msg.properties.contentType,
     contentEncoding = msg.properties.contentEncoding

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package lepus.client.internal
+package lepus.client
+package internal
 
 import cats.effect.*
 import cats.effect.std.*
@@ -24,10 +25,6 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.Channel.Status
-import lepus.client.DeliveredMessage
-import lepus.client.Message
-import lepus.client.ReturnedMessage
-import lepus.client.SynchronousGet
 import lepus.client.internal.FakeLowLevelChannel.Interaction
 import lepus.codecs.ConnectionDataGenerator
 import lepus.codecs.DomainGenerators
@@ -76,7 +73,7 @@ final class FakeLowLevelChannel(
   override def method(m: Method): IO[Unit] =
     call(_.method(m))
 
-  override def publish(method: Publish, msg: Message): IO[Unit] =
+  override def publish(method: Publish, msg: MessageRaw): IO[Unit] =
     call(_.publish(method, msg))
 
   override def syncContent(m: ContentSyncResponse): IO[Unit] =

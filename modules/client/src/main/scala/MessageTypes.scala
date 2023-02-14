@@ -21,68 +21,73 @@ import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
 
-final case class Envelope0[T](
+final case class Envelope[T](
     exchange: ExchangeName,
     routingKey: ShortString,
     mandatory: Boolean,
     // immediate: Boolean, // RabbitMQ does not implement immediate flag
-    message: Message0[T]
+    message: Message[T]
 )
-final case class Message0[T](
+final case class Message[T](
     payload: T,
     properties: Properties = Properties()
 ) {
-  def withPayload[A](value: A): Message0[A] = copy(payload = value)
-  def withProperties(value: Properties): Message0[T] = copy(properties = value)
+  def withPayload[A](value: A): Message[A] = copy(payload = value)
+  def withProperties(value: Properties): Message[T] = copy(properties = value)
 
   def withContentType(value: ShortString) =
     withProperties(properties.withContentType(value))
 
-  def withContentEncoding(value: ShortString): Message0[T] = withProperties(
+  def withContentEncoding(value: ShortString): Message[T] = withProperties(
     properties.withContentEncoding(value)
   )
-  def withHeaders(value: FieldTable): Message0[T] = withProperties(
+  def withHeaders(value: FieldTable): Message[T] = withProperties(
     properties.withHeaders(value)
   )
-  def withDeliveryMode(value: DeliveryMode): Message0[T] = withProperties(
+  def withDeliveryMode(value: DeliveryMode): Message[T] = withProperties(
     properties.withDeliveryMode(value)
   )
-  def withPriority(value: Priority): Message0[T] = withProperties(
+  def withPriority(value: Priority): Message[T] = withProperties(
     properties.withPriority(value)
   )
-  def withCorrelationId(value: ShortString): Message0[T] = withProperties(
+  def withCorrelationId(value: ShortString): Message[T] = withProperties(
     properties.withCorrelationId(value)
   )
-  def withReplyTo(value: ShortString): Message0[T] = withProperties(
+  def withReplyTo(value: ShortString): Message[T] = withProperties(
     properties.withReplyTo(value)
   )
-  def withExpiration(value: ShortString): Message0[T] = withProperties(
+  def withExpiration(value: ShortString): Message[T] = withProperties(
     properties.withExpiration(value)
   )
-  def withMessageId(value: ShortString): Message0[T] = withProperties(
+  def withMessageId(value: ShortString): Message[T] = withProperties(
     properties.withMessageId(value)
   )
-  def withTimestamp(value: Timestamp): Message0[T] = withProperties(
+  def withTimestamp(value: Timestamp): Message[T] = withProperties(
     properties.withTimestamp(value)
   )
-  def withMsgType(value: ShortString): Message0[T] = withProperties(
+  def withMsgType(value: ShortString): Message[T] = withProperties(
     properties.withMsgType(value)
   )
-  def withUserId(value: ShortString): Message0[T] = withProperties(
+  def withUserId(value: ShortString): Message[T] = withProperties(
     properties.withUserId(value)
   )
-  def withAppId(value: ShortString): Message0[T] = withProperties(
+  def withAppId(value: ShortString): Message[T] = withProperties(
     properties.withAppId(value)
   )
-  def withClusterId(value: ShortString): Message0[T] = withProperties(
+  def withClusterId(value: ShortString): Message[T] = withProperties(
     properties.withClusterId(value)
   )
 }
 
-type Envelope = Envelope0[ByteVector]
-val Envelope = Envelope0
-type Message = Message0[ByteVector]
-val Message = Message0
+type EnvelopeRaw = Envelope[ByteVector]
+val EnvelopeRaw = Envelope
+type MessageRaw = Message[ByteVector]
+object MessageRaw {
+  def apply(
+      payload: ByteVector,
+      properties: Properties = Properties.empty
+  ): MessageRaw = Message(payload, properties)
+}
 
 type AsyncContent = ReturnedMessage | DeliveredMessage
 
@@ -91,7 +96,7 @@ final case class ReturnedMessage(
     replyText: ReplyText,
     exchange: ExchangeName,
     routingKey: ShortString,
-    message: Message
+    message: MessageRaw
 )
 
 final case class DeliveredMessage(
@@ -100,7 +105,7 @@ final case class DeliveredMessage(
     redelivered: Redelivered,
     exchange: ExchangeName,
     routingKey: ShortString,
-    message: Message
+    message: MessageRaw
 )
 
 final case class SynchronousGet(
@@ -109,7 +114,7 @@ final case class SynchronousGet(
     exchange: ExchangeName,
     routingKey: ShortString,
     messageCount: MessageCount,
-    message: Message
+    message: MessageRaw
 )
 
 enum Acknowledgment {
