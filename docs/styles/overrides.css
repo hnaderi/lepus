@@ -1,0 +1,22 @@
+html {
+    height: 100%;
+}
+
+body {
+    background: url("../night-sky.jpg");
+    backdrop-filter: blur(3px) opacity(90%);
+    height: inherit;
+}
+
+div#header {
+    background: none;
+}
+
+::selection{
+  color: var(--bg-color);
+  background-color: var(--secondary-color);
+}
+
+html,body{
+  scrollbar-color: var(--secondary-color) var(--bg-color);
+}

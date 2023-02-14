@@ -34,12 +34,7 @@ inThisBuild(
   )
 )
 
-def module(module: String): Project = {
-  val id = s"lepus-$module"
-  Project(id, file(s"modules/$module"))
-}
-
-def module2(mname: String): CrossProject => CrossProject =
+def module(mname: String): CrossProject => CrossProject =
   _.in(file(s"modules/$mname"))
     .settings(
       name := s"lepus-$mname",
@@ -55,7 +50,7 @@ def module2(mname: String): CrossProject => CrossProject =
       Test / fork := true
     )
 
-val protocol = module2("protocol") {
+val protocol = module("protocol") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .settings(
@@ -63,7 +58,7 @@ val protocol = module2("protocol") {
     )
 }
 
-val codeGen = module("code-gen")
+val codeGen = Project(s"code-gen", file(s"modules/code-gen"))
   .settings(
     libraryDependencies ++= Seq(
       "co.fs2" %% "fs2-io" % Versions.fs2,
@@ -75,7 +70,7 @@ val codeGen = module("code-gen")
   )
   .enablePlugins(NoPublishPlugin)
 
-val protocolTestkit = module2("protocol-testkit") {
+val protocolTestkit = module("protocol-testkit") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .dependsOn(protocol)
@@ -88,7 +83,7 @@ val protocolTestkit = module2("protocol-testkit") {
     )
 }
 
-val wire = module2("wire") {
+val wire = module("wire") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .dependsOn(protocol)
@@ -98,7 +93,7 @@ val wire = module2("wire") {
     )
 }
 
-val core = module2("core") {
+val core = module("core") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .settings(
@@ -111,13 +106,13 @@ val core = module2("core") {
     .dependsOn(protocol)
 }
 
-val data = module2("data") {
+val data = module("data") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .dependsOn(core)
 }
 
-val client = module2("client") {
+val client = module("client") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .dependsOn(core, wire, protocol)
@@ -143,7 +138,7 @@ val client = module2("client") {
     )
 }
 
-val std = module2("std") {
+val std = module("std") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .dependsOn(client)
@@ -169,16 +164,8 @@ val example =
 
 val docs = project
   .in(file("site"))
-  .enablePlugins(TypelevelSitePlugin)
-  .dependsOn(core.jvm)
-  .settings(
-    tlSiteRelatedProjects := Seq(
-      TypelevelProject.Cats,
-      TypelevelProject.CatsEffect,
-      TypelevelProject.Fs2
-    ),
-    tlSiteHeliumConfig := SiteConfigs(mdocVariables.value)
-  )
+  .enablePlugins(LepusSitePlugin)
+  .dependsOn(client.jvm)
 
 lazy val unidocs = project
   .in(file("unidocs"))
