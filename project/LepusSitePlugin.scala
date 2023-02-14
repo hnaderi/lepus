@@ -67,16 +67,9 @@ object LepusSitePlugin extends AutoPlugin {
           ),
           license = licenses.value.headOption.map(_._1),
           documentationLinks = Seq(
-            TextLink.internal(Root / "introduction.md", "Introduction"),
             TextLink.internal(Root / "getting-started.md", "Getting Started"),
-            TextLink.internal(
-              Root / "tutorials" / "hello-world.md",
-              "Tutorials"
-            ),
-            TextLink.internal(
-              Root / "standard-library" / "0.md",
-              "Standard library"
-            ),
+            TextLink.internal(Root / "overview.md", "Overview"),
+            TextLink.internal(Root / "standard-library.md", "Standard library"),
             TextLink.internal(Root / "features.md", "Features")
           ) ++ tlSiteApiUrl.value
             .map(_.toString())
@@ -108,7 +101,7 @@ object LepusSitePlugin extends AutoPlugin {
         .topNavigationBar(
           homeLink = ImageLink
             .internal(
-              Root / "introduction.md",
+              Root / "getting-started.md",
               Image.internal(Root / "lepus-transparent.png")
             ),
           navLinks = Seq(
