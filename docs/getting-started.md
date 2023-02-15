@@ -73,7 +73,7 @@ val app1 = channel.use(ch=>
 We can also publish messages:
 
 ```scala mdoc:silent
-val app2 = channel.use(ch=>
+val publisher1 = channel.use(ch=>
   ch.messaging.publish(
     ExchangeName("notifications"), 
     routingKey = ShortString("some.topic"),
@@ -82,20 +82,87 @@ val app2 = channel.use(ch=>
 )
 ```
 
-### Consumer
+We can also publish mandatory messages like this:
 
 ```scala mdoc:silent
 import fs2.Stream
 
-val app3 = Stream
-  .resource(channel)
-  .flatMap(_.messaging.consume[String](QueueName("jobs"), mode = ConsumeMode.NackOnError))
+val toPublish = Stream(
+  Envelope(
+    ExchangeName("notifications"), 
+    routingKey = ShortString("some.topic"),
+    mandatory  = true,
+    Message("Something happend!")
+  )
+)
+
+val publisher2 = Stream.resource(channel).flatMap(ch=>
+  toPublish.through(ch.messaging.publisher) // 1
+)
 ```
 
+1. @:api(lepus.client.apis.NormalMessagingChannel.publisher) is a pipe that publishes envelopes, and outputs returned messages if any.
+
+### Consumer
+
+```scala mdoc:silent
+val consumer1 = Stream
+  .resource(channel)
+  .flatMap(_.messaging.consume[String](
+       QueueName("jobs"), 
+       mode = ConsumeMode.NackOnError // 1
+     )
+   )
+```
+
+1. @:api(lepus.client.ConsumeMode) determines how a decoding consumer behaves, `ConsumeMode.RaiseOnError` raises error when decoding is failed, `ConsumeMode.NackOnError` sends a nack for the failed message. `RaiseOnError(false)` consumes in auto ack mode, the other two requires you to acknowledge each message
+
 ## More advanced channels
+so far we've been using @:api(lepus.client.apis.NormalMessagingChannel), which does not support transactions, or publisher confirmation.  
+
+Let's see how we can use those features:
 
 ### transactional channels
 
+We can open a transactional channel like this:
+
+```scala mdoc:silent
+import cats.effect.Resource
+
+val transactional1 = for {
+  con <- connection
+  ch <- con.transactionalChannel
+
+  trx <- ch.messaging.transaction // start a new transaction boundary
+  // we are inside a transaction now
+  
+  _ <- Resource.eval(ch.messaging.publish(ExchangeName("events"), ShortString("topic"), "some data!"))
+  
+  _ <- Resource.eval(trx.rollback) // or commit
+} yield ()
+```
+
 ### confirming channels
 
+For using publisher confirms, we need to open a channel like this:
+
+```scala mdoc:silent
+val confirming1 = for {
+  con <- Stream.resource(connection)
+  ch <- Stream.resource(con.reliableChannel)
+  
+  // publishing gives us a delivery tag
+  dTags = Stream.eval(ch.messaging.publish(ExchangeName("events"), ShortString("topic"), "some data!"))
+  
+  // confirmations gives us server acknowledgements based on the delivery tags
+  confirmations = ch.messaging.confirmations
+  
+  // run in parallel and handle responses
+  // to ensure you have published a message reliably
+  _ <- dTags.mergeHaltBoth(confirmations).foreach(???)
+} yield ()
+```
+
 ## More advanced publishing
+There are some other more advanced publishing methods, like publishing mandatory messages in publisher confirming mode, which are out of the scope of getting started :)  
+However you can take a look at api docs and always feel free to read codes or open issues and PRs.

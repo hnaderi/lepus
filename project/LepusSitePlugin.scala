@@ -4,13 +4,15 @@ import laika.config.ConfigBuilder
 import laika.config.LaikaKeys
 import laika.helium.Helium
 import laika.helium.config._
-import laika.sbt.LaikaConfig
+import laika.rewrite.link.ApiLinks
+import laika.rewrite.link.LinkConfig
 import laika.theme._
 import laika.theme.config.Color
 import org.typelevel.sbt.TypelevelSitePlugin
 import mdoc.MdocPlugin.autoImport.mdocVariables
 import org.typelevel.sbt.TypelevelSitePlugin.autoImport.*
 import org.typelevel.sbt.TypelevelVersioningPlugin.autoImport.*
+import laika.sbt.LaikaPlugin.autoImport.*
 import sbt._
 import sbt.Keys._
 
@@ -117,6 +119,12 @@ object LepusSitePlugin extends AutoPlugin {
         .darkMode
         .disabled
 
-    }
+    },
+    laikaConfig := LaikaConfig.defaults.withConfigValue(
+      LinkConfig(apiLinks =
+        tlSiteApiUrl.value.toSeq.map(_.toString()).map(ApiLinks(_, "lepus"))
+      )
+    ),
+    laikaIncludeAPI := true
   )
 }
