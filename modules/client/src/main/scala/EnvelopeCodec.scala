@@ -74,6 +74,7 @@ trait EnvelopeDecoder[A] { self =>
     contentType = msg.properties.contentType,
     contentEncoding = msg.properties.contentEncoding
   ).map(a => msg.copy(payload = a))
+
   final def decode(env: EnvelopeRaw): Either[Throwable, Envelope[A]] =
     decode(env.message).map(m => env.copy(message = m))
 

@@ -23,6 +23,7 @@ import cats.implicits.*
 import fs2.Pipe
 import fs2.RaiseThrowable
 import fs2.Stream
+import fs2.compat.NotGiven
 import lepus.protocol.*
 import lepus.protocol.classes.*
 import lepus.protocol.constants.*
@@ -106,27 +107,56 @@ trait Publishing[F[_]] {
       message: MessageRaw
   ): F[Unit]
 
-  final def publish[T](
+  final inline def publish[T](
       exchange: ExchangeName,
       routingKey: ShortString,
       message: Message[T]
   )(using enc: EnvelopeEncoder[T]): F[Unit] =
     publishRaw(exchange, routingKey, enc.encode(message))
 
+  final inline def publish[T](
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      payload: T
+  )(using enc: EnvelopeEncoder[T])(using NotGiven[T <:< Message[?]]): F[Unit] =
+    publish(exchange, routingKey, Message(payload))
+
   def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessageRaw]
 
-  final def publisher[T](using
-      enc: EnvelopeEncoder[T]
-  ): Pipe[F, Envelope[T], ReturnedMessageRaw] =
-    _.map(enc.encode(_)).through(publisherRaw)
+  final inline def publisher[T: EnvelopeEncoder]
+      : Pipe[F, Envelope[T], ReturnedMessageRaw] =
+    _.map(_.toRaw).through(publisherRaw)
 }
 
 trait ReliablePublishing[F[_]] {
-  def publishRaw(env: EnvelopeRaw): F[DeliveryTag]
-  final def publish[T](env: Envelope[T])(using
-      enc: EnvelopeEncoder[T]
+  protected def publishRaw(env: EnvelopeRaw): F[DeliveryTag]
+
+  final inline def publishRaw(
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      message: MessageRaw
+  ): F[DeliveryTag] = publishRaw(
+    EnvelopeRaw(exchange, routingKey, mandatory = false, message)
+  )
+
+  final inline def publish[T: EnvelopeEncoder](
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      message: Message[T]
   ): F[DeliveryTag] =
-    publishRaw(enc.encode(env))
+    publishRaw(exchange, routingKey, message.toRaw)
+
+  final inline def publish[T: EnvelopeEncoder](
+      env: Envelope[T]
+  ): F[DeliveryTag] =
+    publishRaw(env.toRaw)
+
+  def publisherRaw: Pipe[F, EnvelopeRaw, DeliveryTag | ReturnedMessageRaw]
+
+  final inline def publisher[T: EnvelopeEncoder]
+      : Pipe[F, Envelope[T], DeliveryTag | ReturnedMessageRaw] =
+    _.map(_.toRaw).through(publisherRaw)
+
   def confirmations: Stream[F, Confirmation]
 }
 

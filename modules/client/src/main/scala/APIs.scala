@@ -17,14 +17,12 @@
 package lepus.client
 
 import cats.MonadError
-import cats.implicits.*
 import lepus.protocol.*
 import lepus.protocol.classes.*
-import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 
+import internal.ChannelTransmitter
 import Channel.call
-import internal.*
 
 trait ExchangeAPI[F[_]] {
 
@@ -57,8 +55,8 @@ trait ExchangeAPI[F[_]] {
       destination: ExchangeName,
       source: ExchangeName,
       routingKey: ShortString,
-      noWait: NoWait,
-      arguments: FieldTable
+      noWait: NoWait = false,
+      arguments: FieldTable = FieldTable.empty
   ): F[Option[ExchangeClass.UnbindOk.type]]
 
 }

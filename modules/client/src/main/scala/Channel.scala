@@ -178,7 +178,7 @@ object Channel {
       tagger: SequentialTagger[F]
   ) extends ConsumingImpl(channel),
         ReliablePublishingMessagingChannel[F] {
-    def publishRaw(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
+    protected def publishRaw(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
       channel
         .publish(
           BasicClass.Publish(
@@ -192,6 +192,8 @@ object Channel {
     )
 
     def confirmations: Stream[F, Confirmation] = channel.confirmed
+    def publisherRaw: Pipe[F, EnvelopeRaw, DeliveryTag | ReturnedMessageRaw] =
+      _.evalMap(publishRaw(_)).mergeHaltBoth(channel.returned)
   }
 
   private final class TransactionalMessagingImpl[F[_]: Concurrent](

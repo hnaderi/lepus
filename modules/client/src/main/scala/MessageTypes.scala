@@ -28,6 +28,15 @@ final case class Envelope[T](
     // immediate: Boolean, // RabbitMQ does not implement immediate flag
     message: Message[T]
 )
+object Envelope {
+  extension [T](msg: Envelope[T])(using enc: EnvelopeEncoder[T]) {
+    def toRaw: EnvelopeRaw = enc.encode(msg)
+  }
+  extension (msg: EnvelopeRaw) {
+    def decodeTo[T: EnvelopeDecoder]: Either[Throwable, Envelope[T]] =
+      EnvelopeDecoder[T].decode(msg)
+  }
+}
 final case class Message[T](
     payload: T,
     properties: Properties = Properties()
@@ -77,6 +86,15 @@ final case class Message[T](
   def withClusterId(value: ShortString): Message[T] = withProperties(
     properties.withClusterId(value)
   )
+}
+object Message {
+  extension [T](msg: Message[T])(using enc: EnvelopeEncoder[T]) {
+    def toRaw: MessageRaw = enc.encode(msg)
+  }
+  extension (msg: MessageRaw) {
+    def decodeTo[T: EnvelopeDecoder]: Either[Throwable, Message[T]] =
+      EnvelopeDecoder[T].decode(msg)
+  }
 }
 
 type EnvelopeRaw = Envelope[ByteVector]
