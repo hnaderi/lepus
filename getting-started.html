@@ -41,7 +41,7 @@
         
       </div>
 
-      <a class="image-link" href="introduction.html"><img src="lepus-transparent.png"></a>
+      <a class="image-link" href="#"><img src="lepus-transparent.png"></a>
 
       <span class="row links"><a class="icon-link" href="https://github.com/hnaderi/lepus"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
@@ -62,22 +62,10 @@
       </div>
 
       <ul class="nav-list">
-        <li class="level1"><a href="introduction.html">Introduction</a></li>
         <li class="level1 active"><a href="#">Getting started</a></li>
-        <li class="level1 nav-header">tutorials</li>
-        <li class="level2"><a href="tutorials/hello-world.html">Hello world</a></li>
-        <li class="level2"><a href="tutorials/work-queues.html">Work queues</a></li>
-        <li class="level2"><a href="tutorials/pubsub.html">Publish/Subscribe</a></li>
-        <li class="level2"><a href="tutorials/routing.html">Routing</a></li>
-        <li class="level2"><a href="tutorials/topics.html">Topics</a></li>
-        <li class="level2"><a href="tutorials/rpc.html">RPC</a></li>
-        <li class="level2"><a href="tutorials/pubconfirm.html">Publisher confirms</a></li>
-        <li class="level1 nav-header">advanced</li>
-        <li class="level2"><a href="advanced/other.html">Other</a></li>
-        <li class="level2"><a href="advanced/transaction.html">Transaction</a></li>
+        <li class="level1"><a href="standard-library.html">Standard library</a></li>
+        <li class="level1"><a href="advanced.html">Advanced</a></li>
         <li class="level1"><a href="features.html">Features</a></li>
-        <li class="level1 nav-header">standard-library</li>
-        <li class="level2"><a href="standard-library/0.html">Consumer</a></li>
       </ul>
 
       <ul class="nav-list">
@@ -99,6 +87,16 @@
         <p class="header"><a href="#">Getting started</a></p>
 
         <ul class="nav-list">
+          <li class="level1"><a href="#imports">Imports</a></li>
+          <li class="level1"><a href="#opening-a-connection">Opening a connection</a></li>
+          <li class="level1"><a href="#opening-a-channel">Opening a channel</a></li>
+          <li class="level2"><a href="#commands">Commands</a></li>
+          <li class="level2"><a href="#publish">Publish</a></li>
+          <li class="level2"><a href="#consumer">Consumer</a></li>
+          <li class="level1"><a href="#more-advanced-channels">More advanced channels</a></li>
+          <li class="level2"><a href="#transactional-channels">transactional channels</a></li>
+          <li class="level2"><a href="#confirming-channels">confirming channels</a></li>
+          <li class="level1"><a href="#more-advanced-publishing">More advanced publishing</a></li>
         </ul>
 
         <p class="footer"></p>
@@ -109,8 +107,135 @@
         <h1 id="getting-started" class="title">Getting started</h1>
         <p>This library is published for scala 3 on all scala platforms (JVM, JS, Native); 
         Add this to your build:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;dev.hnaderi&quot;</span><span> %% </span><span class="string-literal">&quot;lepus-client&quot;</span><span> % </span><span class="string-literal">&quot;0.0-a7fd8f8-SNAPSHOT&quot;</span></code></pre>
-        <p>TBD</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;dev.hnaderi&quot;</span><span> %% </span><span class="string-literal">&quot;lepus-client&quot;</span><span> % </span><span class="string-literal">&quot;0.0-c499ef7-SNAPSHOT&quot;</span></code></pre>
+        <p>Then you are ready to use Lepus!<br>
+        If you are a beginner in AMQP (RabbitMQ) or messaging in general please take a look at <a href="https://www.rabbitmq.com/getstarted.html">here</a> before continuing.</p>
+        
+        <h2 id="imports" class="section"><a class="anchor-link left" href="#imports"><i class="icofont-laika">&#xef71;</i></a>Imports</h2>
+        <p>You need to import these:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="type-name">IO</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">com</span><span>.</span><span class="identifier">comcast</span><span>.</span><span class="identifier">ip4s</span><span>.* </span><span class="comment">// 1
+</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">client</span><span>.* </span><span class="comment">// 2
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">protocol</span><span>.</span><span class="identifier">domains</span><span>.*  </span><span class="comment">// 3</span></code></pre>
+        <ol class="arabic">
+          <li>for string literals <code>host</code> and <code>port</code></li>
+          <li>import client stuff</li>
+          <li>import AMQP data models</li>
+        </ol>
+        
+        <h2 id="opening-a-connection" class="section"><a class="anchor-link left" href="#opening-a-connection"><i class="icofont-laika">&#xef71;</i></a>Opening a connection</h2>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">connection</span><span> = </span><span class="type-name">LepusClient</span><span>[</span><span class="type-name">IO</span><span>]( </span><span class="comment">// 1
+</span><span>   </span><span class="identifier">host</span><span> = </span><span class="string-literal">host&quot;localhost&quot;</span><span>,
+   </span><span class="identifier">port</span><span> = </span><span class="string-literal">port&quot;5672&quot;</span><span>,
+   </span><span class="identifier">username</span><span> = </span><span class="string-literal">&quot;guest&quot;</span><span>,
+   </span><span class="identifier">password</span><span> = </span><span class="string-literal">&quot;guest&quot;</span><span>,
+   </span><span class="identifier">vhost</span><span> = </span><span class="type-name">Path</span><span>(</span><span class="string-literal">&quot;/&quot;</span><span>), </span><span class="comment">// 2
+</span><span>   </span><span class="identifier">config</span><span> = </span><span class="type-name">ConnectionConfig</span><span>.</span><span class="identifier">default</span><span>,
+   </span><span class="identifier">debug</span><span> = </span><span class="boolean-literal">false</span><span>
+)</span></code></pre>
+        <ol class="arabic">
+          <li>Note that all of the parameters are optional and have the default values as shown in the example above.<br></li>
+          <li>Path is a data model defined in AMQP protocol that is usued for virtual hosts</li>
+        </ol>
+        <p>This gives us a <code>Resource</code> that opens a connection.</p>
+        
+        <h2 id="opening-a-channel" class="section"><a class="anchor-link left" href="#opening-a-channel"><i class="icofont-laika">&#xef71;</i></a>Opening a channel</h2>
+        <p>Having opened a connection, we can open channels on it:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">channel</span><span> = </span><span class="keyword">for</span><span> {
+  </span><span class="identifier">con</span><span> &lt;- </span><span class="identifier">connection</span><span>
+  </span><span class="identifier">ch</span><span> &lt;- </span><span class="identifier">con</span><span>.</span><span class="identifier">channel</span><span>
+} </span><span class="keyword">yield</span><span> </span><span class="identifier">ch</span></code></pre>
+        <p>which gives us a resource that opens a new channel on <code>connection</code></p>
+        
+        <h3 id="commands" class="section"><a class="anchor-link left" href="#commands"><i class="icofont-laika">&#xef71;</i></a>Commands</h3>
+        <p>Having a channel in hand, we can call AMQP methods</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">app1</span><span> = </span><span class="identifier">channel</span><span>.</span><span class="identifier">use</span><span>(</span><span class="identifier">ch</span><span>=&gt;
+  </span><span class="identifier">ch</span><span>.</span><span class="identifier">exchange</span><span>.</span><span class="identifier">declare</span><span>(</span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;events&quot;</span><span>), </span><span class="type-name">ExchangeType</span><span>.</span><span class="type-name">Topic</span><span>) &gt;&gt;
+  </span><span class="identifier">ch</span><span>.</span><span class="identifier">queue</span><span>.</span><span class="identifier">declare</span><span>(</span><span class="type-name">QueueName</span><span>(</span><span class="string-literal">&quot;handler-inbox&quot;</span><span>)) &gt;&gt;
+  </span><span class="identifier">ch</span><span>.</span><span class="identifier">queue</span><span>.</span><span class="identifier">bind</span><span>(</span><span class="type-name">QueueName</span><span>(</span><span class="string-literal">&quot;handler-inbox&quot;</span><span>), </span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;events&quot;</span><span>), </span><span class="type-name">ShortString</span><span>(</span><span class="string-literal">&quot;#&quot;</span><span>))
+)</span></code></pre>
+        
+        <h3 id="publish" class="section"><a class="anchor-link left" href="#publish"><i class="icofont-laika">&#xef71;</i></a>Publish</h3>
+        <p>We can also publish messages:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">publisher1</span><span> = </span><span class="identifier">channel</span><span>.</span><span class="identifier">use</span><span>(</span><span class="identifier">ch</span><span>=&gt;
+  </span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">publish</span><span>(
+    </span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;notifications&quot;</span><span>), 
+    </span><span class="identifier">routingKey</span><span> = </span><span class="type-name">ShortString</span><span>(</span><span class="string-literal">&quot;some.topic&quot;</span><span>),
+    </span><span class="type-name">Message</span><span>(</span><span class="string-literal">&quot;Something happend!&quot;</span><span>)
+  )
+)</span></code></pre>
+        <p>We can also publish mandatory messages like this:</p>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="type-name">Stream</span><span>
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">toPublish</span><span> = </span><span class="type-name">Stream</span><span>(
+  </span><span class="type-name">Envelope</span><span>(
+    </span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;notifications&quot;</span><span>), 
+    </span><span class="identifier">routingKey</span><span> = </span><span class="type-name">ShortString</span><span>(</span><span class="string-literal">&quot;some.topic&quot;</span><span>),
+    </span><span class="identifier">mandatory</span><span>  = </span><span class="boolean-literal">true</span><span>,
+    </span><span class="type-name">Message</span><span>(</span><span class="string-literal">&quot;Something happend!&quot;</span><span>)
+  )
+)
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">publisher2</span><span> = </span><span class="type-name">Stream</span><span>.</span><span class="identifier">resource</span><span>(</span><span class="identifier">channel</span><span>).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">ch</span><span>=&gt;
+  </span><span class="identifier">toPublish</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">publisher</span><span>) </span><span class="comment">// 1
+</span><span>)</span></code></pre>
+        <ol class="arabic">
+          <li><a href="https://s01.oss.sonatype.org/service/local/repositories/snapshots/archive/dev/hnaderi/lepus-docs_3/0.0-c499ef7-SNAPSHOT/lepus-docs_3-0.0-c499ef7-SNAPSHOT-javadoc.jar/!/index.htmllepus/client/apis/NormalMessagingChannel/publisher.html">publisher</a> is a pipe that publishes envelopes, and outputs returned messages if any.</li>
+        </ol>
+        
+        <h3 id="consumer" class="section"><a class="anchor-link left" href="#consumer"><i class="icofont-laika">&#xef71;</i></a>Consumer</h3>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">consumer1</span><span> = </span><span class="type-name">Stream</span><span>
+  .</span><span class="identifier">resource</span><span>(</span><span class="identifier">channel</span><span>)
+  .</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">consume</span><span>[</span><span class="type-name">String</span><span>](
+       </span><span class="type-name">QueueName</span><span>(</span><span class="string-literal">&quot;jobs&quot;</span><span>), 
+       </span><span class="identifier">mode</span><span> = </span><span class="type-name">ConsumeMode</span><span>.</span><span class="type-name">NackOnError</span><span> </span><span class="comment">// 1
+</span><span>     )
+   )</span></code></pre>
+        <ol class="arabic">
+          <li><a href="https://s01.oss.sonatype.org/service/local/repositories/snapshots/archive/dev/hnaderi/lepus-docs_3/0.0-c499ef7-SNAPSHOT/lepus-docs_3-0.0-c499ef7-SNAPSHOT-javadoc.jar/!/index.htmllepus/client/ConsumeMode.html">ConsumeMode</a> determines how a decoding consumer behaves, <code>ConsumeMode.RaiseOnError</code> raises error when decoding is failed, <code>ConsumeMode.NackOnError</code> sends a nack for the failed message. <code>RaiseOnError(false)</code> consumes in auto ack mode, the other two requires you to acknowledge each message</li>
+        </ol>
+        
+        <h2 id="more-advanced-channels" class="section"><a class="anchor-link left" href="#more-advanced-channels"><i class="icofont-laika">&#xef71;</i></a>More advanced channels</h2>
+        <p>so far we&#39;ve been using <a href="https://s01.oss.sonatype.org/service/local/repositories/snapshots/archive/dev/hnaderi/lepus-docs_3/0.0-c499ef7-SNAPSHOT/lepus-docs_3-0.0-c499ef7-SNAPSHOT-javadoc.jar/!/index.htmllepus/client/apis/NormalMessagingChannel.html">NormalMessagingChannel</a>, which does not support transactions, or publisher confirmation.<br></p>
+        <p>Let&#39;s see how we can use those features:</p>
+        
+        <h3 id="transactional-channels" class="section"><a class="anchor-link left" href="#transactional-channels"><i class="icofont-laika">&#xef71;</i></a>transactional channels</h3>
+        <p>We can open a transactional channel like this:</p>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="type-name">Resource</span><span>
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">transactional1</span><span> = </span><span class="keyword">for</span><span> {
+  </span><span class="identifier">con</span><span> &lt;- </span><span class="identifier">connection</span><span>
+  </span><span class="identifier">ch</span><span> &lt;- </span><span class="identifier">con</span><span>.</span><span class="identifier">transactionalChannel</span><span>
+
+  </span><span class="identifier">trx</span><span> &lt;- </span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">transaction</span><span> </span><span class="comment">// start a new transaction boundary
+</span><span>  </span><span class="comment">// we are inside a transaction now
+</span><span>  
+  </span><span class="identifier">_</span><span> &lt;- </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">publish</span><span>(</span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;events&quot;</span><span>), </span><span class="type-name">ShortString</span><span>(</span><span class="string-literal">&quot;topic&quot;</span><span>), </span><span class="string-literal">&quot;some data!&quot;</span><span>))
+  
+  </span><span class="identifier">_</span><span> &lt;- </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">trx</span><span>.</span><span class="identifier">rollback</span><span>) </span><span class="comment">// or commit
+</span><span>} </span><span class="keyword">yield</span><span> ()</span></code></pre>
+        
+        <h3 id="confirming-channels" class="section"><a class="anchor-link left" href="#confirming-channels"><i class="icofont-laika">&#xef71;</i></a>confirming channels</h3>
+        <p>For using publisher confirms, we need to open a channel like this:</p>
+        <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">confirming1</span><span> = </span><span class="keyword">for</span><span> {
+  </span><span class="identifier">con</span><span> &lt;- </span><span class="type-name">Stream</span><span>.</span><span class="identifier">resource</span><span>(</span><span class="identifier">connection</span><span>)
+  </span><span class="identifier">ch</span><span> &lt;- </span><span class="type-name">Stream</span><span>.</span><span class="identifier">resource</span><span>(</span><span class="identifier">con</span><span>.</span><span class="identifier">reliableChannel</span><span>)
+  
+  </span><span class="comment">// publishing gives us a delivery tag
+</span><span>  </span><span class="identifier">dTags</span><span> = </span><span class="type-name">Stream</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">publish</span><span>(</span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;events&quot;</span><span>), </span><span class="type-name">ShortString</span><span>(</span><span class="string-literal">&quot;topic&quot;</span><span>), </span><span class="string-literal">&quot;some data!&quot;</span><span>))
+  
+  </span><span class="comment">// confirmations gives us server acknowledgements based on the delivery tags
+</span><span>  </span><span class="identifier">confirmations</span><span> = </span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">confirmations</span><span>
+  
+  </span><span class="comment">// run in parallel and handle responses
+</span><span>  </span><span class="comment">// to ensure you have published a message reliably
+</span><span>  </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">dTags</span><span>.</span><span class="identifier">mergeHaltBoth</span><span>(</span><span class="identifier">confirmations</span><span>).</span><span class="identifier">foreach</span><span>(???)
+} </span><span class="keyword">yield</span><span> ()</span></code></pre>
+        
+        <h2 id="more-advanced-publishing" class="section"><a class="anchor-link left" href="#more-advanced-publishing"><i class="icofont-laika">&#xef71;</i></a>More advanced publishing</h2>
+        <p>There are some other more advanced publishing methods, like publishing mandatory messages in publisher confirming mode, which are out of the scope of getting started :)<br>
+        However you can take a look at api docs and always feel free to read codes or open issues and PRs.</p>
 
         <hr style="margin-top: 30px"/>
         <footer style="font-size: 90%; text-align: center">

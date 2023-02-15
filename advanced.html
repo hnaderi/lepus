@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>Features</title>
+    <title>Advanced</title>
     
       <meta name="author" content="Hossein Naderi"/>
     
@@ -64,8 +64,8 @@
       <ul class="nav-list">
         <li class="level1"><a href="getting-started.html">Getting started</a></li>
         <li class="level1"><a href="standard-library.html">Standard library</a></li>
-        <li class="level1"><a href="advanced.html">Advanced</a></li>
-        <li class="level1 active"><a href="#">Features</a></li>
+        <li class="level1 active"><a href="#">Advanced</a></li>
+        <li class="level1"><a href="features.html">Features</a></li>
       </ul>
 
       <ul class="nav-list">
@@ -84,16 +84,11 @@
     <div id="container">
 
       <nav id="page-nav">
-        <p class="header"><a href="#">Features</a></p>
+        <p class="header"><a href="#">Advanced</a></p>
 
         <ul class="nav-list">
-          <li class="level1"><a href="#amqp-0-9-1-compliant">AMQP 0.9.1 compliant</a></li>
-          <li class="level1"><a href="#rabbitmq-protocol-extensions">RabbitMQ protocol extensions</a></li>
-          <li class="level1"><a href="#ergonomic-apis">Ergonomic APIs</a></li>
-          <li class="level1"><a href="#cross-platform">Cross platform</a></li>
-          <li class="level1"><a href="#streaming">Streaming</a></li>
-          <li class="level1"><a href="#out-of-the-box-utilities">Out of the box utilities</a></li>
-          <li class="level1"><a href="#extensible">Extensible</a></li>
+          <li class="level1"><a href="#extending-authentication-e-g-external-sasl-mechanism">Extending authentication (e.g. external SASL mechanism)</a></li>
+          <li class="level1"><a href="#wire-protocol">Wire protocol</a></li>
         </ul>
 
         <p class="footer"></p>
@@ -101,34 +96,16 @@
 
       <main class="content">
 
-        <h1 id="features" class="title">Features</h1>
+        <h1 id="advanced" class="title">Advanced</h1>
         
-        <h2 id="amqp-0-9-1-compliant" class="section"><a class="anchor-link left" href="#amqp-0-9-1-compliant"><i class="icofont-laika">&#xef71;</i></a>AMQP 0.9.1 compliant</h2>
-        <p>Supports all AMQP 0.9.1 protocol, from transactions to pluggable authentication mechanism.</p>
+        <h2 id="extending-authentication-e-g-external-sasl-mechanism" class="section"><a class="anchor-link left" href="#extending-authentication-e-g-external-sasl-mechanism"><i class="icofont-laika">&#xef71;</i></a>Extending authentication (e.g. external SASL mechanism)</h2>
+        <p>Connection constructor takes an <a href="https://s01.oss.sonatype.org/service/local/repositories/snapshots/archive/dev/hnaderi/lepus-docs_3/0.0-c499ef7-SNAPSHOT/lepus-docs_3-0.0-c499ef7-SNAPSHOT-javadoc.jar/!/index.htmllepus/client/AuthenticationConfig.html">AuthenticationConfig</a>, which contains 
+        a list of <a href="https://s01.oss.sonatype.org/service/local/repositories/snapshots/archive/dev/hnaderi/lepus-docs_3/0.0-c499ef7-SNAPSHOT/lepus-docs_3-0.0-c499ef7-SNAPSHOT-javadoc.jar/!/index.htmllepus/client/SaslMechanism.html">SaslMechanism</a>s by order of preference,
+        default connection only contains a plain mechanism that uses username and password,
+        you can however implement any other mechanisms or integrate with other external mechanisms.</p>
         
-        <h2 id="rabbitmq-protocol-extensions" class="section"><a class="anchor-link left" href="#rabbitmq-protocol-extensions"><i class="icofont-laika">&#xef71;</i></a>RabbitMQ protocol extensions</h2>
-        <p>Supports almost all of the RabbitMQ protocol extensions
-        A couple of extensions are not implemented yet which is tracked in <a href="https://github.com/hnaderi/lepus/issues/71">this issue</a></p>
-        
-        <h2 id="ergonomic-apis" class="section"><a class="anchor-link left" href="#ergonomic-apis"><i class="icofont-laika">&#xef71;</i></a>Ergonomic APIs</h2>
-        <p>AMQP protocol has a broad range of operations that can be used together to do a lot of interesting messaging,
-        however not all of the aforementioned combinations are allowed or even meaningful, which is annoying when using official client.
-        This client on the other hand, tries to have helpful and friendly APIs which guides the beginner, and helps the advanced user; 
-        without any sacrificing any meaningful power.</p>
-        
-        <h2 id="cross-platform" class="section"><a class="anchor-link left" href="#cross-platform"><i class="icofont-laika">&#xef71;</i></a>Cross platform</h2>
-        <p>To this date, this library is the only AMQP scala library that supports all scala platforms.</p>
-        
-        <h2 id="streaming" class="section"><a class="anchor-link left" href="#streaming"><i class="icofont-laika">&#xef71;</i></a>Streaming</h2>
-        <p>Built on top of fs2 and cats effect, this library never blocks, never uses reflection or any black magic.</p>
-        
-        <h2 id="out-of-the-box-utilities" class="section"><a class="anchor-link left" href="#out-of-the-box-utilities"><i class="icofont-laika">&#xef71;</i></a>Out of the box utilities</h2>
-        <p>Standard library and available integrations aim to provide friendly and easy to use tools which adhere to best practices
-        in messaging systems.</p>
-        
-        <h2 id="extensible" class="section"><a class="anchor-link left" href="#extensible"><i class="icofont-laika">&#xef71;</i></a>Extensible</h2>
-        <p>You can extend and/or integrate library in user land, examples include pluggable SASL mechanisms, 
-        custom codecs and even protocol frame inspector.</p>
+        <h2 id="wire-protocol" class="section"><a class="anchor-link left" href="#wire-protocol"><i class="icofont-laika">&#xef71;</i></a>Wire protocol</h2>
+        <p>TBD</p>
 
         <hr style="margin-top: 30px"/>
         <footer style="font-size: 90%; text-align: center">
