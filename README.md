@@ -21,7 +21,7 @@ libraryDependencies += "dev.hnaderi" %% "lepus-client" % "<version from releases
 Then you are ready to use Lepus, for tutorial continue to [documentation site](https://lepus.hnaderi.dev)!  
 
 ## Why?
-If you have ever used [Skunk](https://github.com/tpolecat/skunk) you might agree with me on how much it's fun to use and meanwhile insightful for it's users. This project started with this in mind and I hope it achieves its goals.
+If you have ever used [Skunk](https://github.com/tpolecat/skunk) you might agree with me on how much it's fun to use and meanwhile insightful for its users. This project started with this in mind and I hope it achieves its goals.
 
 ## I mean, why not use official java client and use Lepus instead?
 I'm not in position to tell you what should you use, but if you are tired of wrappers over the java client,
