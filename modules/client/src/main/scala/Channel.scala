@@ -143,33 +143,20 @@ object Channel {
       channel: ChannelTransmitter[F]
   ) extends ConsumingImpl[F](channel),
         NormalMessagingChannel[F] {
-    def publishRaw(
-        exchange: ExchangeName,
-        routingKey: ShortString,
-        message: MessageRaw
-    ): F[Unit] = channel.publish(
-      BasicClass
-        .Publish(exchange, routingKey, mandatory = false, immediate = false),
-      message
-    )
 
-    def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessageRaw] = in =>
-      val send = in
-        .evalMap(e =>
-          channel.publish(
-            BasicClass
-              .Publish(
-                e.exchange,
-                e.routingKey,
-                mandatory = e.mandatory,
-                immediate = false
-              ),
-            e.message
-          )
-        )
-        .drain
+    override def returned: Stream[F, ReturnedMessageRaw] = channel.returned
 
-      send.mergeHaltBoth(channel.returned)
+    def publishRaw(env: EnvelopeRaw): F[Unit] =
+      channel.publish(
+        BasicClass
+          .Publish(
+            env.exchange,
+            env.routingKey,
+            mandatory = env.mandatory,
+            immediate = false
+          ),
+        env.message
+      )
 
   }
 
@@ -178,7 +165,7 @@ object Channel {
       tagger: SequentialTagger[F]
   ) extends ConsumingImpl(channel),
         ReliablePublishingMessagingChannel[F] {
-    protected def publishRaw(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
+    def publishRaw(env: EnvelopeRaw): F[DeliveryTag] = tagger.next(
       channel
         .publish(
           BasicClass.Publish(
@@ -192,8 +179,7 @@ object Channel {
     )
 
     def confirmations: Stream[F, Confirmation] = channel.confirmed
-    def publisherRaw: Pipe[F, EnvelopeRaw, DeliveryTag | ReturnedMessageRaw] =
-      _.evalMap(publishRaw(_)).mergeHaltBoth(channel.returned)
+    def returned: Stream[F, ReturnedMessageRaw] = channel.returned
   }
 
   private final class TransactionalMessagingImpl[F[_]: Concurrent](

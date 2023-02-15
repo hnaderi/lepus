@@ -18,6 +18,7 @@ package lepus.client
 package apis
 
 import cats.MonadError
+import cats.effect.Concurrent
 import cats.effect.kernel.Resource
 import cats.implicits.*
 import fs2.Pipe
@@ -39,6 +40,7 @@ trait Consuming[F[_]] {
       global: Boolean = false
   ): F[BasicClass.QosOk.type]
 
+  /** Consumes raw messages */
   def consumeRaw(
       queue: QueueName,
       noLocal: NoLocal = false,
@@ -47,6 +49,25 @@ trait Consuming[F[_]] {
       arguments: FieldTable = FieldTable.empty
   ): Stream[F, DeliveredMessageRaw]
 
+  /** Consumes and decodes messages
+    *
+    * Note that you MUST acknowledge (ack, reject, nack) messages if you select
+    * any [[ConsumeMode]] but ConsumeMode.RaiseOnError(false)
+    *
+    * @param queue
+    *   QueueName to consume from
+    * @param mode
+    *   what to do when a message cannot be decoded
+    * @param noLocal
+    *   don't consume messages published on this connection
+    * @param exclusive
+    *   request exclusive consumer right
+    * @param arguments
+    *   extra params
+    *
+    * @returns
+    *   successfully decoded messages
+    */
   final def consume[T](
       queue: QueueName,
       mode: ConsumeMode = ConsumeMode.RaiseOnError(false),
@@ -81,7 +102,7 @@ trait Consuming[F[_]] {
 
   def get(
       queue: QueueName,
-      noAck: NoAck
+      noAck: NoAck = true
   ): F[Option[SynchronousGetRaw]]
 
   def ack(deliveryTag: DeliveryTag, multiple: Boolean = false): F[Unit]
@@ -101,19 +122,50 @@ trait Consuming[F[_]] {
 }
 
 trait Publishing[F[_]] {
-  def publishRaw(
+
+  /** Publishes raw envelope, this is a low level operation and is exposed only
+    * for special circumstances, always prefer to use other higher level publish
+    * methods
+    *
+    * Note that if a mandatory message fails in routing, it is returned to the
+    * client and you MUST also consume [[returned]] if you publish mandatory
+    * messages
+    */
+  def publishRaw(env: EnvelopeRaw): F[Unit]
+
+  /** Encodes and publishes an envelope, this is a low level operation and is
+    * exposed only for special circumstances, always prefer to use other higher
+    * level publish methods
+    *
+    * Note that if a mandatory message fails in routing, it is returned to the
+    * client and you MUST also consume [[returned]] if you publish mandatory
+    * messages
+    */
+  final inline def publish[T: EnvelopeEncoder](env: Envelope[T]): F[Unit] =
+    publishRaw(env.toRaw)
+
+  /** Publishes raw message that is not mandatory This is useful if you have
+    * handled encoding and want to publish a raw message directly
+    */
+  final inline def publishRaw(
       exchange: ExchangeName,
       routingKey: ShortString,
       message: MessageRaw
-  ): F[Unit]
+  ): F[Unit] = publishRaw(
+    EnvelopeRaw(exchange, routingKey, mandatory = false, message)
+  )
 
-  final inline def publish[T](
+  /** Encodes and publishes a message that is not mandatory */
+  final inline def publish[T: EnvelopeEncoder](
       exchange: ExchangeName,
       routingKey: ShortString,
       message: Message[T]
-  )(using enc: EnvelopeEncoder[T]): F[Unit] =
-    publishRaw(exchange, routingKey, enc.encode(message))
+  ): F[Unit] =
+    publishRaw(exchange, routingKey, message.toRaw)
 
+  /** Creates a message with given payload, encodes it and then publishes it as
+    * not mandatory
+    */
   final inline def publish[T](
       exchange: ExchangeName,
       routingKey: ShortString,
@@ -121,16 +173,78 @@ trait Publishing[F[_]] {
   )(using enc: EnvelopeEncoder[T])(using NotGiven[T <:< Message[?]]): F[Unit] =
     publish(exchange, routingKey, Message(payload))
 
-  def publisherRaw: Pipe[F, EnvelopeRaw, ReturnedMessageRaw]
+  /** A pipe that publishes [[Envelope]]s that may or may not be mandatory, And
+    * [[ReturnedMessageRaw]] for returned messages.
+    *
+    * Note that this pipe SHOULD be used exclusively, as it is draining from the
+    * returned messages that is backed by a queue.
+    */
+  final def publisherRaw(using
+      Concurrent[F]
+  ): Pipe[F, EnvelopeRaw, ReturnedMessageRaw] =
+    _.foreach(publishRaw(_)).mergeHaltBoth(returned)
 
-  final inline def publisher[T: EnvelopeEncoder]
-      : Pipe[F, Envelope[T], ReturnedMessageRaw] =
+  /** A pipe that encodes and publishes [[Envelope]]s that may or may not be
+    * mandatory, And [[ReturnedMessageRaw]] for returned messages.
+    *
+    * Note that this pipe SHOULD be used exclusively, as it is draining from the
+    * returned messages that is backed by a queue.
+    */
+  final def publisher[T: EnvelopeEncoder](using
+      Concurrent[F]
+  ): Pipe[F, Envelope[T], ReturnedMessageRaw] =
     _.map(_.toRaw).through(publisherRaw)
+
+  /** consumes returned messages from the server, this should be used
+    * exclusively, or otherwise different instances compete over received
+    * values, and each get different set of values.
+    *
+    * Also note that this is a low level operation that is exposed for special
+    * circumstances, always prefer to use publisher pipe instead, unless
+    * necessary
+    */
+  def returned: Stream[F, ReturnedMessageRaw]
 }
 
 trait ReliablePublishing[F[_]] {
-  protected def publishRaw(env: EnvelopeRaw): F[DeliveryTag]
 
+  /** Publishes raw envelope, this is a low level operation and is exposed only
+    * for special circumstances, always prefer to use other higher level publish
+    * methods
+    *
+    * Note that if a mandatory message fails in routing, it is returned to the
+    * client and you MUST also consume [[returned]] if you publish mandatory
+    * messages
+    *
+    * @returns
+    *   DeliveryTag for this message, which you should keep until acked or
+    *   nacked from the server
+    */
+  def publishRaw(env: EnvelopeRaw): F[DeliveryTag]
+
+  /** Encodes and publishes an envelope, this is a low level operation and is
+    * exposed only for special circumstances, always prefer to use other higher
+    * level publish methods
+    *
+    * Note that if a mandatory message fails in routing, it is returned to the
+    * client and you MUST also consume [[returned]] if you publish mandatory
+    * messages
+    *
+    * @returns
+    *   DeliveryTag for this message, which you should keep until acked or
+    *   nacked from the server
+    */
+  final inline def publish[T: EnvelopeEncoder](
+      env: Envelope[T]
+  ): F[DeliveryTag] = publishRaw(env.toRaw)
+
+  /** Publishes raw message that is not mandatory This is useful if you have
+    * handled encoding and want to publish a raw message directly
+    *
+    * @returns
+    *   DeliveryTag for this message, which you should keep until acked or
+    *   nacked from the server
+    */
   final inline def publishRaw(
       exchange: ExchangeName,
       routingKey: ShortString,
@@ -139,6 +253,12 @@ trait ReliablePublishing[F[_]] {
     EnvelopeRaw(exchange, routingKey, mandatory = false, message)
   )
 
+  /** Encodes and publishes a message that is not mandatory
+    *
+    * @returns
+    *   DeliveryTag for this message, which you should keep until acked or
+    *   nacked from the server
+    */
   final inline def publish[T: EnvelopeEncoder](
       exchange: ExchangeName,
       routingKey: ShortString,
@@ -146,26 +266,75 @@ trait ReliablePublishing[F[_]] {
   ): F[DeliveryTag] =
     publishRaw(exchange, routingKey, message.toRaw)
 
+  /** Creates a message that is not mandatory, encodes and publishes it
+    *
+    * @returns
+    *   DeliveryTag for this message, which you should keep until acked or
+    *   nacked from the server
+    */
   final inline def publish[T: EnvelopeEncoder](
-      env: Envelope[T]
-  ): F[DeliveryTag] =
-    publishRaw(env.toRaw)
+      exchange: ExchangeName,
+      routingKey: ShortString,
+      payload: T
+  )(using NotGiven[T <:< Message[?]]): F[DeliveryTag] =
+    publishRaw(exchange, routingKey, MessageRaw.from(payload))
 
-  def publisherRaw: Pipe[F, EnvelopeRaw, DeliveryTag | ReturnedMessageRaw]
+  /** A pipe that publishes [[Envelope]]s that may or may not be mandatory, And
+    * returns a delivery tag for every incoming message, and
+    * [[ReturnedMessageRaw]] for returned messages.
+    *
+    * Note that this pipe SHOULD be used exclusively, as it is draining from the
+    * returned messages that is backed by a queue.
+    *
+    * @returns
+    *   DeliveryTag for this message, which you should keep until acked or
+    *   nacked from the server
+    */
+  final def publisherRaw(using
+      Concurrent[F]
+  ): Pipe[F, EnvelopeRaw, DeliveryTag | ReturnedMessageRaw] =
+    _.evalMap(publishRaw(_)).mergeHaltBoth(returned)
 
-  final inline def publisher[T: EnvelopeEncoder]
-      : Pipe[F, Envelope[T], DeliveryTag | ReturnedMessageRaw] =
+  /** like [[publisherRaw]], but encodes messages as well
+    */
+  final def publisher[T: EnvelopeEncoder](using
+      Concurrent[F]
+  ): Pipe[F, Envelope[T], DeliveryTag | ReturnedMessageRaw] =
     _.map(_.toRaw).through(publisherRaw)
 
+  /** consumes Confirmation messages from the server, this should be used
+    * exclusively, or otherwise different instances compete over received
+    * values, and each get different set of values.
+    */
   def confirmations: Stream[F, Confirmation]
+
+  /** consumes returned messages from the server, this should be used
+    * exclusively, or otherwise different instances compete over received
+    * values, and each get different set of values.
+    *
+    * Also note that this is a low level operation that is exposed for special
+    * circumstances, always prefer to use publisher pipe instead, unless
+    * necessary
+    */
+  def returned: Stream[F, ReturnedMessageRaw]
 }
 
 trait Transaction[F[_]] {
+
+  /** Commits a transaction explicitly, and starts a new transaction
+    * immediately.
+    */
   def commit: F[Unit]
+
+  /** Rollbacks a transaction explicitly, and starts a new transaction
+    * immediately.
+    */
   def rollback: F[Unit]
 }
 
 trait TransactionalMessaging[F[_]] {
+
+  /** Starts an scope that will commit on success, and rollback otherwise */
   def transaction: Resource[F, Transaction[F]]
 }
 

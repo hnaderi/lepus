@@ -153,6 +153,12 @@ final case class Confirmation(
     multiple: Boolean
 )
 
+/** Consume mode determines how a decoding consumer behaves,
+  * [[ConsumeMode.RaiseOnError]] raises error when decoding is failed,
+  * [[ConsumeMode.NackOnError]] sends a nack for the failed message
+  * `RaiseOnError(false)` consumes in auto ack mode, the other two requires you
+  * to acknowledge each message
+  */
 enum ConsumeMode {
   case RaiseOnError(ack: Boolean)
   case NackOnError
