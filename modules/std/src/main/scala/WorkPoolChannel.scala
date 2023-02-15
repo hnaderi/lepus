@@ -18,6 +18,11 @@ package lepus.std
 
 import fs2.Stream
 
+trait WorkPoolClient[F[_], T] {
+  def jobs: Stream[F, T]
+  def respond(): F[Unit]
+}
+
 trait WorkPoolServer[F[_], T] {
   def publish(t: T): F[Unit]
   def responses: Stream[F, Int]

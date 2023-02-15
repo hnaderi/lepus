@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
-package lepus.data
+package lepus.std
 
-trait MessageCodec[T]
+trait TopicChannel[F[_], T] {
+  def publish(t: T): F[Unit]
+}

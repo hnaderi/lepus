@@ -16,6 +16,30 @@
 
 package lepus.std
 
-trait Bus[F[_], T] {
-  def publish(t: T): F[Unit]
+import munit.FunSuite
+import munit.Location
+
+class TopicNameSuite extends FunSuite {
+  private inline def doesNotCompile(inline code: String)(using Location) =
+    assert(compileErrors(code).nonEmpty)
+
+  test("Empty") {
+    assertEquals(TopicName(""), "")
+  }
+
+  test("#") {
+    doesNotCompile("""TopicName("#")""")
+    doesNotCompile("""TopicName("ab#cd#ef")""")
+  }
+
+  test("*") {
+    doesNotCompile("""TopicName("*")""")
+    doesNotCompile("""TopicName("ab*cd*ef")""")
+  }
+
+  test("...") {
+    doesNotCompile("""TopicName("..")""")
+    doesNotCompile("""TopicName("a..b")""")
+  }
+
 }

@@ -22,3 +22,7 @@ trait RPCServer[F[_], T] {
   def requests: Stream[F, T]
   def respond(): F[Unit]
 }
+
+trait RPCClient[F[_], T] {
+  def call(t: T): F[Int]
+}
