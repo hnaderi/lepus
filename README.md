@@ -7,6 +7,7 @@
 
 <a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
 [![lepus-client Scala version support](https://index.scala-lang.org/hnaderi/lepus/lepus-client/latest.svg?style=flat-square)](https://index.scala-lang.org/hnaderi/lepus/lepus-client)
+ [![javadoc](https://javadoc.io/badge2/dev.hnaderi/lepus-docs_3/javadoc.svg?style=flat-square)](https://javadoc.io/doc/dev.hnaderi/lepus-docs_3) 
 <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/hnaderi/lepus/ci.yml?style=flat-square">
 <img alt="GitHub" src="https://img.shields.io/github/license/hnaderi/lepus?style=flat-square">  
 
