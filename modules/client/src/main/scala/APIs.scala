@@ -17,47 +17,46 @@
 package lepus.client
 
 import cats.MonadError
-import cats.implicits.*
 import lepus.protocol.*
 import lepus.protocol.classes.*
-import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 
-import internal.*
+import internal.ChannelTransmitter
+import Channel.call
 
 trait ExchangeAPI[F[_]] {
 
   def declare(
       exchange: ExchangeName,
-      `type`: ShortString,
-      passive: Boolean,
-      durable: Boolean,
-      autoDelete: Boolean,
-      internal: Boolean,
-      noWait: NoWait,
-      arguments: FieldTable
+      `type`: ExchangeType,
+      passive: Boolean = false,
+      durable: Boolean = false,
+      autoDelete: Boolean = true,
+      internal: Boolean = false,
+      noWait: NoWait = false,
+      arguments: FieldTable = FieldTable.empty
   ): F[Option[ExchangeClass.DeclareOk.type]]
 
   def delete(
       exchange: ExchangeName,
-      ifUnused: Boolean,
-      noWait: NoWait
+      ifUnused: Boolean = true,
+      noWait: NoWait = false
   ): F[Option[ExchangeClass.DeleteOk.type]]
 
   def bind(
       destination: ExchangeName,
       source: ExchangeName,
       routingKey: ShortString,
-      noWait: NoWait,
-      arguments: FieldTable
+      noWait: NoWait = false,
+      arguments: FieldTable = FieldTable.empty
   ): F[Option[ExchangeClass.BindOk.type]]
 
   def unbind(
       destination: ExchangeName,
       source: ExchangeName,
       routingKey: ShortString,
-      noWait: NoWait,
-      arguments: FieldTable
+      noWait: NoWait = false,
+      arguments: FieldTable = FieldTable.empty
   ): F[Option[ExchangeClass.UnbindOk.type]]
 
 }
@@ -77,18 +76,21 @@ trait QueueAPI[F[_]] {
       queue: QueueName,
       exchange: ExchangeName,
       routingKey: ShortString,
-      noWait: NoWait,
-      arguments: FieldTable
+      noWait: NoWait = false,
+      arguments: FieldTable = FieldTable.empty
   ): F[Option[QueueClass.BindOk.type]]
 
   def unbind(
       queue: QueueName,
       exchange: ExchangeName,
       routingKey: ShortString,
-      arguments: FieldTable
+      arguments: FieldTable = FieldTable.empty
   ): F[QueueClass.UnbindOk.type]
 
-  def purge(queue: QueueName, noWait: NoWait): F[Option[QueueClass.PurgeOk]]
+  def purge(
+      queue: QueueName,
+      noWait: NoWait = false
+  ): F[Option[QueueClass.PurgeOk]]
 
   def delete(
       queue: QueueName,
@@ -98,58 +100,39 @@ trait QueueAPI[F[_]] {
   ): F[Option[QueueClass.DeleteOk]]
 }
 
-//TODO channel.call
 private[client] final class ExchangeAPIImpl[F[_]](rpc: ChannelTransmitter[F])(
     using F: MonadError[F, Throwable]
 ) extends ExchangeAPI[F] {
 
   def declare(
       exchange: ExchangeName,
-      `type`: ShortString,
+      `type`: ExchangeType,
       passive: Boolean,
       durable: Boolean,
       autoDelete: Boolean,
       internal: Boolean,
       noWait: NoWait,
       arguments: FieldTable
-  ): F[Option[ExchangeClass.DeclareOk.type]] = {
-    val msg = ExchangeClass.Declare(
-      exchange,
-      `type`,
-      passive,
-      durable,
-      autoDelete,
-      internal,
-      noWait,
-      arguments
+  ): F[Option[ExchangeClass.DeclareOk.type]] =
+    rpc.call(
+      ExchangeClass.Declare(
+        exchange,
+        `type`,
+        passive,
+        durable,
+        autoDelete,
+        internal,
+        noWait,
+        arguments
+      )
     )
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: ExchangeClass.DeclareOk.type => m.pure
-          case _                               => F.raiseError(???)
-        }
-        .map(_.some)
-  }
 
   def delete(
       exchange: ExchangeName,
       ifUnused: Boolean,
       noWait: NoWait
-  ): F[Option[ExchangeClass.DeleteOk.type]] = {
-    val msg = ExchangeClass.Delete(exchange, ifUnused, noWait)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: ExchangeClass.DeleteOk.type => m.pure
-          case _                              => F.raiseError(???)
-        }
-        .map(_.some)
-  }
+  ): F[Option[ExchangeClass.DeleteOk.type]] =
+    rpc.call(ExchangeClass.Delete(exchange, ifUnused, noWait))
 
   def bind(
       destination: ExchangeName,
@@ -157,19 +140,10 @@ private[client] final class ExchangeAPIImpl[F[_]](rpc: ChannelTransmitter[F])(
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ): F[Option[ExchangeClass.BindOk.type]] = {
-    val msg =
+  ): F[Option[ExchangeClass.BindOk.type]] =
+    rpc.call(
       ExchangeClass.Bind(destination, source, routingKey, noWait, arguments)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: ExchangeClass.BindOk.type => m.pure
-          case _                            => F.raiseError(???)
-        }
-        .map(_.some)
-  }
+    )
 
   def unbind(
       destination: ExchangeName,
@@ -177,20 +151,10 @@ private[client] final class ExchangeAPIImpl[F[_]](rpc: ChannelTransmitter[F])(
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ): F[Option[ExchangeClass.UnbindOk.type]] = {
-    val msg =
+  ): F[Option[ExchangeClass.UnbindOk.type]] =
+    rpc.call(
       ExchangeClass.Unbind(destination, source, routingKey, noWait, arguments)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: ExchangeClass.UnbindOk.type => m.pure
-          case _                              => F.raiseError(???)
-        }
-        .map(_.some)
-  }
-
+    )
 }
 
 private[client] final class QueueAPIImpl[F[_]](rpc: ChannelTransmitter[F])(using
@@ -205,26 +169,18 @@ private[client] final class QueueAPIImpl[F[_]](rpc: ChannelTransmitter[F])(using
       autoDelete: Boolean,
       noWait: NoWait,
       arguments: FieldTable
-  ): F[Option[QueueClass.DeclareOk]] = {
-    val msg = QueueClass.Declare(
-      queue,
-      passive,
-      durable,
-      exclusive,
-      autoDelete,
-      noWait,
-      arguments
+  ): F[Option[QueueClass.DeclareOk]] =
+    rpc.call(
+      QueueClass.Declare(
+        queue,
+        passive,
+        durable,
+        exclusive,
+        autoDelete,
+        noWait,
+        arguments
+      )
     )
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: QueueClass.DeclareOk => m.pure
-          case _                       => F.raiseError(???)
-        }
-        .map(_.some)
-  }
 
   def bind(
       queue: QueueName,
@@ -232,61 +188,26 @@ private[client] final class QueueAPIImpl[F[_]](rpc: ChannelTransmitter[F])(using
       routingKey: ShortString,
       noWait: NoWait,
       arguments: FieldTable
-  ): F[Option[QueueClass.BindOk.type]] = {
-    val msg = QueueClass.Bind(queue, exchange, routingKey, noWait, arguments)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: QueueClass.BindOk.type => m.pure
-          case _                         => F.raiseError(???)
-        }
-        .map(_.some)
-  }
+  ): F[Option[QueueClass.BindOk.type]] =
+    rpc.call(QueueClass.Bind(queue, exchange, routingKey, noWait, arguments))
 
   def unbind(
       queue: QueueName,
       exchange: ExchangeName,
       routingKey: ShortString,
       arguments: FieldTable
-  ): F[QueueClass.UnbindOk.type] = {
-    val msg = QueueClass.Unbind(queue, exchange, routingKey, arguments)
-    rpc.sendWait(msg).flatMap {
-      case m: QueueClass.UnbindOk.type => m.pure
-      case _                           => F.raiseError(???)
-    }
-  }
+  ): F[QueueClass.UnbindOk.type] =
+    rpc.call(QueueClass.Unbind(queue, exchange, routingKey, arguments))
 
-  def purge(queue: QueueName, noWait: NoWait): F[Option[QueueClass.PurgeOk]] = {
-    val msg = QueueClass.Purge(queue, noWait)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: QueueClass.PurgeOk => m.pure
-          case _                     => F.raiseError(???)
-        }
-        .map(_.some)
-  }
+  def purge(queue: QueueName, noWait: NoWait): F[Option[QueueClass.PurgeOk]] =
+    rpc.call(QueueClass.Purge(queue, noWait))
 
   def delete(
       queue: QueueName,
       ifUnused: Boolean,
       ifEmpty: Boolean,
       noWait: NoWait
-  ): F[Option[QueueClass.DeleteOk]] = {
-    val msg = QueueClass.Delete(queue, ifUnused, ifEmpty, noWait)
-    if noWait then rpc.sendNoWait(msg).as(None)
-    else
-      rpc
-        .sendWait(msg)
-        .flatMap {
-          case m: QueueClass.DeleteOk => m.pure
-          case _                      => F.raiseError(???)
-        }
-        .map(_.some)
-  }
+  ): F[Option[QueueClass.DeleteOk]] =
+    rpc.call(QueueClass.Delete(queue, ifUnused, ifEmpty, noWait))
 
 }
