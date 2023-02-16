@@ -17,6 +17,7 @@
 package lepus.protocol.domains
 
 import java.time.Instant
+import java.util.UUID
 
 trait TaggedOpaqueComp[U, T <: U](using ev: U =:= T) {
   def apply(u: U): T = ev(u)
@@ -30,6 +31,11 @@ opaque type ShortString <: String = String
 object ShortString extends Literally[String, ShortString] {
 
   inline def apply(t: String): ShortString = ${ build('t) }
+
+  def from(uuid: UUID): ShortString = uuid.toString()
+  def from(long: Long): ShortString = long.toString()
+
+  private[lepus] inline def unsafe(str: String): ShortString = str
 
   def empty: ShortString = ""
   def from(str: String): Either[String, ShortString] =
