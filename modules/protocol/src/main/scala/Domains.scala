@@ -117,6 +117,7 @@ private def validateNameSize(name: String): Either[String, String] =
   */
 opaque type ExchangeName <: ShortString = String
 object ExchangeName extends Literally[String, ExchangeName] {
+  val default: ExchangeName = ""
 
   inline def apply(t: String): ExchangeName = ${ build('t) }
 
@@ -172,6 +173,7 @@ type PeerProperties = FieldTable
   */
 opaque type QueueName <: ShortString = String
 object QueueName extends Literally[String, QueueName] {
+  val autoGen: QueueName = ""
 
   inline def apply(t: String): QueueName = ${ build('t) }
 

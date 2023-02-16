@@ -17,16 +17,16 @@
 package lepus.std
 
 import lepus.client.EnvelopeCodec
-import lepus.protocol.domains.ExchangeName
+import lepus.protocol.domains.*
 
-final case class ChannelDefinition[T](
+final case class TopicDefinition[T](
     exchange: ExchangeName,
     codec: ChannelCodec[T],
     topic: TopicNameEncoder[T]
 )
 
-final case class CommandChannelDefinition[T](
-    codec: ChannelCodec[T],
-    name: String,
-    exchange: ExchangeName = ExchangeName("commands")
+final case class EndpointDefinition[I, O](
+    name: QueueName,
+    clientCodec: ChannelCodec[I],
+    serverCodec: ChannelCodec[O]
 )

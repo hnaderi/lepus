@@ -23,6 +23,9 @@ import lepus.protocol.domains.*
 
 trait ChannelEncoder[T] {
   def encode(msg: Message[T]): Either[Throwable, MessageRaw]
+  final def encode(payload: T): Either[Throwable, MessageRaw] = encode(
+    Message(payload)
+  )
 }
 
 trait ChannelDecoder[T] {
