@@ -55,3 +55,18 @@ extension (o: ShortString.type) {
   inline def sha512Hex(str: String): ShortString =
     ShortStringConstructors.sha512Hex(str)
 }
+
+extension (str: String) {
+  inline def md5Hex: ShortString =
+    ShortStringConstructors.md5Hex(str)
+  inline def sha1Hex: ShortString =
+    ShortStringConstructors.sha1Hex(str)
+  inline def sha224Hex: ShortString =
+    ShortStringConstructors.sha224Hex(str)
+  inline def sha256Hex: ShortString =
+    ShortStringConstructors.sha256Hex(str)
+  inline def sha384Hex: ShortString =
+    ShortStringConstructors.sha384Hex(str)
+  inline def sha512Hex: ShortString =
+    ShortStringConstructors.sha512Hex(str)
+}
