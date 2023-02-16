@@ -87,11 +87,11 @@
         <p class="header"><a href="#">Standard library</a></p>
 
         <ul class="nav-list">
-          <li class="level1"><a href="#workchannel">WorkChannel</a></li>
-          <li class="level1"><a href="#topicchannel">TopicChannel</a></li>
+          <li class="level1"><a href="#workpoolchannel">WorkPoolChannel</a></li>
           <li class="level1"><a href="#rpcchannel">RPCChannel</a></li>
-          <li class="level1"><a href="#reliableconsumer">ReliableConsumer</a></li>
-          <li class="level1"><a href="#reliablepublisher">ReliablePublisher</a></li>
+          <li class="level1"><a href="#eventchannel">EventChannel</a></li>
+          <li class="level1"><a href="#helpers">Helpers</a></li>
+          <li class="level2"><a href="#shortstring-constructors">ShortString constructors</a></li>
         </ul>
 
         <p class="footer"></p>
@@ -100,17 +100,63 @@
       <main class="content">
 
         <h1 id="standard-library" class="title">Standard library</h1>
-        <p>Coming soon!</p>
+        <p>Although AMQP supports a vast amount of different messaging topologies, not all of its users want to 
+        write everything from the scratch every time! also most of the use cases that are common in practice, 
+        don&#39;t even require that much flexibility.
+        Besides, having some opinionated tools that follow best practices help beginners and facilitates advanced users.</p>
+        <p>This is where Lepus standard library comes in to play, and provides out of the box utilities and helpers for the most common messaging use cases,
+        and imposes a few best practices and design opinions.</p>
+        <p>in order to use standard library, you need to add its dependency:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;dev.hnaderi&quot;</span><span> %% </span><span class="string-literal">&quot;lepus-std&quot;</span><span> % </span><span class="string-literal">&quot;0.0.0&quot;</span></code></pre>
+        <p>and import its package:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">std</span><span>.*</span></code></pre>
         
-        <h2 id="workchannel" class="section"><a class="anchor-link left" href="#workchannel"><i class="icofont-laika">&#xef71;</i></a>WorkChannel</h2>
-        
-        <h2 id="topicchannel" class="section"><a class="anchor-link left" href="#topicchannel"><i class="icofont-laika">&#xef71;</i></a>TopicChannel</h2>
+        <h2 id="workpoolchannel" class="section"><a class="anchor-link left" href="#workpoolchannel"><i class="icofont-laika">&#xef71;</i></a>WorkPoolChannel</h2>
+        <p><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.0.0/lepus/std/WorkPoolChannel.html">WorkPoolChannel</a> implements a work pool topology. In this topology, 
+        one or more peers produce jobs, and one or more worker compete over processing those jobs.
+        This topology handles workers fail over, so if a worker fails, its jobs will be routed to another worker.
+        However this topology can&#39;t guarantee any ordering of messages by definition.</p>
+        <p>TBD code example</p>
         
         <h2 id="rpcchannel" class="section"><a class="anchor-link left" href="#rpcchannel"><i class="icofont-laika">&#xef71;</i></a>RPCChannel</h2>
+        <p><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.0.0/lepus/std/RPCChannel.html">RPCChannel</a> implements an async RPC communication channel topology.
+        In this topology, each server has its own endpoint, where clients can send methods to,
+        server then can decide to response to sender&#39;s address, ignore the request, or reject it.
+        Clients can then consume responses, and mark them as processed.
+        This topology models an point to point communication, with at least one delivery semantics, 
+        so your processing MUST be idempotent and async, as both responses and requests might be received several times,
+        and with any ordering.</p>
+        <p>TBD code example</p>
         
-        <h2 id="reliableconsumer" class="section"><a class="anchor-link left" href="#reliableconsumer"><i class="icofont-laika">&#xef71;</i></a>ReliableConsumer</h2>
+        <h2 id="eventchannel" class="section"><a class="anchor-link left" href="#eventchannel"><i class="icofont-laika">&#xef71;</i></a>EventChannel</h2>
+        <p><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.0.0/lepus/std/EventChannel.html">EventChannel</a> implements a pubsub topology for events.
+        In this topology, peers publish or subscribe to certain communication channels (logical streams of data).
+        In this topology every consumer gets a copy of data, which is in contrast to previous topologies where a single piece 
+        of data is routed to exactly one peer.
+        This topology guarantees at least one delivery of messages.</p>
+        <p>TBD code example</p>
         
-        <h2 id="reliablepublisher" class="section"><a class="anchor-link left" href="#reliablepublisher"><i class="icofont-laika">&#xef71;</i></a>ReliablePublisher</h2>
+        <h2 id="helpers" class="section"><a class="anchor-link left" href="#helpers"><i class="icofont-laika">&#xef71;</i></a>Helpers</h2>
+        
+        <h3 id="shortstring-constructors" class="section"><a class="anchor-link left" href="#shortstring-constructors"><i class="icofont-laika">&#xef71;</i></a>ShortString constructors</h3>
+        <p>AMQP protocol defines a set of data models, <code>ShortString</code> is one of them that is frequently used in APIs and messages,
+        for example, routing keys and most of the message properties are all <code>ShortString</code>s.<br>
+        Generally speaking, <code>ShortString</code> is any UTF-8 string with maximum length of 255 (however there are some other cases where there are more constraints).<br>
+        Being such a common data type, it can be very helpful to have constructors for common use cases that are safe at compile time.
+        The following syntax is provided by stdlib:</p>
+        <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">example1</span><span> = </span><span class="string-literal">&quot;some id&quot;</span><span>.</span><span class="identifier">md5Hex</span><span>
+</span><span class="comment">// example1: ShortString = &quot;sbLnAGvj6HGV60+dmMgAFA==&quot;
+</span><span class="keyword">val</span><span> </span><span class="identifier">example2</span><span> = </span><span class="string-literal">&quot;some id&quot;</span><span>.</span><span class="identifier">sha1Hex</span><span>
+</span><span class="comment">// example2: ShortString = &quot;F1s4WPrIcLzs3MqS3PwIs8Mztmo=&quot;
+// sha1 sha224 sha256 sha384 and sha512 are supported
+</span><span class="keyword">val</span><span> </span><span class="identifier">example3</span><span> = </span><span class="string-literal">&quot;some id&quot;</span><span>.</span><span class="identifier">sha512Hex</span><span>
+</span><span class="comment">// example3: ShortString = &quot;wBVK/6VpEFsNTfRRV1gJpoihfAb7Tr9PH7rMqoN4Ibgi2mkXry8NXkgfl3zM/Rza3/xdwyOunTqQBqSLj8NdAw==&quot;
+</span><span>
+</span><span class="comment">//This can also be accessed like this
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">protocol</span><span>.</span><span class="identifier">domains</span><span>.*
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">example4</span><span> = </span><span class="type-name">ShortString</span><span>.</span><span class="identifier">md5Hex</span><span>(</span><span class="string-literal">&quot;some id&quot;</span><span>)
+</span><span class="comment">// example4: ShortString = &quot;sbLnAGvj6HGV60+dmMgAFA==&quot;</span></code></pre>
 
         <hr style="margin-top: 30px"/>
         <footer style="font-size: 90%; text-align: center">
