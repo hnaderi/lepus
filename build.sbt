@@ -93,29 +93,10 @@ val wire = module("wire") {
     )
 }
 
-val core = module("core") {
-  crossProject(JVMPlatform, JSPlatform, NativePlatform)
-    .crossType(CrossType.Pure)
-    .settings(
-      libraryDependencies ++= Seq(
-        "org.typelevel" %%% "cats-core" % Versions.cats,
-        "org.typelevel" %%% "cats-effect" % Versions.catsEffect,
-        "co.fs2" %%% "fs2-core" % Versions.fs2
-      )
-    )
-    .dependsOn(protocol)
-}
-
-val data = module("data") {
-  crossProject(JVMPlatform, JSPlatform, NativePlatform)
-    .crossType(CrossType.Pure)
-    .dependsOn(core)
-}
-
 val client = module("client") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
-    .dependsOn(core, wire, protocol)
+    .dependsOn(wire, protocol)
     .dependsOn(protocolTestkit % Test)
     .enablePlugins(BuildInfoPlugin)
     .settings(
@@ -142,7 +123,9 @@ val std = module("std") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .dependsOn(client)
-    .dependsOn(data)
+    .settings(
+      libraryDependencies += "dev.hnaderi" %%% "named-codec" % "0.1.0"
+    )
 }
 
 val example =
@@ -165,7 +148,7 @@ val example =
 val docs = project
   .in(file("site"))
   .enablePlugins(LepusSitePlugin)
-  .dependsOn(client.jvm)
+  .dependsOn(std.jvm)
 
 lazy val unidocs = project
   .in(file("unidocs"))
@@ -187,10 +170,8 @@ val root = tlCrossRootProject
     protocolTestkit,
     wire,
     codeGen,
-    core,
     client,
     std,
-    data,
     docs,
     unidocs,
     example

@@ -16,11 +16,22 @@
 
 package lepus.std
 
-import fs2.Stream
+import lepus.client.EnvelopeCodec
+import lepus.protocol.domains.*
 
-trait Actor[F[_], T] {
-  def inbox: Stream[F, T]
-  def accept(): F[Unit]
-  def reject(): F[Unit]
-  def outbox(): F[Unit]
-}
+final case class TopicDefinition[T](
+    exchange: ExchangeName,
+    codec: ChannelCodec[T],
+    topic: TopicNameEncoder[T]
+)
+
+final case class EndpointDefinition[I, O](
+    name: QueueName,
+    clientCodec: ChannelCodec[I],
+    serverCodec: ChannelCodec[O]
+)
+
+final case class WorkPoolDefinition[I](
+    name: QueueName,
+    codec: ChannelCodec[I]
+)

@@ -17,6 +17,7 @@
 package lepus.protocol.domains
 
 import java.time.Instant
+import java.util.UUID
 
 trait TaggedOpaqueComp[U, T <: U](using ev: U =:= T) {
   def apply(u: U): T = ev(u)
@@ -30,6 +31,11 @@ opaque type ShortString <: String = String
 object ShortString extends Literally[String, ShortString] {
 
   inline def apply(t: String): ShortString = ${ build('t) }
+
+  def from(uuid: UUID): ShortString = uuid.toString()
+  def from(long: Long): ShortString = long.toString()
+
+  private[lepus] inline def unsafe(str: String): ShortString = str
 
   def empty: ShortString = ""
   def from(str: String): Either[String, ShortString] =
@@ -61,6 +67,7 @@ object Timestamp {
   extension (t: Timestamp) {
     def toInstant: Instant = Instant.ofEpochMilli(t)
   }
+  def from(instant: Instant): Timestamp = instant.toEpochMilli()
 }
 
 final case class Decimal(scale: Byte, value: Int)
@@ -117,6 +124,7 @@ private def validateNameSize(name: String): Either[String, String] =
   */
 opaque type ExchangeName <: ShortString = String
 object ExchangeName extends Literally[String, ExchangeName] {
+  val default: ExchangeName = ""
 
   inline def apply(t: String): ExchangeName = ${ build('t) }
 
@@ -172,6 +180,7 @@ type PeerProperties = FieldTable
   */
 opaque type QueueName <: ShortString = String
 object QueueName extends Literally[String, QueueName] {
+  val autoGen: QueueName = ""
 
   inline def apply(t: String): QueueName = ${ build('t) }
 

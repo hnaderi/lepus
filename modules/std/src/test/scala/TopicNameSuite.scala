@@ -16,9 +16,30 @@
 
 package lepus.std
 
-import fs2.Stream
+import munit.FunSuite
+import munit.Location
 
-trait WorkPoolServer[F[_], T] {
-  def publish(t: T): F[Unit]
-  def responses: Stream[F, Int]
+class TopicNameSuite extends FunSuite {
+  private inline def doesNotCompile(inline code: String)(using Location) =
+    assert(compileErrors(code).nonEmpty)
+
+  test("Empty") {
+    assertEquals(TopicName(""), "")
+  }
+
+  test("#") {
+    doesNotCompile("""TopicName("#")""")
+    doesNotCompile("""TopicName("ab#cd#ef")""")
+  }
+
+  test("*") {
+    doesNotCompile("""TopicName("*")""")
+    doesNotCompile("""TopicName("ab*cd*ef")""")
+  }
+
+  test("...") {
+    doesNotCompile("""TopicName("..")""")
+    doesNotCompile("""TopicName("a..b")""")
+  }
+
 }
