@@ -18,6 +18,7 @@ package lepus.std
 
 import cats.syntax.all.*
 import munit.FunSuite
+import lepus.protocol.domains.TopicName
 
 class TopicNameEncoderSuite extends FunSuite {
   test("from string") {

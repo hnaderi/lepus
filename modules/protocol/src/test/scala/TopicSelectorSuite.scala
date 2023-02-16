@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package lepus.std
+package lepus.protocol.domains
 
 import munit.FunSuite
 import munit.Location
