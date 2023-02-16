@@ -16,14 +16,63 @@
 
 package lepus.std
 
+import cats.effect.Concurrent
+import cats.syntax.all.*
 import fs2.Stream
+import lepus.client.*
+import lepus.client.apis.NormalMessagingChannel
+import lepus.protocol.domains.*
 
 trait WorkPoolClient[F[_], T] {
-  def jobs: Stream[F, T]
-  def respond(): F[Unit]
+  def jobs: Stream[F, Job[T]]
+  def processed(job: Job[T]): F[Unit]
 }
 
 trait WorkPoolServer[F[_], T] {
-  def publish(t: T): F[Unit]
-  def responses: Stream[F, Int]
+  def publish(payload: T): F[Unit]
+}
+
+final case class Job[T](
+    payload: T,
+    tag: DeliveryTag
+)
+
+object WorkPoolChannel {
+  def publisher[F[_]: Concurrent, T](
+      pool: WorkPoolDefinition[T],
+      ch: Channel[F, NormalMessagingChannel[F]]
+  ): F[WorkPoolServer[F, T]] = for {
+    _ <- ch.queue.declare(pool.name, durable = true)
+  } yield new {
+    override def publish(payload: T): F[Unit] = pool.codec
+      .encode(payload)
+      .fold(
+        _.raiseError,
+        msg =>
+          ch.messaging
+            .publishRaw(ExchangeName.default, routingKey = pool.name, msg)
+      )
+  }
+
+  def worker[F[_]: Concurrent, T](
+      pool: WorkPoolDefinition[T],
+      ch: Channel[F, NormalMessagingChannel[F]]
+  ): F[WorkPoolClient[F, T]] = for {
+    _ <- ch.queue.declare(pool.name, durable = true)
+  } yield new {
+
+    override def jobs: Stream[F, Job[T]] = ch.messaging
+      .consumeRaw(pool.name, noAck = false)
+      .flatMap(env =>
+        pool.codec
+          .decode(env.message)
+          .fold(
+            _ => Stream.exec(ch.messaging.reject(env.deliveryTag, false)),
+            msg => Stream.emit(Job(msg.payload, env.deliveryTag))
+          )
+      )
+
+    override def processed(job: Job[T]): F[Unit] = ch.messaging.ack(job.tag)
+
+  }
 }

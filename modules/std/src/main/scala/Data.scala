@@ -30,3 +30,8 @@ final case class EndpointDefinition[I, O](
     clientCodec: ChannelCodec[I],
     serverCodec: ChannelCodec[O]
 )
+
+final case class WorkPoolDefinition[I](
+    name: QueueName,
+    codec: ChannelCodec[I]
+)
