@@ -67,6 +67,7 @@ object Timestamp {
   extension (t: Timestamp) {
     def toInstant: Instant = Instant.ofEpochMilli(t)
   }
+  def from(instant: Instant): Timestamp = instant.toEpochMilli()
 }
 
 final case class Decimal(scale: Byte, value: Int)

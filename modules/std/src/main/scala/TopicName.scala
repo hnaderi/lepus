@@ -26,7 +26,7 @@ import scala.quoted.*
 
 opaque type TopicName <: ShortString = ShortString
 object TopicName {
-  val illegal = "\\.+|#|\\*".r
+  private val validPattern = "^(?:[A-Za-z0-9]+\\.)*[A-Za-z0-9]*$".r
 
   private final def build(t: Expr[String])(using ctx: Quotes): Expr[TopicName] =
     import ctx.reflect.report
@@ -39,10 +39,13 @@ object TopicName {
 
   def from(name: String): Either[String, TopicName] =
     ShortString.from(name).flatMap {
-      case bad if illegal.findFirstIn(bad).isDefined =>
-        Left(s"Invalid topic name `$bad`!")
-      case other => Right(other)
+      case str if validPattern.matches(str) => ShortString.from(str)
+      case bad => Left(s"Invalid topic name `$bad`!")
     }
+
+  extension (topic: TopicName) {
+    inline def selector: TopicSelector = TopicSelector.exact(topic)
+  }
 }
 final class TopicNameEncoder[A](private val build: A => String) extends AnyVal {
   def get: A => Either[String, TopicName] = build.andThen(TopicName.from)
