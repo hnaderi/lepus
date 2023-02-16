@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package lepus.protocol.domains
+package lepus.std
 
 import lepus.protocol.domains.ShortString
 
