@@ -21,40 +21,29 @@ import dev.hnaderi.namedcodec.*
 import lepus.client.*
 import lepus.protocol.domains.*
 
-trait ChannelEncoder[T] {
-  def encode(msg: Message[T]): Either[Throwable, MessageRaw]
-  final def encode(payload: T): Either[Throwable, MessageRaw] = encode(
-    Message(payload)
-  )
-}
-
-trait ChannelDecoder[T] {
-  def decode(env: MessageRaw): Either[Throwable, Message[T]]
-}
-
-trait ChannelCodec[T] extends ChannelEncoder[T], ChannelDecoder[T]
 object ChannelCodec {
   def of[T, R](using
       nc: NamedCodec[T, R],
-      codec: EnvelopeCodec[R]
-  ): ChannelCodec[T] = new {
+      enc: MessageEncoder[R],
+      dec: MessageDecoder[R]
+  ): MessageCodec[T] = new {
 
     override def encode(msg: Message[T]): Either[Throwable, MessageRaw] = {
       val typed = nc.encode(msg.payload)
       ShortString
         .from(typed.name)
-        .map(msgType =>
-          codec.encode(msg.withPayload(typed.data).withMsgType(msgType))
-        )
         .leftMap(BadMessageType(typed.name, _))
+        .flatMap(msgType =>
+          enc.encode(msg.withPayload(typed.data).withMsgType(msgType))
+        )
     }
 
     override def decode(msg: MessageRaw): Either[Throwable, Message[T]] = for {
-      ir <- codec.decode(msg)
+      ir <- dec.decode(msg)
       msgType <- msg.properties.msgType.toRight(NoMessageTypeFound)
       decoded <- nc
         .decode(EncodedMessage(msgType, ir.payload))
-        .leftMap(new Exception(_))
+        .leftMap(DecodeFailure(_))
     } yield msg.withPayload(decoded)
 
   }
@@ -65,4 +54,7 @@ object ChannelCodec {
       )
   case object NoMessageTypeFound
       extends RuntimeException("Message type is required!")
+
+  final case class DecodeFailure(msg: String) extends RuntimeException(msg)
+
 }
