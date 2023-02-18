@@ -144,7 +144,10 @@ val example =
     .dependsOn(std, circe)
     .enablePlugins(NoPublishPlugin)
     .settings(
-      libraryDependencies += "io.circe" %%% "circe-generic" % "0.14.4"
+      libraryDependencies ++= Seq(
+        "io.circe" %%% "circe-generic" % "0.14.4",
+        "dev.hnaderi" %%% "named-codec-circe" % "0.1.0"
+      )
     )
     .jvmSettings(
       fork := true

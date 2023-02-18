@@ -87,7 +87,8 @@ object EventChannel {
           .map(_.queue)
       case Some(value) => ch.queue.declare(value, durable = true).as(value)
     }
-    _ <- topics.toList.traverse(t =>
+    toSubscribe = if (topics.isEmpty) List(TopicSelector("#")) else topics
+    _ <- toSubscribe.toList.traverse(t =>
       ch.queue.bind(q, topic.exchange, routingKey = t)
     )
   } yield new {
@@ -121,6 +122,20 @@ object EventChannel {
       ch.messaging.reject(dtag, false)
 
   }
+
+  def consumer[F[_]: Concurrent, T](
+      topic: TopicDefinition[T],
+      ch: Channel[F, NormalMessagingChannel[F]],
+      queue: QueueName,
+      topics: TopicSelector*
+  ): F[EventConsumer[F, T]] =
+    consumer(topic, Some(queue), topics: _*)(ch)
+
+  def consumer[F[_]: Concurrent, T](
+      topic: TopicDefinition[T],
+      ch: Channel[F, NormalMessagingChannel[F]],
+      topics: TopicSelector*
+  ): F[EventConsumer[F, T]] = consumer(topic, None, topics: _*)(ch)
 
   final case class InvalidTopicName(msg: String) extends RuntimeException(msg)
 }
