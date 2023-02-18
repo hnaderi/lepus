@@ -18,8 +18,9 @@ package lepus.client
 
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
-import scala.annotation.implicitNotFound
+
 import java.nio.charset.StandardCharsets
+import scala.annotation.implicitNotFound
 
 @implicitNotFound("Cannot find a way to encode ${B} into a message")
 trait MessageEncoder[B] { self =>
@@ -33,7 +34,7 @@ trait MessageEncoder[B] { self =>
       self.encode(msg.copy(payload = f(msg.payload)))
   }
 
-  final def transform(f: MessageRaw => MessageRaw): MessageEncoder[B] = new {
+  final def postEncode(f: MessageRaw => MessageRaw): MessageEncoder[B] = new {
     override def encode(msg: Message[B]): MessageRaw =
       f(self.encode(msg))
   }
@@ -61,11 +62,19 @@ trait MessageDecoder[A] { self =>
       self.decode(env).map(m => m.copy(payload = f(m.payload)))
   }
 
-  final def transform[B](f: Message[A] => Message[B]): MessageDecoder[B] = new {
+  final def emap[B](f: A => Either[Throwable, B]): MessageDecoder[B] = new {
     override def decode(env: MessageRaw): Either[Throwable, Message[B]] =
-      self.decode(env).map(f)
+      self
+        .decode(env)
+        .flatMap(msg => f(msg.payload).map(p => msg.copy(payload = p)))
   }
-  final def transformE[B](
+
+  final def mapMessage[B](f: Message[A] => Message[B]): MessageDecoder[B] =
+    new {
+      override def decode(env: MessageRaw): Either[Throwable, Message[B]] =
+        self.decode(env).map(f)
+    }
+  final def emapMessage[B](
       f: Message[A] => Either[Throwable, Message[B]]
   ): MessageDecoder[B] = new {
     override def decode(env: MessageRaw): Either[Throwable, Message[B]] =
@@ -80,4 +89,24 @@ object MessageDecoder {
   }
 }
 
-trait MessageCodec[T] extends MessageDecoder[T], MessageEncoder[T]
+trait MessageCodec[T] extends MessageDecoder[T], MessageEncoder[T] { self =>
+  def imap[A](in: A => T, out: T => A): MessageCodec[A] = new {
+    private val enc = self.contramap(in)
+    private val dec = self.map(out)
+
+    export enc.encode
+    export dec.decode
+  }
+  def eimap[A](in: A => T, out: T => Either[Throwable, A]): MessageCodec[A] =
+    new {
+      private val enc = self.contramap(in)
+      private val dec = self.emap(out)
+
+      export enc.encode
+      export dec.decode
+    }
+}
+
+object MessageCodec {
+  inline def apply[T](using codec: MessageCodec[T]): MessageCodec[T] = codec
+}

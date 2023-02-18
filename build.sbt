@@ -128,6 +128,15 @@ val std = module("std") {
     )
 }
 
+val circe = module("circe") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .dependsOn(client)
+    .settings(
+      libraryDependencies += "io.circe" %%% "circe-parser" % "0.14.4"
+    )
+}
+
 val example =
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
@@ -172,6 +181,7 @@ val root = tlCrossRootProject
     codeGen,
     client,
     std,
+    circe,
     docs,
     unidocs,
     example

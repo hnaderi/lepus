@@ -29,14 +29,13 @@ trait ChannelCodec[T] {
 }
 
 object ChannelCodec {
-  def of[T, R](using
-      nc: NamedCodec[T, R],
+  def default[T, R](codec: NamedCodec[T, R])(using
       enc: MessageEncoder[R],
       dec: MessageDecoder[R]
   ): ChannelCodec[T] = new {
 
     override def encode(msg: Message[T]): Either[Throwable, MessageRaw] = {
-      val typed = nc.encode(msg.payload)
+      val typed = codec.encode(msg.payload)
       ShortString
         .from(typed.name)
         .leftMap(BadMessageType(typed.name, _))
@@ -48,7 +47,7 @@ object ChannelCodec {
     override def decode(msg: MessageRaw): Either[Throwable, Message[T]] = for {
       ir <- dec.decode(msg)
       msgType <- msg.properties.msgType.toRight(NoMessageTypeFound)
-      decoded <- nc
+      decoded <- codec
         .decode(EncodedMessage(msgType, ir.payload))
         .leftMap(DecodeFailure(_))
     } yield msg.withPayload(decoded)
