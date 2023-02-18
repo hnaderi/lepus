@@ -54,6 +54,23 @@ object ChannelCodec {
 
   }
 
+  def plain[T](using
+      enc: MessageEncoder[T],
+      dec: MessageDecoder[T]
+  ): ChannelCodec[T] = new {
+    override def encode(msg: Message[T]): Either[Throwable, MessageRaw] =
+      Right(enc.encode(msg))
+    override def decode(msg: MessageRaw): Either[Throwable, Message[T]] =
+      dec.decode(msg)
+  }
+
+  def plain[T](codec: MessageCodec[T]): ChannelCodec[T] = new {
+    override def encode(msg: Message[T]): Either[Throwable, MessageRaw] =
+      Right(codec.encode(msg))
+    override def decode(msg: MessageRaw): Either[Throwable, Message[T]] =
+      codec.decode(msg)
+  }
+
   final case class BadMessageType(value: String, details: String)
       extends RuntimeException(
         s"Cannot create message type from $value, because: $details"

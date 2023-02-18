@@ -109,4 +109,13 @@ trait MessageCodec[T] extends MessageDecoder[T], MessageEncoder[T] { self =>
 
 object MessageCodec {
   inline def apply[T](using codec: MessageCodec[T]): MessageCodec[T] = codec
+  def of[T](using
+      enc: MessageEncoder[T],
+      dec: MessageDecoder[T]
+  ): MessageCodec[T] = new {
+    export enc.encode
+    export dec.decode
+  }
+
+  inline given [T: MessageEncoder: MessageDecoder]: MessageCodec[T] = of[T]
 }
