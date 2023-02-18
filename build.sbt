@@ -141,8 +141,11 @@ val example =
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .in(file("example"))
-    .dependsOn(client)
+    .dependsOn(std, circe)
     .enablePlugins(NoPublishPlugin)
+    .settings(
+      libraryDependencies += "io.circe" %%% "circe-generic" % "0.14.4"
+    )
     .jvmSettings(
       fork := true
     )
