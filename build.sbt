@@ -128,12 +128,27 @@ val std = module("std") {
     )
 }
 
+val circe = module("circe") {
+  crossProject(JVMPlatform, JSPlatform, NativePlatform)
+    .crossType(CrossType.Pure)
+    .dependsOn(client)
+    .settings(
+      libraryDependencies += "io.circe" %%% "circe-parser" % "0.14.4"
+    )
+}
+
 val example =
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .in(file("example"))
-    .dependsOn(client)
+    .dependsOn(std, circe)
     .enablePlugins(NoPublishPlugin)
+    .settings(
+      libraryDependencies ++= Seq(
+        "io.circe" %%% "circe-generic" % "0.14.4",
+        "dev.hnaderi" %%% "named-codec-circe" % "0.1.0"
+      )
+    )
     .jvmSettings(
       fork := true
     )
@@ -172,6 +187,7 @@ val root = tlCrossRootProject
     codeGen,
     client,
     std,
+    circe,
     docs,
     unidocs,
     example

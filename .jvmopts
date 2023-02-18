@@ -3,3 +3,4 @@
 -Xss2M
 -XX:+TieredCompilation
 -XX:+UseG1GC
+-XX:ReservedCodeCacheSize=512M

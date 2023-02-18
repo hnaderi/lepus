@@ -21,42 +21,54 @@ import dev.hnaderi.namedcodec.*
 import lepus.client.*
 import lepus.protocol.domains.*
 
-trait ChannelEncoder[T] {
+trait ChannelCodec[T] {
   def encode(msg: Message[T]): Either[Throwable, MessageRaw]
-  final def encode(payload: T): Either[Throwable, MessageRaw] = encode(
-    Message(payload)
-  )
+  final def encode(payload: T): Either[Throwable, MessageRaw] =
+    encode(Message(payload))
+  def decode(msg: MessageRaw): Either[Throwable, Message[T]]
 }
 
-trait ChannelDecoder[T] {
-  def decode(env: MessageRaw): Either[Throwable, Message[T]]
-}
-
-trait ChannelCodec[T] extends ChannelEncoder[T], ChannelDecoder[T]
 object ChannelCodec {
-  def of[T, R](using
-      nc: NamedCodec[T, R],
-      codec: EnvelopeCodec[R]
+  def default[T, R](codec: NamedCodec[T, R])(using
+      enc: MessageEncoder[R],
+      dec: MessageDecoder[R]
   ): ChannelCodec[T] = new {
 
     override def encode(msg: Message[T]): Either[Throwable, MessageRaw] = {
-      val typed = nc.encode(msg.payload)
+      val typed = codec.encode(msg.payload)
       ShortString
         .from(typed.name)
-        .map(msgType =>
-          codec.encode(msg.withPayload(typed.data).withMsgType(msgType))
-        )
         .leftMap(BadMessageType(typed.name, _))
+        .map(msgType =>
+          enc.encode(msg.withPayload(typed.data).withMsgType(msgType))
+        )
     }
 
     override def decode(msg: MessageRaw): Either[Throwable, Message[T]] = for {
-      ir <- codec.decode(msg)
+      ir <- dec.decode(msg)
       msgType <- msg.properties.msgType.toRight(NoMessageTypeFound)
-      decoded <- nc
+      decoded <- codec
         .decode(EncodedMessage(msgType, ir.payload))
-        .leftMap(new Exception(_))
+        .leftMap(DecodeFailure(_))
     } yield msg.withPayload(decoded)
 
+  }
+
+  def plain[T](using
+      enc: MessageEncoder[T],
+      dec: MessageDecoder[T]
+  ): ChannelCodec[T] = new {
+    override def encode(msg: Message[T]): Either[Throwable, MessageRaw] =
+      Right(enc.encode(msg))
+    override def decode(msg: MessageRaw): Either[Throwable, Message[T]] =
+      dec.decode(msg)
+  }
+
+  def plain[T](codec: MessageCodec[T]): ChannelCodec[T] = new {
+    override def encode(msg: Message[T]): Either[Throwable, MessageRaw] =
+      Right(codec.encode(msg))
+    override def decode(msg: MessageRaw): Either[Throwable, Message[T]] =
+      codec.decode(msg)
   }
 
   final case class BadMessageType(value: String, details: String)
@@ -65,4 +77,7 @@ object ChannelCodec {
       )
   case object NoMessageTypeFound
       extends RuntimeException("Message type is required!")
+
+  final case class DecodeFailure(msg: String) extends RuntimeException(msg)
+
 }

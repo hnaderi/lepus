@@ -29,12 +29,12 @@ final case class Envelope[T](
     message: Message[T]
 )
 object Envelope {
-  extension [T](msg: Envelope[T])(using enc: EnvelopeEncoder[T]) {
+  extension [T](msg: Envelope[T])(using enc: MessageEncoder[T]) {
     def toRaw: EnvelopeRaw = enc.encode(msg)
   }
   extension (msg: EnvelopeRaw) {
-    def decodeTo[T: EnvelopeDecoder]: Either[Throwable, Envelope[T]] =
-      EnvelopeDecoder[T].decode(msg)
+    def decodeTo[T: MessageDecoder]: Either[Throwable, Envelope[T]] =
+      MessageDecoder[T].decode(msg)
   }
 }
 final case class Message[T](
@@ -88,12 +88,12 @@ final case class Message[T](
   )
 }
 object Message {
-  extension [T](msg: Message[T])(using enc: EnvelopeEncoder[T]) {
+  extension [T](msg: Message[T])(using enc: MessageEncoder[T]) {
     def toRaw: MessageRaw = enc.encode(msg)
   }
   extension (msg: MessageRaw) {
-    def decodeTo[T: EnvelopeDecoder]: Either[Throwable, Message[T]] =
-      EnvelopeDecoder[T].decode(msg)
+    def decodeTo[T: MessageDecoder]: Either[Throwable, Message[T]] =
+      MessageDecoder[T].decode(msg)
   }
 }
 
@@ -106,7 +106,7 @@ object MessageRaw {
       properties: Properties = Properties.empty
   ): MessageRaw = Message(payload, properties)
   def from[T](payload: T, properties: Properties = Properties.empty)(using
-      enc: EnvelopeEncoder[T]
+      enc: MessageEncoder[T]
   ): MessageRaw = enc.encode(Message(payload, properties))
 }
 

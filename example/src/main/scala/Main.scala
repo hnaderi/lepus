@@ -27,7 +27,7 @@ import scala.concurrent.duration.*
 
 object Main extends IOApp.Simple {
 
-  private val exchange = ExchangeName("")
+  private val exchange = ExchangeName.default
 
   override def run: IO[Unit] = connect.use((con, ch) =>
     for {

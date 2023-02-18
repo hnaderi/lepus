@@ -29,6 +29,7 @@ import lepus.protocol.*
 import lepus.protocol.classes.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
+import cats.MonadThrow
 
 sealed trait MessagingChannel
 
@@ -75,7 +76,7 @@ trait Consuming[F[_]] {
       exclusive: Boolean = false,
       arguments: FieldTable = FieldTable.empty
   )(using
-      dec: EnvelopeDecoder[T],
+      dec: MessageDecoder[T],
       F: RaiseThrowable[F]
   ): Stream[F, DeliveredMessage[T]] = {
     val noAck = mode == ConsumeMode.RaiseOnError(false)
@@ -141,7 +142,7 @@ trait Publishing[F[_]] {
     * client and you MUST also consume [[returned]] if you publish mandatory
     * messages
     */
-  final inline def publish[T: EnvelopeEncoder](env: Envelope[T]): F[Unit] =
+  final inline def publish[T: MessageEncoder](env: Envelope[T]): F[Unit] =
     publishRaw(env.toRaw)
 
   /** Publishes raw message that is not mandatory This is useful if you have
@@ -156,7 +157,7 @@ trait Publishing[F[_]] {
   )
 
   /** Encodes and publishes a message that is not mandatory */
-  final inline def publish[T: EnvelopeEncoder](
+  final inline def publish[T: MessageEncoder](
       exchange: ExchangeName,
       routingKey: ShortString,
       message: Message[T]
@@ -170,7 +171,7 @@ trait Publishing[F[_]] {
       exchange: ExchangeName,
       routingKey: ShortString,
       payload: T
-  )(using enc: EnvelopeEncoder[T])(using NotGiven[T <:< Message[?]]): F[Unit] =
+  )(using enc: MessageEncoder[T])(using NotGiven[T <:< Message[?]]): F[Unit] =
     publish(exchange, routingKey, Message(payload))
 
   /** A pipe that publishes [[Envelope]]s that may or may not be mandatory, And
@@ -190,8 +191,8 @@ trait Publishing[F[_]] {
     * Note that this pipe SHOULD be used exclusively, as it is draining from the
     * returned messages that is backed by a queue.
     */
-  final def publisher[T: EnvelopeEncoder](using
-      Concurrent[F]
+  final def publisher[T: MessageEncoder](using
+      F: Concurrent[F]
   ): Pipe[F, Envelope[T], ReturnedMessageRaw] =
     _.map(_.toRaw).through(publisherRaw)
 
@@ -234,9 +235,10 @@ trait ReliablePublishing[F[_]] {
     *   DeliveryTag for this message, which you should keep until acked or
     *   nacked from the server
     */
-  final inline def publish[T: EnvelopeEncoder](
+  final inline def publish[T: MessageEncoder](
       env: Envelope[T]
-  ): F[DeliveryTag] = publishRaw(env.toRaw)
+  ): F[DeliveryTag] =
+    publishRaw(env.toRaw)
 
   /** Publishes raw message that is not mandatory This is useful if you have
     * handled encoding and want to publish a raw message directly
@@ -259,7 +261,7 @@ trait ReliablePublishing[F[_]] {
     *   DeliveryTag for this message, which you should keep until acked or
     *   nacked from the server
     */
-  final inline def publish[T: EnvelopeEncoder](
+  final inline def publish[T: MessageEncoder](
       exchange: ExchangeName,
       routingKey: ShortString,
       message: Message[T]
@@ -272,7 +274,7 @@ trait ReliablePublishing[F[_]] {
     *   DeliveryTag for this message, which you should keep until acked or
     *   nacked from the server
     */
-  final inline def publish[T: EnvelopeEncoder](
+  final inline def publish[T: MessageEncoder](
       exchange: ExchangeName,
       routingKey: ShortString,
       payload: T
@@ -297,7 +299,7 @@ trait ReliablePublishing[F[_]] {
 
   /** like [[publisherRaw]], but encodes messages as well
     */
-  final def publisher[T: EnvelopeEncoder](using
+  final def publisher[T: MessageEncoder](using
       Concurrent[F]
   ): Pipe[F, Envelope[T], DeliveryTag | ReturnedMessageRaw] =
     _.map(_.toRaw).through(publisherRaw)

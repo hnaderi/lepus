@@ -37,13 +37,13 @@ trait RPCClient[F[_], I, O] {
 }
 
 final case class RequestMethod[I](
-    id: String,
+    id: ShortString,
     sender: QueueName,
     payload: I,
     tag: DeliveryTag
 )
 final case class ResponseMethod[I](
-    requestId: String,
+    requestId: ShortString,
     payload: I,
     tag: DeliveryTag
 )

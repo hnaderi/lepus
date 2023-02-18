@@ -14,24 +14,19 @@
  * limitations under the License.
  */
 
-package lepus.std
+package lepus.client
 
-import lepus.client.MessageCodec
-import lepus.protocol.domains.*
+import io.circe.*
+import lepus.circe.*
 
-final case class TopicDefinition[T](
-    exchange: ExchangeName,
-    codec: ChannelCodec[T],
-    topic: TopicNameEncoder[T]
-)
+extension (companion: MessageEncoder.type) {
+  def json[T: Encoder]: MessageEncoder[T] = jsonMessageEncoder[T]
+}
 
-final case class EndpointDefinition[I, O](
-    name: QueueName,
-    clientCodec: ChannelCodec[I],
-    serverCodec: ChannelCodec[O]
-)
+extension (companion: MessageDecoder.type) {
+  def json[T: Decoder]: MessageDecoder[T] = jsonMessageDecoder[T]
+}
 
-final case class WorkPoolDefinition[I](
-    name: QueueName,
-    codec: ChannelCodec[I]
-)
+extension (companion: MessageCodec.type) {
+  def json[T: Codec]: MessageCodec[T] = jsonMessageCodec[T]
+}
