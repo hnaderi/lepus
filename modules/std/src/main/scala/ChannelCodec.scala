@@ -21,6 +21,12 @@ import dev.hnaderi.namedcodec.*
 import lepus.client.*
 import lepus.protocol.domains.*
 
+/** ChannelCodec is the interface for encoding/decoding operations for messages
+  * that can fail on both ways.
+  *
+  * Note that this is not a typeclass and it is not used in implicit scope and
+  * there are no instances of it.
+  */
 trait ChannelCodec[T] {
   def encode(msg: Message[T]): Either[Throwable, MessageRaw]
   final def encode(payload: T): Either[Throwable, MessageRaw] =

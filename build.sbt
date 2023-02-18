@@ -173,6 +173,7 @@ lazy val unidocs = project
     description := "unified docs for lepus",
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
       client.jvm,
+      std.jvm,
       protocol.jvm,
       wire.jvm
     )

@@ -37,7 +37,16 @@ final case class Job[T](
     tag: DeliveryTag
 )
 
+/** WorkPoolChannel implements a work pool topology.
+  *
+  * In this topology, one or more peers produce jobs, and one or more workers
+  * compete over processing those jobs. This topology handles workers fail over,
+  * so if a worker fails, its jobs will be routed to another worker. However
+  * this topology can't guarantee any ordering of messages by definition.
+  */
 object WorkPoolChannel {
+
+  /** Publisher peer in a [[lepus.std.WorkPoolChannel]] topology */
   def publisher[F[_]: Concurrent, T](
       pool: WorkPoolDefinition[T],
       ch: Channel[F, NormalMessagingChannel[F]]
@@ -54,6 +63,7 @@ object WorkPoolChannel {
       )
   }
 
+  /** Worker peer in a [[lepus.std.WorkPoolChannel]] topology */
   def worker[F[_]: Concurrent, T](
       pool: WorkPoolDefinition[T],
       ch: Channel[F, NormalMessagingChannel[F]]

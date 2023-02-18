@@ -19,18 +19,21 @@ package lepus.std
 import lepus.client.MessageCodec
 import lepus.protocol.domains.*
 
+/** Pub/Sub topology definition */
 final case class TopicDefinition[T](
     exchange: ExchangeName,
     codec: ChannelCodec[T],
     topic: TopicNameEncoder[T]
 )
 
-final case class EndpointDefinition[I, O](
+/** RPC topology definition */
+final case class RPCDefinition[I, O](
     name: QueueName,
     clientCodec: ChannelCodec[I],
     serverCodec: ChannelCodec[O]
 )
 
+/** Work pool topology definition */
 final case class WorkPoolDefinition[I](
     name: QueueName,
     codec: ChannelCodec[I]

@@ -48,9 +48,21 @@ final case class ResponseMethod[I](
     tag: DeliveryTag
 )
 
+/** RPCChannel implements an async RPC communication channel topology.
+  *
+  * In this topology, each server has its own endpoint, where clients can send
+  * methods to, server then can decide to response to sender's address, ignore
+  * the request, or reject it. Clients can then consume responses, and mark them
+  * as processed. This topology models an point to point communication, with at
+  * least one delivery semantics, so your processing MUST be idempotent and
+  * async, as both responses and requests might be received several times, and
+  * with any ordering.
+  */
 object RPCChannel {
+
+  /** server peer in [[lepus.std.RPCChannel]] topology */
   def server[F[_]: Concurrent, I, O](
-      endpoint: EndpointDefinition[I, O]
+      endpoint: RPCDefinition[I, O]
   )(ch: Channel[F, NormalMessagingChannel[F]]): F[RPCServer[F, I, O]] = for {
     _ <- ch.queue.declare(endpoint.name, durable = true)
   } yield new {
@@ -103,8 +115,9 @@ object RPCChannel {
 
   }
 
+  /** client peer in [[lepus.std.RPCChannel]] topology */
   def client[F[_], I, O](
-      endpoint: EndpointDefinition[I, O],
+      endpoint: RPCDefinition[I, O],
       persistent: Option[QueueName] = None
   )(
       ch: Channel[F, NormalMessagingChannel[F]]

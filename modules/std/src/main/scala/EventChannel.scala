@@ -44,7 +44,17 @@ final case class EventMessage[T](
     tag: DeliveryTag
 )
 
+/** EventChannel implements a pubsub topology for events.
+  *
+  * In this topology, peers publish or subscribe to certain communication
+  * channels (logical streams of data). In this topology every consumer gets a
+  * copy of data, which is in contrast to previous topologies where a single
+  * piece of data is routed to exactly one peer. This topology guarantees at
+  * least one delivery of messages.
+  */
 object EventChannel {
+
+  /** publisher peer in [[lepus.std.EventChannel]] topology */
   def publisher[F[_]: Concurrent: Clock, T](
       topic: TopicDefinition[T],
       ch: Channel[F, NormalMessagingChannel[F]]
@@ -69,6 +79,7 @@ object EventChannel {
       }
   }
 
+  /** consumer peer in [[lepus.std.EventChannel]] topology */
   def consumer[F[_], T](
       topic: TopicDefinition[T],
       queue: Option[QueueName] = None,
