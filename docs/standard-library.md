@@ -63,6 +63,8 @@ def worker(con: Connection[IO]) = con.channel
   )
 ```
 
+see @:source(example.WorkPool) for a complete working example
+
 ## RPCChannel
 
 @:api(lepus.std.RPCChannel) implements an async RPC communication channel topology.
@@ -128,9 +130,9 @@ def consumer2(con: Connection[IO]) = for {
   evt <- bus.events
   _ <- eval(IO.println(s"consumer 2: $evt"))
 } yield ()
-
-
 ```
+
+see @:source(example.PubSub) for a complete working example
 
 ## Helpers
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example
+package example
 
 import cats.effect.*
 import cats.syntax.all.*

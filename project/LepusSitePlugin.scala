@@ -5,6 +5,7 @@ import laika.config.LaikaKeys
 import laika.helium.Helium
 import laika.helium.config._
 import laika.rewrite.link.ApiLinks
+import laika.rewrite.link.SourceLinks
 import laika.rewrite.link.LinkConfig
 import laika.theme._
 import laika.theme.config.Color
@@ -119,11 +120,19 @@ object LepusSitePlugin extends AutoPlugin {
         .disabled
 
     },
-    laikaConfig := LaikaConfig.defaults.withConfigValue(
-      LinkConfig(apiLinks =
-        tlSiteApiUrl.value.toSeq.map(_.toString()).map(ApiLinks(_, "lepus"))
+    laikaConfig := {
+      val apiDoc = tlSiteApiUrl.value.toSeq.map(_.toString())
+      val repo = scmInfo.value.toSeq
+        .map(_.browseUrl.toString())
+        .map(url => s"$url/tree/main/example/src/main/scala/")
+
+      LaikaConfig.defaults.withConfigValue(
+        LinkConfig(
+          apiLinks = apiDoc.map(ApiLinks(_, "lepus")),
+          sourceLinks = repo.map(SourceLinks(_, "scala"))
+        )
       )
-    ),
+    },
     laikaIncludeAPI := true
   )
 }
