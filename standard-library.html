@@ -108,15 +108,49 @@
         and imposes a few best practices and design opinions.</p>
         <p>in order to use standard library, you need to add its dependency:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;dev.hnaderi&quot;</span><span> %% </span><span class="string-literal">&quot;lepus-std&quot;</span><span> % </span><span class="string-literal">&quot;0.0.0&quot;</span></code></pre>
+        <p>also for using circe integrations (like the examples in this page), add this dependency:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;dev.hnaderi&quot;</span><span> %% </span><span class="string-literal">&quot;lepus-circe&quot;</span><span> % </span><span class="string-literal">&quot;0.0.0&quot;</span></code></pre>
         <p>and import its package:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">std</span><span>.*</span></code></pre>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">std</span><span>.*
+
+</span><span class="comment">// other imports required for the examples in this page
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">client</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">protocol</span><span>.</span><span class="identifier">domains</span><span>.*</span></code></pre>
         
         <h2 id="workpoolchannel" class="section"><a class="anchor-link left" href="#workpoolchannel"><i class="icofont-laika">&#xef71;</i></a>WorkPoolChannel</h2>
         <p><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.0.0/lepus/std/WorkPoolChannel.html">WorkPoolChannel</a> implements a work pool topology. In this topology, 
         one or more peers produce jobs, and one or more worker compete over processing those jobs.
         This topology handles workers fail over, so if a worker fails, its jobs will be routed to another worker.
         However this topology can&#39;t guarantee any ordering of messages by definition.</p>
-        <p>TBD code example</p>
+        <pre><code class="nohighlight"><span class="comment">// We have some task like the following
+</span><span class="keyword">final</span><span> </span><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Task</span><span>(</span><span class="identifier">value</span><span>: </span><span class="type-name">Int</span><span>) </span><span class="keyword">derives</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>.</span><span class="type-name">Codec</span><span>.</span><span class="type-name">AsObject</span><span>
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">protocol</span><span> = </span><span class="type-name">WorkPoolDefinition</span><span>(
+  </span><span class="type-name">QueueName</span><span>(</span><span class="string-literal">&quot;jobs&quot;</span><span>),
+  </span><span class="type-name">ChannelCodec</span><span>.</span><span class="identifier">plain</span><span>(</span><span class="type-name">MessageCodec</span><span>.</span><span class="identifier">json</span><span>[</span><span class="type-name">Task</span><span>])
+)
+</span><span class="comment">// protocol: WorkPoolDefinition[Task] = WorkPoolDefinition(
+//   name = &quot;jobs&quot;,
+//   codec = lepus.std.ChannelCodec$$anon$3@e904cbd
+// )
+</span><span>
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">server</span><span>(</span><span class="identifier">con</span><span>: </span><span class="type-name">Connection</span><span>[</span><span class="type-name">IO</span><span>]) = </span><span class="identifier">con</span><span>.</span><span class="identifier">channel</span><span>
+  .</span><span class="identifier">evalMap</span><span>(</span><span class="type-name">WorkPoolChannel</span><span>.</span><span class="identifier">publisher</span><span>(</span><span class="identifier">protocol</span><span>, </span><span class="identifier">_</span><span>))
+  .</span><span class="identifier">use</span><span>(</span><span class="identifier">pool</span><span> =&gt; </span><span class="type-name">List</span><span>.</span><span class="identifier">range</span><span>(</span><span class="number-literal">0</span><span>, </span><span class="number-literal">100</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Task</span><span>(</span><span class="identifier">_</span><span>)).</span><span class="identifier">traverse</span><span>(</span><span class="identifier">pool</span><span>.</span><span class="identifier">publish</span><span>))
+
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">worker</span><span>(</span><span class="identifier">con</span><span>: </span><span class="type-name">Connection</span><span>[</span><span class="type-name">IO</span><span>]) = </span><span class="identifier">con</span><span>.</span><span class="identifier">channel</span><span>
+  .</span><span class="identifier">evalMap</span><span>(</span><span class="type-name">WorkPoolChannel</span><span>.</span><span class="identifier">worker</span><span>(</span><span class="identifier">protocol</span><span>, </span><span class="identifier">_</span><span>))
+  .</span><span class="identifier">use</span><span>(</span><span class="identifier">pool</span><span> =&gt;
+    </span><span class="identifier">pool</span><span>.</span><span class="identifier">jobs</span><span>
+      .</span><span class="identifier">evalMap</span><span> { </span><span class="identifier">job</span><span> =&gt;
+        </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="identifier">job</span><span>) &gt;&gt; </span><span class="identifier">pool</span><span>.</span><span class="identifier">processed</span><span>(</span><span class="identifier">job</span><span>)
+      }
+      .</span><span class="identifier">compile</span><span>
+      .</span><span class="identifier">drain</span><span>
+  )</span></code></pre>
+        <p>see <a href="https://github.com/hnaderi/lepus/tree/main/example/src/main/scala/example/WorkPool.scala">WorkPool</a> for a complete working example</p>
         
         <h2 id="rpcchannel" class="section"><a class="anchor-link left" href="#rpcchannel"><i class="icofont-laika">&#xef71;</i></a>RPCChannel</h2>
         <p><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.0.0/lepus/std/RPCChannel.html">RPCChannel</a> implements an async RPC communication channel topology.
@@ -134,7 +168,56 @@
         In this topology every consumer gets a copy of data, which is in contrast to previous topologies where a single piece 
         of data is routed to exactly one peer.
         This topology guarantees at least one delivery of messages.</p>
-        <p>TBD code example</p>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">dev</span><span>.</span><span class="identifier">hnaderi</span><span>.</span><span class="identifier">namedcodec</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="type-name">Stream</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="type-name">Stream</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>.</span><span class="identifier">generic</span><span>.</span><span class="identifier">auto</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">circe</span><span>.</span><span class="keyword">given</span><span>
+
+</span><span class="keyword">enum</span><span> </span><span class="type-name">Event</span><span> {
+  </span><span class="keyword">case</span><span> </span><span class="type-name">Created</span><span>(</span><span class="identifier">id</span><span>: </span><span class="type-name">String</span><span>)
+  </span><span class="keyword">case</span><span> </span><span class="type-name">Updated</span><span>(</span><span class="identifier">id</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">value</span><span>: </span><span class="type-name">Int</span><span>)
+}
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">protocol</span><span> = </span><span class="type-name">TopicDefinition</span><span>(
+  </span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;events&quot;</span><span>),
+  </span><span class="type-name">ChannelCodec</span><span>.</span><span class="identifier">default</span><span>(</span><span class="type-name">CirceAdapter</span><span>.</span><span class="identifier">of</span><span>[</span><span class="type-name">Event</span><span>]),
+  </span><span class="type-name">TopicNameEncoder</span><span>.</span><span class="identifier">of</span><span>[</span><span class="type-name">Event</span><span>]
+)
+</span><span class="comment">// protocol: TopicDefinition[Event] = TopicDefinition(
+//   exchange = &quot;events&quot;,
+//   codec = lepus.std.ChannelCodec$$anon$1@4c0f1c4b,
+//   topic = lepus.std.TopicNameEncoder@473dcf06
+// )
+</span><span>
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">publisher</span><span>(</span><span class="identifier">con</span><span>: </span><span class="type-name">Connection</span><span>[</span><span class="type-name">IO</span><span>]) = </span><span class="keyword">for</span><span> {
+  </span><span class="identifier">ch</span><span> &lt;- </span><span class="identifier">resource</span><span>(</span><span class="identifier">con</span><span>.</span><span class="identifier">channel</span><span>)
+  </span><span class="identifier">bus</span><span> &lt;- </span><span class="identifier">eval</span><span>(</span><span class="type-name">EventChannel</span><span>.</span><span class="identifier">publisher</span><span>(</span><span class="identifier">protocol</span><span>, </span><span class="identifier">ch</span><span>))
+  (</span><span class="identifier">toPublish</span><span>, </span><span class="identifier">idx</span><span>) &lt;- </span><span class="type-name">Stream</span><span>(
+    </span><span class="type-name">Event</span><span>.</span><span class="type-name">Created</span><span>(</span><span class="string-literal">&quot;b&quot;</span><span>),
+    </span><span class="type-name">Event</span><span>.</span><span class="type-name">Updated</span><span>(</span><span class="string-literal">&quot;a&quot;</span><span>, </span><span class="number-literal">10</span><span>),
+    </span><span class="type-name">Event</span><span>.</span><span class="type-name">Updated</span><span>(</span><span class="string-literal">&quot;b&quot;</span><span>, </span><span class="number-literal">100</span><span>),
+    </span><span class="type-name">Event</span><span>.</span><span class="type-name">Created</span><span>(</span><span class="string-literal">&quot;c&quot;</span><span>)
+  ).</span><span class="identifier">zipWithIndex</span><span>
+  </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">eval</span><span>(</span><span class="identifier">bus</span><span>.</span><span class="identifier">publish</span><span>(</span><span class="type-name">ShortString</span><span>.</span><span class="identifier">from</span><span>(</span><span class="identifier">idx</span><span>), </span><span class="identifier">toPublish</span><span>))
+} </span><span class="keyword">yield</span><span> ()
+
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">consumer1</span><span>(</span><span class="identifier">con</span><span>: </span><span class="type-name">Connection</span><span>[</span><span class="type-name">IO</span><span>]) = </span><span class="keyword">for</span><span> {
+  </span><span class="identifier">ch</span><span> &lt;- </span><span class="identifier">resource</span><span>(</span><span class="identifier">con</span><span>.</span><span class="identifier">channel</span><span>)
+  </span><span class="identifier">bus</span><span> &lt;- </span><span class="identifier">eval</span><span>(</span><span class="type-name">EventChannel</span><span>.</span><span class="identifier">consumer</span><span>(</span><span class="identifier">protocol</span><span>)(</span><span class="identifier">ch</span><span>))
+  </span><span class="identifier">evt</span><span> &lt;- </span><span class="identifier">bus</span><span>.</span><span class="identifier">events</span><span>
+  </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">eval</span><span>(</span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;consumer 1: </span><span class="substitution">$evt</span><span class="string-literal">&quot;</span><span>))
+} </span><span class="keyword">yield</span><span> ()
+
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">consumer2</span><span>(</span><span class="identifier">con</span><span>: </span><span class="type-name">Connection</span><span>[</span><span class="type-name">IO</span><span>]) = </span><span class="keyword">for</span><span> {
+  </span><span class="identifier">ch</span><span> &lt;- </span><span class="identifier">resource</span><span>(</span><span class="identifier">con</span><span>.</span><span class="identifier">channel</span><span>)
+  </span><span class="identifier">bus</span><span> &lt;- </span><span class="identifier">eval</span><span>(
+    </span><span class="type-name">EventChannel</span><span>.</span><span class="identifier">consumer</span><span>(</span><span class="identifier">protocol</span><span>, </span><span class="identifier">ch</span><span>, </span><span class="type-name">TopicSelector</span><span>(</span><span class="string-literal">&quot;Created&quot;</span><span>))
+  )
+  </span><span class="identifier">evt</span><span> &lt;- </span><span class="identifier">bus</span><span>.</span><span class="identifier">events</span><span>
+  </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">eval</span><span>(</span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;consumer 2: </span><span class="substitution">$evt</span><span class="string-literal">&quot;</span><span>))
+} </span><span class="keyword">yield</span><span> ()</span></code></pre>
+        <p>see <a href="https://github.com/hnaderi/lepus/tree/main/example/src/main/scala/example/PubSub.scala">PubSub</a> for a complete working example</p>
         
         <h2 id="helpers" class="section"><a class="anchor-link left" href="#helpers"><i class="icofont-laika">&#xef71;</i></a>Helpers</h2>
         
