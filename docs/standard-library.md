@@ -14,10 +14,21 @@ in order to use standard library, you need to add its dependency:
 libraryDependencies += "dev.hnaderi" %% "lepus-std" % "@VERSION@"
 ```
 
+also for using circe integrations (like the examples in this page), add this dependency:
+```scala
+libraryDependencies += "dev.hnaderi" %% "lepus-circe" % "@VERSION@"
+```
+
 and import its package:
 
 ```scala mdoc
 import lepus.std.*
+
+// other imports required for the examples in this page
+import cats.effect.*
+import cats.syntax.all.*
+import lepus.client.*
+import lepus.protocol.domains.*
 ```
 
 ## WorkPoolChannel
@@ -27,7 +38,30 @@ This topology handles workers fail over, so if a worker fails, its jobs will be 
 However this topology can't guarantee any ordering of messages by definition.
 
 
-TBD code example
+```scala mdoc:nest
+// We have some task like the following
+final case class Task(value: Int) derives io.circe.Codec.AsObject
+
+val protocol = WorkPoolDefinition(
+  QueueName("jobs"),
+  ChannelCodec.plain(MessageCodec.json[Task])
+)
+
+def server(con: Connection[IO]) = con.channel
+  .evalMap(WorkPoolChannel.publisher(protocol, _))
+  .use(pool => List.range(0, 100).map(Task(_)).traverse(pool.publish))
+
+def worker(con: Connection[IO]) = con.channel
+  .evalMap(WorkPoolChannel.worker(protocol, _))
+  .use(pool =>
+    pool.jobs
+      .evalMap { job =>
+        IO.println(job) >> pool.processed(job)
+      }
+      .compile
+      .drain
+  )
+```
 
 ## RPCChannel
 
@@ -49,7 +83,54 @@ In this topology every consumer gets a copy of data, which is in contrast to pre
 of data is routed to exactly one peer.
 This topology guarantees at least one delivery of messages.
 
-TBD code example
+```scala mdoc:nest
+import dev.hnaderi.namedcodec.*
+import fs2.Stream
+import fs2.Stream.*
+import io.circe.generic.auto.*
+import lepus.circe.given
+
+enum Event {
+  case Created(id: String)
+  case Updated(id: String, value: Int)
+}
+
+val protocol = TopicDefinition(
+  ExchangeName("events"),
+  ChannelCodec.default(CirceAdapter.of[Event]),
+  TopicNameEncoder.of[Event]
+)
+
+def publisher(con: Connection[IO]) = for {
+  ch <- resource(con.channel)
+  bus <- eval(EventChannel.publisher(protocol, ch))
+  (toPublish, idx) <- Stream(
+    Event.Created("b"),
+    Event.Updated("a", 10),
+    Event.Updated("b", 100),
+    Event.Created("c")
+  ).zipWithIndex
+  _ <- eval(bus.publish(ShortString.from(idx), toPublish))
+} yield ()
+
+def consumer1(con: Connection[IO]) = for {
+  ch <- resource(con.channel)
+  bus <- eval(EventChannel.consumer(protocol)(ch))
+  evt <- bus.events
+  _ <- eval(IO.println(s"consumer 1: $evt"))
+} yield ()
+
+def consumer2(con: Connection[IO]) = for {
+  ch <- resource(con.channel)
+  bus <- eval(
+    EventChannel.consumer(protocol, ch, TopicSelector("Created"))
+  )
+  evt <- bus.events
+  _ <- eval(IO.println(s"consumer 2: $evt"))
+} yield ()
+
+
+```
 
 ## Helpers
 

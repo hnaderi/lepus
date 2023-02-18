@@ -163,7 +163,7 @@ val example =
 val docs = project
   .in(file("site"))
   .enablePlugins(LepusSitePlugin)
-  .dependsOn(std.jvm)
+  .dependsOn(example.jvm)
 
 lazy val unidocs = project
   .in(file("unidocs"))
