@@ -32,7 +32,7 @@ or want to use more advanced features of RabbitMQ that are not available in othe
 Lepus[^1] (/ˈliːpəs/, colloquially /ˈlɛpəs/) is a constellation lying just south of the celestial equator. Its name is Latin for hare. It is located below—immediately south—of Orion (the hunter), and is sometimes represented as a hare being chased by Orion or by Orion's hunting dogs. 
 
 ## Disclaimer
-This is a work in progress in alpha release mode, and might not be ready for production use yet, manage your risks carefully!
+This is a work in progress in beta release mode, and might not be ready for production use yet, manage your risks carefully!
 
 [^1]: https://en.wikipedia.org/wiki/Lepus_(constellation)
 
