@@ -19,38 +19,34 @@ package lepus.client
 import lepus.protocol.domains.*
 import scodec.bits.ByteVector
 import scala.annotation.implicitNotFound
+import java.nio.charset.StandardCharsets
 
 @implicitNotFound("Cannot find a way to encode ${B} into a message")
 trait MessageEncoder[B] { self =>
-  def encode(msg: Message[B]): Either[Throwable, MessageRaw]
-  final def encode(payload: B): Either[Throwable, MessageRaw] = encode(
-    Message(payload)
-  )
-  final def encode(env: Envelope[B]): Either[Throwable, EnvelopeRaw] =
-    encode(env.message).map(m => env.copy(message = m))
+  def encode(msg: Message[B]): MessageRaw
+  final def encode(payload: B): MessageRaw = encode(Message(payload))
+  final def encode(env: Envelope[B]): EnvelopeRaw =
+    env.copy(message = encode(env.message))
 
   final def contramap[A](f: A => B): MessageEncoder[A] = new {
-    override def encode(msg: Message[A]): Either[Throwable, MessageRaw] =
+    override def encode(msg: Message[A]): MessageRaw =
       self.encode(msg.copy(payload = f(msg.payload)))
   }
 
   final def transform(f: MessageRaw => MessageRaw): MessageEncoder[B] = new {
-    override def encode(msg: Message[B]): Either[Throwable, MessageRaw] =
-      self.encode(msg).map(f)
-  }
-
-  final def transformE(
-      f: MessageRaw => Either[Throwable, MessageRaw]
-  ): MessageEncoder[B] = new {
-    override def encode(msg: Message[B]): Either[Throwable, MessageRaw] =
-      self.encode(msg).flatMap(f)
+    override def encode(msg: Message[B]): MessageRaw =
+      f(self.encode(msg))
   }
 }
 object MessageEncoder {
   inline def apply[T](using enc: MessageEncoder[T]): MessageEncoder[T] = enc
   given MessageEncoder[String] = new {
-    override def encode(msg: Message[String]): Either[Throwable, MessageRaw] =
-      ByteVector.encodeUtf8(msg.payload).map(p => msg.copy(payload = p))
+    override def encode(msg: Message[String]): MessageRaw =
+      msg
+        .copy(payload =
+          ByteVector.view(msg.payload.getBytes(StandardCharsets.UTF_8))
+        )
+        .withContentType(ShortString("text/plain"))
   }
 }
 

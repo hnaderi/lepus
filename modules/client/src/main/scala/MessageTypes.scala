@@ -30,7 +30,7 @@ final case class Envelope[T](
 )
 object Envelope {
   extension [T](msg: Envelope[T])(using enc: MessageEncoder[T]) {
-    def toRaw: Either[Throwable, EnvelopeRaw] = enc.encode(msg)
+    def toRaw: EnvelopeRaw = enc.encode(msg)
   }
   extension (msg: EnvelopeRaw) {
     def decodeTo[T: MessageDecoder]: Either[Throwable, Envelope[T]] =
@@ -89,7 +89,7 @@ final case class Message[T](
 }
 object Message {
   extension [T](msg: Message[T])(using enc: MessageEncoder[T]) {
-    def toRaw: Either[Throwable, MessageRaw] = enc.encode(msg)
+    def toRaw: MessageRaw = enc.encode(msg)
   }
   extension (msg: MessageRaw) {
     def decodeTo[T: MessageDecoder]: Either[Throwable, Message[T]] =
@@ -107,7 +107,7 @@ object MessageRaw {
   ): MessageRaw = Message(payload, properties)
   def from[T](payload: T, properties: Properties = Properties.empty)(using
       enc: MessageEncoder[T]
-  ): Either[Throwable, MessageRaw] = enc.encode(Message(payload, properties))
+  ): MessageRaw = enc.encode(Message(payload, properties))
 }
 
 type AsyncContent = ReturnedMessageRaw | DeliveredMessageRaw

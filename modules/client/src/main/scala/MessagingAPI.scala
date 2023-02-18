@@ -142,10 +142,8 @@ trait Publishing[F[_]] {
     * client and you MUST also consume [[returned]] if you publish mandatory
     * messages
     */
-  final inline def publish[T: MessageEncoder](env: Envelope[T])(using
-      F: MonadThrow[F]
-  ): F[Unit] =
-    F.fromEither(env.toRaw).flatMap(publishRaw)
+  final inline def publish[T: MessageEncoder](env: Envelope[T]): F[Unit] =
+    publishRaw(env.toRaw)
 
   /** Publishes raw message that is not mandatory This is useful if you have
     * handled encoding and want to publish a raw message directly
@@ -163,8 +161,8 @@ trait Publishing[F[_]] {
       exchange: ExchangeName,
       routingKey: ShortString,
       message: Message[T]
-  )(using F: MonadThrow[F]): F[Unit] =
-    F.fromEither(message.toRaw).flatMap(publishRaw(exchange, routingKey, _))
+  ): F[Unit] =
+    publishRaw(exchange, routingKey, message.toRaw)
 
   /** Creates a message with given payload, encodes it and then publishes it as
     * not mandatory
@@ -173,9 +171,7 @@ trait Publishing[F[_]] {
       exchange: ExchangeName,
       routingKey: ShortString,
       payload: T
-  )(using enc: MessageEncoder[T], F: MonadThrow[F])(using
-      NotGiven[T <:< Message[?]]
-  ): F[Unit] =
+  )(using enc: MessageEncoder[T])(using NotGiven[T <:< Message[?]]): F[Unit] =
     publish(exchange, routingKey, Message(payload))
 
   /** A pipe that publishes [[Envelope]]s that may or may not be mandatory, And
@@ -198,7 +194,7 @@ trait Publishing[F[_]] {
   final def publisher[T: MessageEncoder](using
       F: Concurrent[F]
   ): Pipe[F, Envelope[T], ReturnedMessageRaw] =
-    _.flatMap(m => Stream.fromEither(m.toRaw)).through(publisherRaw)
+    _.map(_.toRaw).through(publisherRaw)
 
   /** consumes returned messages from the server, this should be used
     * exclusively, or otherwise different instances compete over received
@@ -241,8 +237,8 @@ trait ReliablePublishing[F[_]] {
     */
   final inline def publish[T: MessageEncoder](
       env: Envelope[T]
-  )(using F: MonadThrow[F]): F[DeliveryTag] =
-    F.fromEither(env.toRaw).flatMap(publishRaw)
+  ): F[DeliveryTag] =
+    publishRaw(env.toRaw)
 
   /** Publishes raw message that is not mandatory This is useful if you have
     * handled encoding and want to publish a raw message directly
@@ -269,8 +265,8 @@ trait ReliablePublishing[F[_]] {
       exchange: ExchangeName,
       routingKey: ShortString,
       message: Message[T]
-  )(using F: MonadThrow[F]): F[DeliveryTag] =
-    F.fromEither(message.toRaw).flatMap(publishRaw(exchange, routingKey, _))
+  ): F[DeliveryTag] =
+    publishRaw(exchange, routingKey, message.toRaw)
 
   /** Creates a message that is not mandatory, encodes and publishes it
     *
@@ -282,9 +278,8 @@ trait ReliablePublishing[F[_]] {
       exchange: ExchangeName,
       routingKey: ShortString,
       payload: T
-  )(using F: MonadThrow[F])(using NotGiven[T <:< Message[?]]): F[DeliveryTag] =
-    F.fromEither(MessageRaw.from(payload))
-      .flatMap(publishRaw(exchange, routingKey, _))
+  )(using NotGiven[T <:< Message[?]]): F[DeliveryTag] =
+    publishRaw(exchange, routingKey, MessageRaw.from(payload))
 
   /** A pipe that publishes [[Envelope]]s that may or may not be mandatory, And
     * returns a delivery tag for every incoming message, and
@@ -305,9 +300,9 @@ trait ReliablePublishing[F[_]] {
   /** like [[publisherRaw]], but encodes messages as well
     */
   final def publisher[T: MessageEncoder](using
-      F: Concurrent[F]
+      Concurrent[F]
   ): Pipe[F, Envelope[T], DeliveryTag | ReturnedMessageRaw] =
-    _.flatMap(m => Stream.fromEither[F](m.toRaw)).through(publisherRaw)
+    _.map(_.toRaw).through(publisherRaw)
 
   /** consumes Confirmation messages from the server, this should be used
     * exclusively, or otherwise different instances compete over received

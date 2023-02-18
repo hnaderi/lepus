@@ -21,19 +21,26 @@ import dev.hnaderi.namedcodec.*
 import lepus.client.*
 import lepus.protocol.domains.*
 
+trait ChannelCodec[T] {
+  def encode(msg: Message[T]): Either[Throwable, MessageRaw]
+  final def encode(payload: T): Either[Throwable, MessageRaw] =
+    encode(Message(payload))
+  def decode(msg: MessageRaw): Either[Throwable, Message[T]]
+}
+
 object ChannelCodec {
   def of[T, R](using
       nc: NamedCodec[T, R],
       enc: MessageEncoder[R],
       dec: MessageDecoder[R]
-  ): MessageCodec[T] = new {
+  ): ChannelCodec[T] = new {
 
     override def encode(msg: Message[T]): Either[Throwable, MessageRaw] = {
       val typed = nc.encode(msg.payload)
       ShortString
         .from(typed.name)
         .leftMap(BadMessageType(typed.name, _))
-        .flatMap(msgType =>
+        .map(msgType =>
           enc.encode(msg.withPayload(typed.data).withMsgType(msgType))
         )
     }

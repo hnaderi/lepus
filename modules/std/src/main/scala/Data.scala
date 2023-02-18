@@ -21,17 +21,17 @@ import lepus.protocol.domains.*
 
 final case class TopicDefinition[T](
     exchange: ExchangeName,
-    codec: MessageCodec[T],
+    codec: ChannelCodec[T],
     topic: TopicNameEncoder[T]
 )
 
 final case class EndpointDefinition[I, O](
     name: QueueName,
-    clientCodec: MessageCodec[I],
-    serverCodec: MessageCodec[O]
+    clientCodec: ChannelCodec[I],
+    serverCodec: ChannelCodec[O]
 )
 
 final case class WorkPoolDefinition[I](
     name: QueueName,
-    codec: MessageCodec[I]
+    codec: ChannelCodec[I]
 )
