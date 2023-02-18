@@ -49,6 +49,17 @@ object MessageEncoder {
         )
         .withContentType(ShortString("text/plain"))
   }
+  given MessageEncoder[Array[Byte]] = new {
+    override def encode(msg: Message[Array[Byte]]): MessageRaw =
+      msg.copy(payload = ByteVector(msg.payload))
+  }
+  def by[T](f: Message[T] => MessageRaw): MessageEncoder[T] = new {
+    override def encode(msg: Message[T]): MessageRaw = f(msg)
+  }
+  def fromPayloadEncoder[T](f: T => ByteVector): MessageEncoder[T] = new {
+    override def encode(msg: Message[T]): MessageRaw =
+      msg.copy(payload = f(msg.payload))
+  }
 }
 
 @implicitNotFound("Cannot find a way to decode a message into ${A}")
@@ -86,6 +97,24 @@ object MessageDecoder {
   given MessageDecoder[String] = new {
     override def decode(env: MessageRaw): Either[Throwable, Message[String]] =
       env.payload.decodeUtf8.map(p => env.copy(payload = p))
+  }
+  given MessageDecoder[Array[Byte]] = new {
+    override def decode(
+        env: MessageRaw
+    ): Either[Throwable, Message[Array[Byte]]] = Right(
+      env.copy(payload = env.payload.toArray)
+    )
+  }
+  def by[T](
+      f: MessageRaw => Either[Throwable, Message[T]]
+  ): MessageDecoder[T] = new {
+    override def decode(env: MessageRaw): Either[Throwable, Message[T]] = f(env)
+  }
+  def fromPayloadDecoder[T](
+      f: ByteVector => Either[Throwable, T]
+  ): MessageDecoder[T] = new {
+    override def decode(env: MessageRaw): Either[Throwable, Message[T]] =
+      f(env.payload).map(t => env.copy(payload = t))
   }
 }
 
