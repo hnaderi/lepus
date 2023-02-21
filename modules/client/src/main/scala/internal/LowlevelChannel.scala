@@ -130,7 +130,6 @@ private[client] object LowlevelChannel {
     def body(h: Frame.Body): F[Unit] = handle(content.recv(h))
 
     def method(m: Method): F[Unit] =
-      // TODO match based on method
       handle(m match {
         case ChannelClass.Flow(e) =>
           setFlow(e) >> rpc.sendNoWait(ChannelClass.FlowOk(e))
@@ -138,7 +137,8 @@ private[client] object LowlevelChannel {
           onClose
         case m @ ChannelClass.CloseOk => state.set(Status.Closed) >> rpc.recv(m)
         case m: ConfirmationResponse  => disp.confirm(m)
-        case _                        => content.abort >> rpc.recv(m)
+        case BasicClass.Cancel(ctag, _) => disp.cancel(ctag)
+        case _                          => content.abort >> rpc.recv(m)
       })
 
     def publish(method: BasicClass.Publish, msg: MessageRaw): F[Unit] =
@@ -156,7 +156,7 @@ private[client] object LowlevelChannel {
 
     def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])] =
       disp.deliveryQ.map { case (ctag, q) =>
-        (ctag, Stream.fromQueueUnterminated(q).interruptWhen(isClosed))
+        (ctag, Stream.fromQueueNoneTerminated(q).interruptWhen(isClosed))
       }
 
     def returned: Stream[F, ReturnedMessageRaw] =
