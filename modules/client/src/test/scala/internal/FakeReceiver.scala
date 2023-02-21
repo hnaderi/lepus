@@ -27,6 +27,7 @@ import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite
 import munit.ScalaCheckSuite
+import munit.CatsEffectAssertions.*
 import org.scalacheck.effect.PropF.forAllF
 import scodec.bits.ByteVector
 
@@ -46,7 +47,7 @@ final class FakeReceiver(
   def body(h: Frame.Body): IO[Unit] = interact(Interaction.Body(h))
   def method(m: Method): IO[Unit] = interact(Interaction.Method(m))
 
-  def close: IO[Unit] = interact(Interaction.Close).void
+  def onClose: IO[Unit] = interact(Interaction.Close).void
 
   private def interact(i: Interaction): IO[Unit] =
     interactionList.update(_.prepended(i)) >> error.get.flatMap(
@@ -58,6 +59,8 @@ final class FakeReceiver(
 
   def interactions: IO[List[Interaction]] = interactionList.get
   def lastInteraction: IO[Option[Interaction]] = interactions.map(_.headOption)
+  def assertClosed: IO[Unit] =
+    lastInteraction.assertEquals(Some(Interaction.Close))
 }
 
 object FakeReceiver {

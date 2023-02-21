@@ -112,4 +112,18 @@ class FrameDispatcherSuite extends InternalTestSuite {
       } yield ()
     }
   }
+
+  test("Must close all channels on close") {
+    for {
+      fd <- FrameDispatcher[IO]
+      channels <- FakeReceiver().replicateA(10)
+      _ <- channels
+        .traverse(ch => fd.add(_ => Resource.pure(ch)))
+        .use(all =>
+          all.flatTraverse(_.interactions).assertEquals(Nil) >>
+            fd.onClose >>
+            all.traverse_(_.assertClosed)
+        )
+    } yield ()
+  }
 }

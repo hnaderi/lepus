@@ -25,6 +25,7 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.Channel.Status
+import lepus.client.Confirmation
 import lepus.client.internal.FakeLowLevelChannel.Interaction
 import lepus.codecs.ConnectionDataGenerator
 import lepus.codecs.DomainGenerators
@@ -34,7 +35,6 @@ import lepus.protocol.BasicClass.Publish
 import lepus.protocol.*
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import lepus.client.Confirmation
 
 final class FakeLowLevelChannel(
     val interactions: InteractionList[Interaction],
@@ -43,6 +43,8 @@ final class FakeLowLevelChannel(
 
   private def call[T](f: LowlevelChannel[IO] => IO[T]) = channel.get.flatMap(f)
   private val channelS = Stream.eval(channel.get)
+
+  override def onClose: IO[Unit] = call(_.onClose)
 
   override def asyncContent(m: ContentMethod): IO[Unit] = call(
     _.asyncContent(m)

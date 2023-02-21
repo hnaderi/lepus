@@ -47,6 +47,7 @@ private[client] trait ConnectionState[F[_]] extends Signal[F, Status] {
 private[client] object ConnectionState {
   def apply[F[_]](
       output: OutputWriter[F, Frame],
+      dispatcher: FrameDispatcher[F],
       path: Path = Path("/")
   )(using F: Concurrent[F]): F[ConnectionState[F]] = for {
     underlying <- SignallingRef[F, Status](Status.Connecting)
@@ -87,6 +88,7 @@ private[client] object ConnectionState {
       hasOpened.complete(Left(TerminalState)) *>
         configDef.complete(Left(TerminalState)) *>
         output.onClose *>
+        dispatcher.onClose *>
         underlying.set(Status.Closed)
 
     override def onOpened: F[Unit] = hasOpened.complete(Right(())) *> underlying
