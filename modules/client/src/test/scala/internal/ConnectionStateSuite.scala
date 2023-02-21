@@ -34,8 +34,12 @@ import scala.concurrent.duration.*
 import Connection.Status
 
 class ConnectionStateSuite extends InternalTestSuite {
-  private val SUT =
-    OutputWriter[IO, Frame](_ => IO.unit).flatMap(ConnectionState(_))
+  private val SUT = for {
+    out <- OutputWriter[IO, Frame](_ => IO.unit)
+    fd <- FrameDispatcher[IO]
+    state <- ConnectionState(out, fd)
+  } yield state
+
   private val config = NegotiatedConfig(1, 2, 3)
 
   test("Initial state is connecting") {
@@ -58,7 +62,8 @@ class ConnectionStateSuite extends InternalTestSuite {
     forAllF(DomainGenerators.path) { vhost =>
       for {
         sent <- FakeFrameOutput()
-        s <- ConnectionState(sent, vhost)
+        fd <- FrameDispatcher[IO]
+        s <- ConnectionState(sent, fd, vhost)
         _ <- s.onConnected(config)
         _ <- s.config.assertEquals(config)
         _ <- s.get.assertEquals(Status.Connected)
@@ -168,7 +173,8 @@ class ConnectionStateSuite extends InternalTestSuite {
     forAllF(ConnectionDataGenerator.closeGen) { close =>
       for {
         sent <- FakeFrameOutput()
-        s <- ConnectionState(sent)
+        fd <- FrameDispatcher[IO]
+        s <- ConnectionState(sent, fd)
         _ <- s.onConnected(config)
         _ <- s.onOpened
         _ <- sent.interactions.reset
@@ -187,7 +193,8 @@ class ConnectionStateSuite extends InternalTestSuite {
     forAllF(ConnectionDataGenerator.closeGen) { close =>
       for {
         sent <- FakeFrameOutput()
-        s <- ConnectionState(sent)
+        fd <- FrameDispatcher[IO]
+        s <- ConnectionState(sent, fd)
         _ <- s.onConnected(config)
         _ <- s.onOpened
         _ <- sent.interactions.reset
@@ -213,7 +220,8 @@ class ConnectionStateSuite extends InternalTestSuite {
   test("Responds to heartbeats if is opened") {
     for {
       sent <- FakeFrameOutput()
-      s <- ConnectionState(sent)
+      fd <- FrameDispatcher[IO]
+      s <- ConnectionState(sent, fd)
       _ <- s.onConnected(config)
       _ <- s.onOpened
       _ <- sent.interactions.reset
@@ -235,9 +243,21 @@ class ConnectionStateSuite extends InternalTestSuite {
   test("Output terminates after getting closed") {
     for {
       sent <- FakeFrameOutput()
-      s <- ConnectionState(sent)
+      fd <- FrameDispatcher[IO]
+      s <- ConnectionState(sent, fd)
       _ <- s.onClosed
       _ <- sent.interactions.assert(FakeFrameOutput.Interaction.Closed)
+    } yield ()
+  }
+
+  test("Frame dispatcher terminates after getting closed") {
+    for {
+      sent <- FakeFrameOutput()
+      fd <- FakeFrameDispatcher()
+      s <- ConnectionState(sent, fd)
+      _ <- fd.assertOpen
+      _ <- s.onClosed
+      _ <- fd.assertClosed
     } yield ()
   }
 }

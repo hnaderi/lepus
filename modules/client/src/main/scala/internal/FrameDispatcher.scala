@@ -33,6 +33,7 @@ private[client] trait FrameDispatcher[F[_]] {
   def header(h: Frame.Header): F[Unit]
   def body(b: Frame.Body): F[Unit]
   def invoke(m: Frame.Method): F[Unit]
+  def onClose: F[Unit]
 
   def add[CHANNEL <: ChannelReceiver[F]](
       build: ChannelNumber => Resource[F, CHANNEL]
@@ -50,6 +51,10 @@ private[client] object FrameDispatcher {
   def apply[F[_]](using F: Concurrent[F]): F[FrameDispatcher[F]] = for {
     state <- SignallingRef[F].of(State[F]())
   } yield new {
+
+    def onClose: F[Unit] =
+      state.get.map(_.channels.values.toList).flatMap(_.traverse_(_.onClose))
+
     def header(h: Frame.Header): F[Unit] =
       call(h.channel)(_.header(h))
 

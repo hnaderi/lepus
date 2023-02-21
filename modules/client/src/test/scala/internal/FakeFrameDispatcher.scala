@@ -21,6 +21,7 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.std.Queue
+import cats.syntax.all.*
 import fs2.concurrent.Signal
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber
@@ -32,8 +33,11 @@ import Frame.*
 
 final class FakeFrameDispatcher(
     val dispatched: InteractionList[Frame],
-    error: Option[Exception]
+    error: Option[Exception],
+    closed: Ref[IO, Boolean]
 ) extends FrameDispatcher[IO] {
+
+  override def onClose: IO[Unit] = closed.set(true)
 
   override def body(b: Body): IO[Unit] = dispatch(b)
 
@@ -50,9 +54,13 @@ final class FakeFrameDispatcher(
 
   private def dispatch(frame: Frame) =
     dispatched.add(frame) >> error.fold(IO.unit)(IO.raiseError)
+
+  def assertClosed: IO[Unit] = closed.get.assert
+  def assertOpen: IO[Unit] = closed.get.map(!_).assert
 }
 
 object FakeFrameDispatcher {
   def apply(error: Option[Exception] = None): IO[FakeFrameDispatcher] =
-    InteractionList[Frame].map(new FakeFrameDispatcher(_, error))
+    (InteractionList[Frame], IO.ref(false))
+      .mapN(new FakeFrameDispatcher(_, error, _))
 }

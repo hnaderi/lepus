@@ -44,6 +44,7 @@ private[client] trait ChannelReceiver[F[_]] {
   def header(h: Frame.Header): F[Unit]
   def body(h: Frame.Body): F[Unit]
   def method(m: Method): F[Unit]
+  def onClose: F[Unit]
 }
 
 private[client] trait ChannelTransmitter[F[_]] {
@@ -94,7 +95,7 @@ private[client] object LowlevelChannel {
     state <- SignallingRef[F].of(Status.Active)
   } yield new LowlevelChannel[F] {
 
-    private def onClose: F[Unit] =
+    override def onClose: F[Unit] =
       state.set(Status.Closed) >> rpc.sendNoWait(ChannelClass.CloseOk)
 
     private def handle(f: F[Unit]) =

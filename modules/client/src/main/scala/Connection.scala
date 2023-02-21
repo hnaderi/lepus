@@ -63,7 +63,7 @@ object Connection {
     ).toResource
     dispatcher <- FrameDispatcher[F].toResource
     output <- OutputWriter(sendQ.offer).toResource
-    state <- ConnectionState(output, path).toResource
+    state <- ConnectionState(output, dispatcher, path).toResource
     newChannel = ChannelBuilder(
       output,
       state,

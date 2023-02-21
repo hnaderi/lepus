@@ -44,7 +44,7 @@ class ConnectionReceiveSuite extends InternalTestSuite {
     for {
       fd <- FakeFrameDispatcher()
       output <- FakeFrameOutput()
-      st <- ConnectionState[IO](output)
+      st <- ConnectionState(output, fd)
       _ <- Stream.empty.through(Connection.receive(st, fd)).compile.drain
       _ <- st.get.assertEquals(Status.Closed)
     } yield ()
@@ -54,7 +54,7 @@ class ConnectionReceiveSuite extends InternalTestSuite {
     for {
       fd <- FakeFrameDispatcher()
       output <- FakeFrameOutput()
-      st <- ConnectionState[IO](output)
+      st <- ConnectionState(output, fd)
       _ <- Stream
         .raiseError(new Exception)
         .through(Connection.receive(st, fd))
@@ -70,7 +70,7 @@ class ConnectionReceiveSuite extends InternalTestSuite {
     for {
       fd <- FakeFrameDispatcher()
       output <- FakeFrameOutput()
-      st <- ConnectionState[IO](output)
+      st <- ConnectionState(output, fd)
       _ <- st.onConnected(config)
       _ <- st.onOpened
       _ <- Stream(Frame.Heartbeat)
@@ -90,7 +90,7 @@ class ConnectionReceiveSuite extends InternalTestSuite {
       for {
         fd <- FakeFrameDispatcher()
         output <- FakeFrameOutput()
-        st <- ConnectionState[IO](output)
+        st <- ConnectionState(output, fd)
         _ <- st.onConnected(config)
         _ <- st.onOpened
         _ <- Stream(frame)
@@ -109,7 +109,7 @@ class ConnectionReceiveSuite extends InternalTestSuite {
       for {
         fd <- FakeFrameDispatcher()
         output <- FakeFrameOutput()
-        st <- ConnectionState[IO](output)
+        st <- ConnectionState(output, fd)
         _ <- st.onConnected(config)
         _ <- st.onOpened
         _ <- Stream(method)
