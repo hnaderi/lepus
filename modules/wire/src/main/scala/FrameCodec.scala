@@ -50,7 +50,8 @@ object FrameCodec {
     (channelNumber :: sized(bytes)).as
 
   private val heartbeat: Codec[Frame.Heartbeat.type] =
-    channelNumber.unit(ChannelNumber(0)) ~> codecs.provide(Frame.Heartbeat)
+    channelNumber.unit(ChannelNumber(0)) ~> int32.unit(0) ~>
+      codecs.provide(Frame.Heartbeat)
 
   lazy val frame: Codec[Frame] = discriminated
     .by(int8)
