@@ -23,15 +23,17 @@ import cats.effect.std.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
-import lepus.protocol.domains.*
 import lepus.protocol.constants.ReplyCode
+import lepus.protocol.domains.*
 
 private[client] trait MessageDispatcher[F[_]] {
   def deliver(msg: DeliveredMessageRaw): F[Unit]
   def `return`(msg: ReturnedMessageRaw): F[Unit]
   def confirm(msg: ConfirmationResponse): F[Unit]
+  def cancel(ctag: ConsumerTag): F[Unit]
 
-  def deliveryQ: Resource[F, (ConsumerTag, QueueSource[F, DeliveredMessageRaw])]
+  def deliveryQ
+      : Resource[F, (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])]
   def returnQ: QueueSource[F, ReturnedMessageRaw]
   def confirmationQ: QueueSource[F, ConfirmationResponse]
 }
@@ -42,11 +44,17 @@ private[client] object MessageDispatcher {
       confirmBufSize: Int = 10,
       deliveryBufSize: Int = 10
   )(using F: Concurrent[F]): F[MessageDispatcher[F]] = for {
-    dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, DeliveredMessageRaw]])
+    dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, Option[DeliveredMessageRaw]]])
     rq <- Queue.bounded[F, ReturnedMessageRaw](returnedBufSize)
     cq <- Queue.bounded[F, ConfirmationResponse](confirmBufSize)
     counter <- F.ref(0)
   } yield new {
+
+    override def cancel(ctag: ConsumerTag): F[Unit] =
+      dqs.get.map(_.get(ctag)).flatMap {
+        case Some(q) => q.offer(None)
+        case None    => F.unit
+      }
 
     private def newCtag = counter
       .getAndUpdate(_ + 1)
@@ -55,14 +63,16 @@ private[client] object MessageDispatcher {
 
     override def deliver(msg: DeliveredMessageRaw): F[Unit] =
       dqs.get.map(_.get(msg.consumerTag)).flatMap {
-        case Some(q) => q.offer(msg)
+        case Some(q) => q.offer(Some(msg))
         case None    => F.unit
       }
 
     override def `return`(msg: ReturnedMessageRaw): F[Unit] = rq.offer(msg)
 
-    override def deliveryQ
-        : Resource[F, (ConsumerTag, QueueSource[F, DeliveredMessageRaw])] =
+    override def deliveryQ: Resource[
+      F,
+      (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])
+    ] =
       for {
         ctag <- newCtag
         q <- addQ(ctag)
@@ -70,9 +80,9 @@ private[client] object MessageDispatcher {
 
     private def addQ(
         ctag: ConsumerTag
-    ): Resource[F, QueueSource[F, DeliveredMessageRaw]] = Resource.make(
+    ): Resource[F, QueueSource[F, Option[DeliveredMessageRaw]]] = Resource.make(
       Queue
-        .bounded[F, DeliveredMessageRaw](deliveryBufSize)
+        .bounded[F, Option[DeliveredMessageRaw]](deliveryBufSize)
         .flatTap(q => dqs.update(_.updated(ctag, q)))
     )(_ => removeQ(ctag))
 

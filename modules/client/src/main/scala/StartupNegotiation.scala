@@ -151,7 +151,7 @@ object StartupNegotiation {
       ShortString("capabilities") -> FieldTable(
         ShortString("publisher_confirms") -> true,
         // ShortString("authentication_failure_close") -> true,
-        // ShortString("consumer_cancel_notify") -> true,
+        ShortString("consumer_cancel_notify") -> true,
         ShortString("basic.nack") -> true
         // ShortString("connection.blocked") -> true
       ).updated(ShortString("connection_name"), connectionName)

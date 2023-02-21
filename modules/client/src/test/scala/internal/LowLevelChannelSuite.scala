@@ -352,6 +352,17 @@ class LowLevelChannelSuite extends InternalTestSuite {
       )
     }
   }
+
+  test("Must handle consumer cancel") {
+    forAllF(BasicDataGenerator.cancelGen) { cancel =>
+      for {
+        ctx <- LowLevelChannelContext()
+        _ <- ctx.dispatcher.assertNoCancel
+        _ <- ctx.channel.method(cancel)
+        _ <- ctx.dispatcher.assertCancelled(cancel.consumerTag)
+      } yield ()
+    }
+  }
 }
 
 object LowLevelChannelSuite {
@@ -360,7 +371,7 @@ object LowLevelChannelSuite {
 
   private val rpcMethods = AllClassesDataGenerator.methods.suchThat {
     case _: (ChannelClass.Close | ChannelClass.CloseOk.type |
-          ChannelClass.Flow | ConfirmationResponse) =>
+          ChannelClass.Flow | ConfirmationResponse | BasicClass.Cancel) =>
       false
     case _ => true
   }

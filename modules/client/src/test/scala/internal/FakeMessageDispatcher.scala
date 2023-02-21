@@ -33,45 +33,24 @@ import munit.Location
 final class FakeMessageDispatcher(
     delivered: Ref[IO, List[DeliveredMessageRaw]],
     returns: Ref[IO, List[ReturnedMessageRaw]],
-    returned: Queue[IO, ReturnedMessageRaw],
-    deliveries: Ref[IO, Map[ConsumerTag, Queue[IO, DeliveredMessageRaw]]],
     confirms: Ref[IO, List[ConfirmationResponse]],
-    confirmed: Queue[IO, ConfirmationResponse]
+    cancelled: Ref[IO, List[ConsumerTag]],
+    underlying: MessageDispatcher[IO]
 ) extends MessageDispatcher[IO] {
 
   def deliver(msg: DeliveredMessageRaw): IO[Unit] =
-    delivered.update(_.prepended(msg)) >> deliveries.get.flatMap(
-      _.get(msg.consumerTag).fold(IO.unit)(_.offer(msg))
-    )
+    delivered.update(_.prepended(msg)) >> underlying.deliver(msg)
+
+  def cancel(ctag: ConsumerTag): IO[Unit] =
+    cancelled.update(_.prepended(ctag)) >> underlying.cancel(ctag)
 
   def `return`(msg: ReturnedMessageRaw): IO[Unit] =
-    returns.update(_.prepended(msg)) >> returned.offer(msg)
+    returns.update(_.prepended(msg)) >> underlying.`return`(msg)
 
-  private val newCtag = UUIDGen.randomString[IO].map(ShortString.from).flatMap {
-    case Right(value) => IO(ConsumerTag(value))
-    case Left(value)  => IO.raiseError(new RuntimeException(value))
-  }
-
-  def deliveryQ
-      : Resource[IO, (ConsumerTag, QueueSource[IO, DeliveredMessageRaw])] =
-    Resource
-      .eval(newCtag)
-      .flatMap(ctag =>
-        Resource.make(
-          Queue
-            .unbounded[IO, DeliveredMessageRaw]
-            .flatTap(q => deliveries.update(_.updated(ctag, q)))
-            .map((ctag, _))
-        )(_ => deliveries.update(_ - ctag))
-      )
-
-  def returnQ: QueueSource[IO, ReturnedMessageRaw] = returned
-
-  override def confirmationQ
-      : QueueSource[cats.effect.IO, ConfirmationResponse] = confirmed
+  export underlying.{deliveryQ, confirmationQ, returnQ}
 
   override def confirm(msg: ConfirmationResponse): IO[Unit] =
-    confirms.update(_.prepended(msg)) >> confirmed.offer(msg)
+    confirms.update(_.prepended(msg)) >> underlying.confirm(msg)
 
   def assertDelivered(msg: DeliveredMessageRaw)(using Location): IO[Unit] =
     delivered.get.map(_.contains(msg)).assert
@@ -79,12 +58,16 @@ final class FakeMessageDispatcher(
     returns.get.map(_.contains(msg)).assert
   def assertConfirmed(msg: ConfirmationResponse)(using Location): IO[Unit] =
     confirms.get.map(_.contains(msg)).assert
+  def assertCancelled(ctag: ConsumerTag)(using Location): IO[Unit] =
+    cancelled.get.map(_.contains(ctag)).assert
+
   def assertNoDelivery(using Location): IO[Unit] =
     delivered.get.assertEquals(Nil)
   def assertNoReturn(using Location): IO[Unit] = returns.get.assertEquals(Nil)
   def assertNoContent(using Location): IO[Unit] =
     assertNoDelivery >> assertNoReturn
-
+  def assertNoCancel(using Location): IO[Unit] =
+    cancelled.get.assertEquals(Nil)
 }
 
 object FakeMessageDispatcher {
@@ -92,10 +75,9 @@ object FakeMessageDispatcher {
     (
       IO.ref(List.empty[DeliveredMessageRaw]),
       IO.ref(List.empty[ReturnedMessageRaw]),
-      Queue.unbounded[IO, ReturnedMessageRaw],
-      IO.ref(Map.empty[ConsumerTag, Queue[IO, DeliveredMessageRaw]]),
       IO.ref(List.empty[ConfirmationResponse]),
-      Queue.unbounded[IO, ConfirmationResponse],
+      IO.ref(List.empty[ConsumerTag]),
+      MessageDispatcher[IO]()
     )
-      .mapN(new FakeMessageDispatcher(_, _, _, _, _, _))
+      .mapN(new FakeMessageDispatcher(_, _, _, _, _))
 }

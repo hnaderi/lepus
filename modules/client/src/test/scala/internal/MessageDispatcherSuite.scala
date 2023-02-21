@@ -19,6 +19,7 @@ package internal
 
 import cats.effect.IO
 import cats.implicits.*
+import lepus.codecs.BasicDataGenerator
 import lepus.codecs.DomainGenerators
 import lepus.codecs.FrameGenerators
 import lepus.protocol.domains.ConsumerTag
@@ -27,7 +28,6 @@ import munit.ScalaCheckEffectSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
-import lepus.codecs.BasicDataGenerator
 
 class MessageDispatcherSuite extends InternalTestSuite {
   private val consumers = DomainGenerators.consumerTag
@@ -63,10 +63,22 @@ class MessageDispatcherSuite extends InternalTestSuite {
           q.size.assertEquals(0) >>
             d.deliver(msg) >>
             q.size.assertEquals(1) >>
-            q.take.assertEquals(msg)
+            q.take.assertEquals(Some(msg))
         }
       } yield ()
     }
+  }
+
+  test("Must dispatch consumer cancel") {
+    for {
+      d <- MessageDispatcher[IO]()
+      _ <- d.deliveryQ.use { (ctag, q) =>
+        q.size.assertEquals(0) >>
+          d.cancel(ctag) >>
+          q.size.assertEquals(1) >>
+          q.take.assertEquals(None)
+      }
+    } yield ()
   }
 
   test("Must ignore messages after removing the queue") {
