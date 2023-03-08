@@ -54,7 +54,7 @@ val protocol = module("protocol") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .settings(
-      libraryDependencies += "org.scodec" %%% "scodec-bits" % "1.1.35"
+      libraryDependencies += "org.scodec" %%% "scodec-bits" % "1.1.37"
     )
 }
 
