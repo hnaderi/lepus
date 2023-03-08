@@ -106,9 +106,9 @@ object LepusSitePlugin extends AutoPlugin {
               Root / "getting-started.md",
               Image.internal(Root / "lepus-transparent.png")
             ),
-          navLinks = Seq(
+          navLinks = scmInfo.value.toSeq.map(repo =>
             IconLink.external(
-              scmInfo.value.get.browseUrl.toString(),
+              repo.browseUrl.toString(),
               HeliumIcon.github
             )
           )
