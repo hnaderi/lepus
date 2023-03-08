@@ -133,7 +133,7 @@ val circe = module("circe") {
     .crossType(CrossType.Pure)
     .dependsOn(client)
     .settings(
-      libraryDependencies += "io.circe" %%% "circe-parser" % "0.14.4"
+      libraryDependencies += "io.circe" %%% "circe-parser" % "0.14.5"
     )
 }
 
@@ -145,7 +145,7 @@ val example =
     .enablePlugins(NoPublishPlugin)
     .settings(
       libraryDependencies ++= Seq(
-        "io.circe" %%% "circe-generic" % "0.14.4",
+        "io.circe" %%% "circe-generic" % "0.14.5",
         "dev.hnaderi" %%% "named-codec-circe" % "0.1.0"
       )
     )
