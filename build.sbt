@@ -157,7 +157,7 @@ val example =
       scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
     )
     .nativeSettings(
-      libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.3"
+      libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.4"
     )
 
 val docs = project
