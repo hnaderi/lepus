@@ -76,6 +76,12 @@ object LepusSitePlugin extends AutoPlugin {
           ) ++ tlSiteApiUrl.value
             .map(_.toString())
             .map(TextLink.external(_, "API docs")),
+          projectLinks = Seq(
+            IconLink.external(
+              "https://github.com/hnaderi/lepus",
+              HeliumIcon.github
+            )
+          ),
           teasers = Seq(
             Teaser(
               "Non-blocking streaming",
