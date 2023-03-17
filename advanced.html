@@ -88,6 +88,7 @@
 
         <ul class="nav-list">
           <li class="level1"><a href="#extending-authentication-e-g-external-sasl-mechanism">Extending authentication (e.g. external SASL mechanism)</a></li>
+          <li class="level1"><a href="#connection-config">Connection config</a></li>
           <li class="level1"><a href="#wire-protocol">Wire protocol</a></li>
         </ul>
 
@@ -103,6 +104,22 @@
         a list of <a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.1.1/lepus/client/SaslMechanism.html">SaslMechanism</a>s by order of preference,
         default connection only contains a plain mechanism that uses username and password,
         you can however implement any other mechanisms or integrate with other external mechanisms.</p>
+        
+        <h2 id="connection-config" class="section"><a class="anchor-link left" href="#connection-config"><i class="icofont-laika">&#xef71;</i></a>Connection config</h2>
+        <p>You can tune each connection using <a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.1.1/lepus/client/ConnectionConfig.html">ConnectionConfig</a></p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="type-name">IO</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">client</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">lepus</span><span>.</span><span class="identifier">protocol</span><span>.</span><span class="identifier">domains</span><span>.*
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">config</span><span> = </span><span class="type-name">ConnectionConfig</span><span>.</span><span class="identifier">default</span><span>
+  .</span><span class="identifier">withName</span><span>(</span><span class="type-name">ShortString</span><span>(</span><span class="string-literal">&quot;local-dev&quot;</span><span>)) </span><span class="comment">// set a connection name
+</span><span>  .</span><span class="identifier">withBufferSize</span><span>(</span><span class="number-literal">1000</span><span>) </span><span class="comment">// connection buffer size
+</span><span>  .</span><span class="identifier">withChannelConfig</span><span>(  </span><span class="comment">// global config for channels
+</span><span>    </span><span class="type-name">ChannelConfig</span><span>.</span><span class="identifier">default</span><span>.</span><span class="identifier">withDeliveryBufSize</span><span>(</span><span class="number-literal">1000</span><span>) </span><span class="comment">//channel delivery buffer size
+</span><span>  )
+  
+</span><span class="keyword">val</span><span> </span><span class="identifier">connection</span><span> = </span><span class="type-name">LepusClient</span><span>[</span><span class="type-name">IO</span><span>](</span><span class="identifier">config</span><span> = </span><span class="identifier">config</span><span>)</span></code></pre>
+        <p>You can find all the options in <a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.1.1/lepus/client/ConnectionConfig.html">ConnectionConfig</a> and <a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.1.1/lepus/client/ChannelConfig.html">ChannelConfig</a></p>
         
         <h2 id="wire-protocol" class="section"><a class="anchor-link left" href="#wire-protocol"><i class="icofont-laika">&#xef71;</i></a>Wire protocol</h2>
         <p>TBD</p>
