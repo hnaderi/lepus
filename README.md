@@ -24,7 +24,7 @@ Then you are ready to use Lepus, for tutorial continue to [documentation site](h
 ## Why?
 If you have ever used [Skunk](https://github.com/tpolecat/skunk) you might agree with me on how much it's fun to use and meanwhile insightful for its users. This project started with this in mind and I hope it achieves its goals.
 
-## I mean, why not use official java client and use Lepus instead?
+## I mean, why not use the official java client and use Lepus instead?
 I'm not in position to tell you what should you use, but if you are tired of wrappers over the java client,
 or want to use more advanced features of RabbitMQ that are not available in other scala clients, or if you want a clean purely functional client for RabbitMQ (or other AMQP compliant message brokers) take a look at this library and then assess your requirements. You can see [features](https://lepus.hnaderi.dev/features.html) for some more informations.
 
