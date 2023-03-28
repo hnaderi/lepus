@@ -10,6 +10,8 @@
  [![javadoc](https://javadoc.io/badge2/dev.hnaderi/lepus-docs_3/javadoc.svg?style=flat-square)](https://javadoc.io/doc/dev.hnaderi/lepus-docs_3) 
 <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/hnaderi/lepus/ci.yml?style=flat-square">
 <img alt="GitHub" src="https://img.shields.io/github/license/hnaderi/lepus?style=flat-square">  
+![Typelevel Affiliate Project](https://img.shields.io/badge/typelevel-affiliate%20project-FFB4B5.svg?style=flat-square)
+[![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-blue.svg?style=flat-square&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
 
 ## Use
 This library is published for scala 3 on all scala platforms (JVM, JS, Native); 
