@@ -280,6 +280,55 @@ class StartupNegotiationSuite extends InternalTestSuite {
     } yield ()
   }
 
+  // This is a RabbitMQ extension https://www.rabbitmq.com/auth-notification.html
+  check(
+    "Notifies authentiaction failure if server closes connection with Access refused"
+  ) {
+    val serverResponses = fs2.Stream(
+      method(
+        ConnectionClass.Start(
+          0,
+          9,
+          FieldTable.empty,
+          LongString("fake1 fake2"),
+          locales = LongString("")
+        )
+      ),
+      method(ConnectionClass.Secure(LongString("abc"))),
+      method(
+        ConnectionClass.Close(
+          ReplyCode.AccessRefused,
+          ShortString.empty,
+          ClassId(0),
+          MethodId(0)
+        )
+      )
+    )
+
+    val expected = List(
+      method(
+        ConnectionClass.StartOk(
+          clientProps,
+          mechanism = ShortString("fake1"),
+          response = LongString("initial"),
+          locale = ShortString("en-US")
+        )
+      ),
+      method(ConnectionClass.SecureOk(LongString("abc")))
+    )
+
+    for {
+      sut <- StartupNegotiation(auth)
+      send <- ExpectedQueue(expected)
+      _ <- sut
+        .pipe(send.assert)(serverResponses)
+        .compile
+        .drain
+        .intercept[AuthenticationFailure]
+      _ <- sut.config.intercept[AuthenticationFailure]
+    } yield ()
+  }
+
   private def method(value: Method) = Frame.Method(ChannelNumber(0), value)
 }
 

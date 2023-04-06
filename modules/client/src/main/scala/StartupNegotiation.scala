@@ -25,11 +25,13 @@ import fs2.Pipe
 import fs2.Pull
 import fs2.Stream
 import lepus.protocol.ConnectionClass
+import lepus.protocol.ConnectionClass.Close
 import lepus.protocol.ConnectionClass.Secure
 import lepus.protocol.ConnectionClass.Start
 import lepus.protocol.ConnectionClass.Tune
 import lepus.protocol.Frame
 import lepus.protocol.Method
+import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 
 trait StartupNegotiation[F[_]] {
@@ -125,6 +127,8 @@ object StartupNegotiation {
                 )
             )
         case msg: Tune => afterChallenge(msg)
+        case Close(ReplyCode.AccessRefused, details, _, _) =>
+          AuthenticationFailure(details).raiseError
       }
     private def afterChallenge
         : ConnectionClass.Tune => F[NegotiationResult[F]] = {
@@ -150,7 +154,7 @@ object StartupNegotiation {
       ShortString("scala-version") -> ShortString(BuildInfo.scalaVersion),
       ShortString("capabilities") -> FieldTable(
         ShortString("publisher_confirms") -> true,
-        // ShortString("authentication_failure_close") -> true,
+        ShortString("authentication_failure_close") -> true,
         ShortString("consumer_cancel_notify") -> true,
         ShortString("basic.nack") -> true
         // ShortString("connection.blocked") -> true
@@ -187,6 +191,10 @@ type Negotiation[F[_]] = Frame => F[NegotiationResult[F]]
 
 case object NegotiationError
     extends Exception("Error while negotiating with server!")
+case class AuthenticationFailure(details: String)
+    extends Exception(
+      s"Server refused connection due to authentication failure!\nDetails: $details"
+    )
 case object NoSupportedSASLMechanism
     extends Exception(
       "Server does not support any of your requested SASL mechanisms!"

@@ -26,6 +26,7 @@ import lepus.protocol.ConnectionClass
 import lepus.protocol.Frame
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
+import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 
 import java.util.concurrent.TimeoutException
@@ -93,6 +94,16 @@ class ConnectionStateSuite extends InternalTestSuite {
         s.onClosed.delayBy(10.days)
       )
     } yield ()
+  }
+
+  test("config raises underlying error if closed") {
+    forAllF(Arbitrary.arbitrary[Throwable]) { ex =>
+      for {
+        s <- SUT
+        _ <- s.onFailed(ex)
+        _ <- s.config.attempt.assertEquals(Left(ex))
+      } yield ()
+    }
   }
 
   test("Raises error if onConnected is called more than once") {

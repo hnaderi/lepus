@@ -30,10 +30,13 @@ import lepus.protocol.Frame
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 
+import ConnectionState.TerminalState
+
 private[client] trait ConnectionState[F[_]] extends Signal[F, Status] {
   def onConnected(config: NegotiatedConfig): F[Unit]
   def onOpened: F[Unit]
-  def onClosed: F[Unit]
+  def onFailed(ex: Throwable): F[Unit]
+  def onClosed: F[Unit] = onFailed(TerminalState)
   def onCloseRequest: F[Unit]
   def onCloseRequest(req: ConnectionClass.Close): F[Unit]
   def onHeartbeat: F[Unit]
@@ -84,9 +87,9 @@ private[client] object ConnectionState {
         )
       )
 
-    override def onClosed: F[Unit] =
-      hasOpened.complete(Left(TerminalState)) *>
-        configDef.complete(Left(TerminalState)) *>
+    override def onFailed(ex: Throwable): F[Unit] =
+      hasOpened.complete(Left(ex)) *>
+        configDef.complete(Left(ex)) *>
         output.onClose *>
         dispatcher.onClose *>
         underlying.set(Status.Closed)
