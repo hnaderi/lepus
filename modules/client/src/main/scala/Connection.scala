@@ -107,10 +107,12 @@ object Connection {
     case h: Frame.Header => dispatcher.header(h)
     case Frame.Method(0, value) =>
       value match {
-        case m @ ConnectionClass.OpenOk  => state.onOpened
-        case m @ ConnectionClass.CloseOk => state.onClosed
-        case m: ConnectionClass.Close    => state.onCloseRequest(m)
-        case _                           => ???
+        case m @ ConnectionClass.OpenOk   => state.onOpened
+        case m @ ConnectionClass.CloseOk  => state.onClosed
+        case m: ConnectionClass.Close     => state.onCloseRequest(m)
+        case ConnectionClass.Blocked(msg) => state.onBlocked(msg)
+        case ConnectionClass.Unblocked    => state.onUnblocked
+        case _                            => ???
       }
     case m: Frame.Method => dispatcher.invoke(m)
     case Frame.Heartbeat => state.onHeartbeat
@@ -143,7 +145,7 @@ object Connection {
   enum Status {
     case Connecting
     case Connected
-    case Opened
+    case Opened(blocked: Boolean = false)
     case Closed
   }
 }

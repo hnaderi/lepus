@@ -121,7 +121,7 @@ class ConnectionStateSuite extends InternalTestSuite {
       _ <- s.onConnected(config)
       _ <- s.onOpened
       _ <- s.awaitOpened
-      _ <- s.get.assertEquals(Status.Opened)
+      _ <- s.get.assertEquals(Status.Opened())
     } yield ()
   }
 
@@ -132,7 +132,7 @@ class ConnectionStateSuite extends InternalTestSuite {
       _ <- s.awaitOpened.timeout(10.days).intercept[TimeoutException]
       _ <- s.onOpened
       _ <- s.awaitOpened
-      _ <- s.get.assertEquals(Status.Opened)
+      _ <- s.get.assertEquals(Status.Opened())
     } yield ()
   }
 
@@ -180,6 +180,30 @@ class ConnectionStateSuite extends InternalTestSuite {
     } yield ()
   }
 
+  test("Accept onBlocked/onUnblocked if opened") {
+    for {
+      s <- SUT
+      _ <- s.onConnected(config)
+      _ <- s.onOpened
+      _ <- s.get.assertEquals(Status.Opened(false))
+      _ <- s.onBlocked(ShortString.empty)
+      _ <- s.get.assertEquals(Status.Opened(true))
+      _ <- s.onUnblocked
+      _ <- s.get.assertEquals(Status.Opened(false))
+    } yield ()
+  }
+
+  test("Ignores redundant onUnblocked if opened") {
+    for {
+      s <- SUT
+      _ <- s.onConnected(config)
+      _ <- s.onOpened
+      _ <- s.get.assertEquals(Status.Opened(false))
+      _ <- s.onUnblocked
+      _ <- s.get.assertEquals(Status.Opened(false))
+    } yield ()
+  }
+
   test("Accepts server close request if is opened") {
     forAllF(ConnectionDataGenerator.closeGen) { close =>
       for {
@@ -195,7 +219,7 @@ class ConnectionStateSuite extends InternalTestSuite {
             Frame.Method(ChannelNumber(0), ConnectionClass.CloseOk)
           )
         )
-        _ <- s.get.assertEquals(Status.Opened)
+        _ <- s.get.assertEquals(Status.Opened())
       } yield ()
     }
   }
@@ -223,7 +247,7 @@ class ConnectionStateSuite extends InternalTestSuite {
             )
           )
         )
-        _ <- s.get.assertEquals(Status.Opened)
+        _ <- s.get.assertEquals(Status.Opened())
       } yield ()
     }
   }

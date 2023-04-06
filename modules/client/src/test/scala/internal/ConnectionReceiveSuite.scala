@@ -120,4 +120,35 @@ class ConnectionReceiveSuite extends InternalTestSuite {
       } yield ()
     }
   }
+
+  test("Dispatches connection blocked/unblocked notifications") {
+    val methods: Gen[ConnectionClass.Blocked | ConnectionClass.Unblocked.type] =
+      Gen.oneOf(
+        ConnectionDataGenerator.blockedGen,
+        ConnectionDataGenerator.unblockedGen
+      )
+
+    forAllF(methods) { method =>
+      val frame = Frame.Method(ChannelNumber(0), method)
+      for {
+        fd <- FakeFrameDispatcher()
+        output <- FakeFrameOutput()
+        st <- FakeConnectionState(Status.Opened())
+        _ <- Stream(frame)
+          .through(Connection.receive(st, fd))
+          .compile
+          .drain
+        _ <- method match {
+          case ConnectionClass.Blocked(msg) =>
+            st.interactions.assertFirst(
+              FakeConnectionState.Interaction.Blocked(msg)
+            )
+          case ConnectionClass.Unblocked =>
+            st.interactions.assertFirst(
+              FakeConnectionState.Interaction.Unblocked
+            )
+        }
+      } yield ()
+    }
+  }
 }

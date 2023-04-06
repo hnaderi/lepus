@@ -40,6 +40,8 @@ private[client] trait ConnectionState[F[_]] extends Signal[F, Status] {
   def onCloseRequest: F[Unit]
   def onCloseRequest(req: ConnectionClass.Close): F[Unit]
   def onHeartbeat: F[Unit]
+  def onBlocked(msg: ShortString): F[Unit]
+  def onUnblocked: F[Unit]
 
   def config: F[NegotiatedConfig]
   def awaitOpened: F[Unit]
@@ -96,14 +98,24 @@ private[client] object ConnectionState {
 
     override def onOpened: F[Unit] = hasOpened.complete(Right(())) *> underlying
       .modify {
-        case Status.Connected => (Status.Opened, true)
+        case Status.Connected => (Status.Opened(), true)
         case other            => (other, false)
       }
       .ifM(F.unit, F.raiseError(new IllegalStateException))
 
     override def onHeartbeat: F[Unit] = underlying.get.flatMap {
-      case Status.Opened => output.write(Frame.Heartbeat)
-      case _             => F.raiseError(new IllegalStateException)
+      case Status.Opened(_) => output.write(Frame.Heartbeat)
+      case _                => F.raiseError(new IllegalStateException)
+    }
+
+    override def onBlocked(msg: ShortString): F[Unit] = underlying.get.flatMap {
+      case Status.Opened(_) => underlying.set(Status.Opened(true))
+      case _                => F.raiseError(new IllegalStateException)
+    }
+
+    override def onUnblocked: F[Unit] = underlying.get.flatMap {
+      case Status.Opened(_) => underlying.set(Status.Opened(false))
+      case _                => F.raiseError(new IllegalStateException)
     }
 
     override def config: F[NegotiatedConfig] =

@@ -74,7 +74,7 @@ final class FakeConnectionState(
   override def onFailed(ex: Throwable): IO[Unit] =
     interactions.add(Interaction.Failed(ex)) >> state.set(Status.Closed)
 
-  override def onOpened: IO[Unit] = state.set(Status.Opened) >>
+  override def onOpened: IO[Unit] = state.set(Status.Opened()) >>
     openedDef.complete(Right(())) >> interactions.add(Interaction.Opened)
 
   override def config: IO[NegotiatedConfig] = connectedDef.get
@@ -84,6 +84,12 @@ final class FakeConnectionState(
   override def onHeartbeat: IO[Unit] =
     interactions.add(Interaction.Heartbeat) *> heartbeatError.run
 
+  override def onBlocked(msg: ShortString): IO[Unit] =
+    interactions.add(Interaction.Blocked(msg)) >> state.set(Status.Opened(true))
+
+  override def onUnblocked: IO[Unit] =
+    interactions.add(Interaction.Unblocked) >> state.set(Status.Opened(false))
+
   def setAsWontOpen = openedDef.complete(Left(new Exception)).void
 }
 
@@ -92,6 +98,8 @@ object FakeConnectionState {
     case Connected(config: NegotiatedConfig)
     case CloseRequest(close: ConnectionClass.Close)
     case ClientCloseRequest, Opened, Closed, Heartbeat
+    case Blocked(msg: ShortString)
+    case Unblocked
     case Failed(ex: Throwable)
   }
 
@@ -110,10 +118,10 @@ object FakeConnectionState {
       then connected.complete(defaultConfig).void
       else IO.unit
 
-    _ <-
-      if currentState == Status.Opened
-      then opened.complete(Right(())).void
-      else IO.unit
+    _ <- currentState match {
+      case Status.Opened(_) => opened.complete(Right(())).void
+      case _                => IO.unit
+    }
 
   } yield new FakeConnectionState(
     interactions,
