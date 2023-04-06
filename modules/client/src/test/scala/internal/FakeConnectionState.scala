@@ -71,6 +71,9 @@ final class FakeConnectionState(
   override def onClosed: IO[Unit] =
     interactions.add(Interaction.Closed) >> state.set(Status.Closed)
 
+  override def onFailed(ex: Throwable): IO[Unit] =
+    interactions.add(Interaction.Failed(ex)) >> state.set(Status.Closed)
+
   override def onOpened: IO[Unit] = state.set(Status.Opened) >>
     openedDef.complete(Right(())) >> interactions.add(Interaction.Opened)
 
@@ -89,6 +92,7 @@ object FakeConnectionState {
     case Connected(config: NegotiatedConfig)
     case CloseRequest(close: ConnectionClass.Close)
     case ClientCloseRequest, Opened, Closed, Heartbeat
+    case Failed(ex: Throwable)
   }
 
   def apply(

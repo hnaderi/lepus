@@ -18,9 +18,8 @@ package lepus.client
 
 import cats.effect.*
 import cats.effect.implicits.*
+import cats.effect.kernel.Resource.ExitCase.*
 import cats.effect.std.Queue
-import cats.effect.std.QueueSink
-import cats.effect.std.QueueSource
 import cats.implicits.*
 import fs2.Pipe
 import fs2.Stream
@@ -115,7 +114,11 @@ object Connection {
       }
     case m: Frame.Method => dispatcher.invoke(m)
     case Frame.Heartbeat => state.onHeartbeat
-  }.onFinalize(state.onClosed).interruptWhen(state.whenClosed)
+  }.onFinalizeCase {
+    case Succeeded  => state.onClosed
+    case Errored(e) => state.onFailed(e)
+    case Canceled   => state.onClosed
+  }.interruptWhen(state.whenClosed)
 
   private[client] def lifetime[F[_]: Temporal](
       config: F[NegotiatedConfig],
