@@ -107,7 +107,7 @@
         <h1 id="getting-started" class="title">Getting started</h1>
         <p>This library is published for scala 3 on all scala platforms (JVM, JS, Native); 
         Add this to your build:</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;dev.hnaderi&quot;</span><span> %% </span><span class="string-literal">&quot;lepus-client&quot;</span><span> % </span><span class="string-literal">&quot;0.1.1&quot;</span></code></pre>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;dev.hnaderi&quot;</span><span> %% </span><span class="string-literal">&quot;lepus-client&quot;</span><span> % </span><span class="string-literal">&quot;0.2.0&quot;</span></code></pre>
         <p>Then you are ready to use Lepus!<br>
         If you are a beginner in AMQP (RabbitMQ) or messaging in general please take a look at <a href="https://www.rabbitmq.com/getstarted.html">here</a> before continuing.</p>
         
@@ -181,7 +181,7 @@
   </span><span class="identifier">toPublish</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">publisher</span><span>) </span><span class="comment">// 1
 </span><span>)</span></code></pre>
         <ol class="arabic">
-          <li><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.1.1/lepus/client/apis/NormalMessagingChannel/publisher.html">publisher</a> is a pipe that publishes envelopes, and outputs returned messages if any.</li>
+          <li><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.2.0/lepus/client/apis/NormalMessagingChannel/publisher.html">publisher</a> is a pipe that publishes envelopes, and outputs returned messages if any.</li>
         </ol>
         
         <h3 id="consumer" class="section"><a class="anchor-link left" href="#consumer"><i class="icofont-laika">&#xef71;</i></a>Consumer</h3>
@@ -193,11 +193,11 @@
 </span><span>     )
    )</span></code></pre>
         <ol class="arabic">
-          <li><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.1.1/lepus/client/ConsumeMode.html">ConsumeMode</a> determines how a decoding consumer behaves, <code>ConsumeMode.RaiseOnError</code> raises error when decoding is failed, <code>ConsumeMode.NackOnError</code> sends a nack for the failed message. <code>RaiseOnError(false)</code> consumes in auto ack mode, the other two requires you to acknowledge each message</li>
+          <li><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.2.0/lepus/client/ConsumeMode.html">ConsumeMode</a> determines how a decoding consumer behaves, <code>ConsumeMode.RaiseOnError</code> raises error when decoding is failed, <code>ConsumeMode.NackOnError</code> sends a nack for the failed message. <code>RaiseOnError(false)</code> consumes in auto ack mode, the other two requires you to acknowledge each message</li>
         </ol>
         
         <h2 id="more-advanced-channels" class="section"><a class="anchor-link left" href="#more-advanced-channels"><i class="icofont-laika">&#xef71;</i></a>More advanced channels</h2>
-        <p>so far we&#39;ve been using <a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.1.1/lepus/client/apis/NormalMessagingChannel.html">NormalMessagingChannel</a>, which does not support transactions, or publisher confirmation.<br></p>
+        <p>so far we&#39;ve been using <a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.2.0/lepus/client/apis/NormalMessagingChannel.html">NormalMessagingChannel</a>, which does not support transactions, or publisher confirmation.<br></p>
         <p>Let&#39;s see how we can use those features:</p>
         
         <h3 id="transactional-channels" class="section"><a class="anchor-link left" href="#transactional-channels"><i class="icofont-laika">&#xef71;</i></a>transactional channels</h3>
