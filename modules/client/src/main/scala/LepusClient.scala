@@ -34,8 +34,9 @@ object LepusClient {
       password: String = "guest",
       vhost: Path = Path("/"),
       config: ConnectionConfig = ConnectionConfig.default,
-      debug: Boolean = false,
-      ssl: SSL = SSL.None
+      ssl: SSL = SSL.None,
+      socketOptions: List[SocketOption] = Nil,
+      debug: Boolean = false
   ): Resource[F, Connection[F]] =
     from(
       AuthenticationConfig.default(username = username, password = password),
@@ -44,7 +45,8 @@ object LepusClient {
       vhost = vhost,
       config = config,
       debug = debug,
-      ssl = ssl
+      ssl = ssl,
+      socketOptions = socketOptions
     )
 
   def from[F[_]: Temporal: Network: Console](
@@ -55,10 +57,10 @@ object LepusClient {
       config: ConnectionConfig = ConnectionConfig.default,
       debug: Boolean = false,
       ssl: SSL = SSL.None,
-      options: List[SocketOption] = Nil
+      socketOptions: List[SocketOption] = Nil
   ): Resource[F, Connection[F]] = {
 
-    val connect = Network[F].client(SocketAddress(host, port), options)
+    val connect = Network[F].client(SocketAddress(host, port), socketOptions)
 
     val socket =
       if ssl == SSL.None
