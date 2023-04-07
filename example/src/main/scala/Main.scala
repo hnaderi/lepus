@@ -27,7 +27,7 @@ object Main extends IOApp.Simple {
 
   private val exchange = ExchangeName.default
 
-  override def run: IO[Unit] = connect.use((con, ch) =>
+  def app(con: Connection[IO]) = con.channel.use(ch =>
     for {
       _ <- IO.println(con.capabilities.toFieldTable)
       _ <- ch.exchange.declare(ExchangeName("events"), ExchangeType.Topic)
@@ -48,18 +48,14 @@ object Main extends IOApp.Simple {
     } yield ()
   )
 
-  val connect = for {
-    con <- LepusClient[IO](debug = true)
-    _ <- con.status.discrete
-      .foreach(s => IO.println(s"connection: $s"))
-      .compile
-      .drain
-      .background
-    ch <- con.channel
-    _ <- ch.status.discrete
-      .foreach(s => IO.println(s"channel: $s"))
-      .compile
-      .drain
-      .background
-  } yield (con, ch)
+  private val connect =
+    // connect to default port
+    LepusClient[IO](debug = true)
+    // or connect to the TLS port
+    // for more advanced ssl see SSLExample.scala under .jvm directory
+    //
+    // con <- LepusClient[IO](debug = true,port=port"5671", ssl = SSL.Trusted)
+
+  override def run: IO[Unit] = connect.use(app)
+
 }

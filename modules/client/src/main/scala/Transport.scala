@@ -89,6 +89,11 @@ object Transport {
   def fromSocket[F[_]: Concurrent](socket: Socket[F]): Transport[F] =
     build(socket.reads, socket.writes)
 
+  def fromSocket[F[_]: Concurrent](
+      socket: Resource[F, Socket[F]]
+  ): Transport[F] = in =>
+    resource(socket).flatMap(s => build(s.reads, s.writes).apply(in))
+
   def connect[F[_]: Concurrent: Network](
       address: SocketAddress[Host],
       options: List[SocketOption] = List.empty
