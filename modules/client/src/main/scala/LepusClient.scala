@@ -18,10 +18,11 @@ package lepus.client
 
 import cats.Functor
 import cats.effect.Temporal
-import cats.effect.std.Console
 import cats.effect.kernel.Resource
+import cats.effect.std.Console
 import com.comcast.ip4s.*
 import fs2.io.net.Network
+import fs2.io.net.SocketOption
 import lepus.protocol.domains.Path
 import lepus.protocol.domains.ShortString
 
@@ -33,7 +34,8 @@ object LepusClient {
       password: String = "guest",
       vhost: Path = Path("/"),
       config: ConnectionConfig = ConnectionConfig.default,
-      debug: Boolean = false
+      debug: Boolean = false,
+      ssl: SSL = SSL.None
   ): Resource[F, Connection[F]] =
     from(
       AuthenticationConfig.default(username = username, password = password),
@@ -41,7 +43,8 @@ object LepusClient {
       port = port,
       vhost = vhost,
       config = config,
-      debug = debug
+      debug = debug,
+      ssl = ssl
     )
 
   def from[F[_]: Temporal: Network: Console](
@@ -50,14 +53,31 @@ object LepusClient {
       port: Port = port"5672",
       vhost: Path = Path("/"),
       config: ConnectionConfig = ConnectionConfig.default,
-      debug: Boolean = false
+      debug: Boolean = false,
+      ssl: SSL = SSL.None,
+      options: List[SocketOption] = Nil
   ): Resource[F, Connection[F]] = {
-    val transport = Transport.connect[F](SocketAddress(host, port))
-    val t =
-      if debug
-      then Transport.debug(transport)
-      else transport
 
-    Connection.from(t, auth, path = vhost, config = config)
+    val connect = Network[F].client(SocketAddress(host, port), options)
+
+    val socket =
+      if ssl == SSL.None
+      then connect
+      else
+        for {
+          tls <- ssl.tlsContext[F]
+          rawSocket <- connect
+          tlsSocket <- tls
+            .clientBuilder(rawSocket)
+            .withParameters(ssl.tlsParameters)
+            .build
+        } yield tlsSocket
+
+    val transport =
+      if debug
+      then Transport.debug(Transport.fromSocket(socket))
+      else Transport.fromSocket(socket)
+
+    Connection.from(transport, auth, path = vhost, config = config)
   }
 }
