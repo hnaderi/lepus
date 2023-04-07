@@ -7,7 +7,10 @@ services:
     hostname: rabbit-node
     volumes:
       - rabbit:/var/lib/rabbitmq:rw
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./keys:/keys:ro
     ports:
+      - 5671:5671
       - 5672:5672
       - 15672:15672
 volumes:
