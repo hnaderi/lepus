@@ -22,6 +22,7 @@ libraryDependencies += "dev.hnaderi" %% "lepus-client" % "<version from releases
 ```
 
 Then you are ready to use Lepus, for tutorial continue to [documentation site](https://lepus.hnaderi.dev)!  
+Also please drop a ⭐ if this project interests you. I need encouragement.
 
 ## Why?
 If you have ever used [Skunk](https://github.com/tpolecat/skunk) you might agree with me on how much it's fun to use and meanwhile insightful for its users. This project started with this in mind and I hope it achieves its goals.
