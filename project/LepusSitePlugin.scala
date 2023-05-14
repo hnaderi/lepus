@@ -72,7 +72,8 @@ object LepusSitePlugin extends AutoPlugin {
           documentationLinks = Seq(
             TextLink.internal(Root / "getting-started.md", "Getting Started"),
             TextLink.internal(Root / "standard-library.md", "Standard library"),
-            TextLink.internal(Root / "features.md", "Features")
+            TextLink.internal(Root / "features.md", "Features"),
+            TextLink.internal(Root / "examples" / "README.md", "Examples")
           ) ++ tlSiteApiUrl.value
             .map(_.toString())
             .map(TextLink.external(_, "API docs")),
@@ -139,6 +140,11 @@ object LepusSitePlugin extends AutoPlugin {
         )
       )
     },
-    laikaIncludeAPI := true
+    laikaIncludeAPI := true,
+    laikaInputs ~= {
+      _.delegate
+        .addDirectory("example/src/main/scala/example", Root / "examples")
+        .addDirectory("example/.jvm/src/main/scala/example", Root / "examples")
+    }
   )
 }

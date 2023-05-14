@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+package example
+
 import cats.effect.IO
 import cats.effect.IOApp
 import com.comcast.ip4s.*
@@ -30,7 +32,7 @@ object SSLExample extends IOApp.Simple {
       ssl = SSL.fromSSLContext(sslContext)
     )
 
-  override def run: IO[Unit] = connect.use(Main.app)
+  override def run: IO[Unit] = connect.use(HelloWorld.app)
 
   // example from https://www.rabbitmq.com/ssl.html#java-client-connecting-with-peer-verification
   private def sslContext: SSLContext = {

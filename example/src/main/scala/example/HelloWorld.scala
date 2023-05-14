@@ -20,16 +20,16 @@
 //> using dep "dev.hnaderi::lepus-std:0.3.0"
 //> using dep "dev.hnaderi::lepus-circe:0.3.0"
 
+package example
+
 import cats.effect.IO
 import cats.effect.IOApp
-import com.comcast.ip4s.*
 import lepus.client.*
 import lepus.protocol.domains.*
-import scodec.bits.ByteVector
 
 import scala.concurrent.duration.*
 
-object Main extends IOApp.Simple {
+object HelloWorld extends IOApp.Simple {
 
   private val exchange = ExchangeName.default
 
