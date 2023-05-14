@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
+//> using scala 3.2
+//> using dep "io.circe::circe-generic:0.14.5"
+//> using dep "dev.hnaderi::named-codec-circe:0.1.0"
+//> using dep "dev.hnaderi::lepus-std:0.3.0"
+//> using dep "dev.hnaderi::lepus-circe:0.3.0"
+
 package example
 
 import cats.effect.*
 import cats.syntax.all.*
+import fs2.Stream
 import lepus.client.*
 import lepus.protocol.domains.*
 import lepus.std.*
 
-import scala.concurrent.duration.*
-
-object WorkPool extends IOApp.Simple {
+object WorkPool extends IOApp {
 
   private val protocol =
     WorkPoolDefinition(
@@ -32,30 +37,39 @@ object WorkPool extends IOApp.Simple {
       ChannelCodec.plain(MessageCodec.json[Task])
     )
 
-  def server(con: Connection[IO]) = con.channel
-    .evalMap(WorkPoolChannel.publisher(protocol, _))
-    .use(pool => List.range(0, 100).map(Task(_)).traverse(pool.publish))
+  private val connection = Stream.resource(LepusClient[IO]())
+  private val channel = connection.flatMap(con => Stream.resource(con.channel))
 
-  def worker(con: Connection[IO])(number: Int) = con.channel
+  val server =
+    channel
+      .evalMap(WorkPoolChannel.publisher(protocol, _))
+      .flatMap(pool =>
+        fs2.io
+          .stdinUtf8(100)(using Async[IO])
+          .map(Task(_))
+          .evalMap(pool.publish)
+      )
+
+  def worker(name: String) = channel
     .evalMap(WorkPoolChannel.worker(protocol, _))
-    .use(pool =>
+    .flatMap(pool =>
       pool.jobs
         .evalMap { job =>
-          IO.println(s"worker $number: $job") >>
+          IO.println(s"worker $name: $job") >>
             pool.processed(job)
         }
-        // This is needed in this example, in order to terminate application
-        .interruptAfter(5.seconds)
-        .compile
-        .drain
     )
 
-  override def run: IO[Unit] = LepusClient[IO]().use { con =>
-    IO.both(
-      server(con),
-      List.range(0, 3).parTraverse(worker(con))
-    ).void
-  }
+  override def run(args: List[String]): IO[ExitCode] =
+    (args.map(_.toLowerCase) match {
+      case "server" :: _         => server
+      case "worker" :: name :: _ => worker(name)
+      case _ => Stream.exec(IO.println(s"""Usage: workpool command
+Commands:
+  - server
+  - worker <name>
+"""))
+    }).compile.drain.as(ExitCode.Success)
 }
 
-final case class Task(value: Int) derives io.circe.Codec.AsObject
+final case class Task(value: String) derives io.circe.Codec.AsObject

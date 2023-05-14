@@ -31,6 +31,15 @@ If you have ever used [Skunk](https://github.com/tpolecat/skunk) you might agree
 I'm not in position to tell you what should you use, but if you are tired of wrappers over the java client,
 or want to use more advanced features of RabbitMQ that are not available in other scala clients, or if you want a clean purely functional client for RabbitMQ (or other AMQP compliant message brokers) take a look at this library and then assess your requirements. You can see [features](https://lepus.hnaderi.dev/features.html) for some more informations.
 
+## Examples
+If you have `scala-cli` installed, you can easily run examples on your own machine using:
+
+```bash
+scala-cli https://raw.githubusercontent.com/hnaderi/lepus/main/example/src/main/scala/example/WorkPool.scala
+```
+
+Check [examples](example/src/main/scala/) for more examples.
+
 ## What in the world is Lepus?
 Lepus[^1] (/ˈliːpəs/, colloquially /ˈlɛpəs/) is a constellation lying just south of the celestial equator. Its name is Latin for hare. It is located below—immediately south—of Orion (the hunter), and is sometimes represented as a hare being chased by Orion or by Orion's hunting dogs. 
 
