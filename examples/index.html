@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>Features</title>
+    <title>Examples</title>
     
       <meta name="author" content="Hossein Naderi"/>
     
@@ -20,11 +20,11 @@
     
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tonsky/FiraCode@1.207/distr/fira_code.css">
     
-    <link rel="stylesheet" type="text/css" href="helium/icofont.min.css" />
-    <link rel="stylesheet" type="text/css" href="helium/laika-helium.css" />
-    <link rel="stylesheet" type="text/css" href="styles/overrides.css" />
-    <link rel="stylesheet" type="text/css" href="site/styles.css" />
-    <script src="helium/laika-helium.js"></script>
+    <link rel="stylesheet" type="text/css" href="../helium/icofont.min.css" />
+    <link rel="stylesheet" type="text/css" href="../helium/laika-helium.css" />
+    <link rel="stylesheet" type="text/css" href="../styles/overrides.css" />
+    <link rel="stylesheet" type="text/css" href="../site/styles.css" />
+    <script src="../helium/laika-helium.js"></script>
     
     
     <script> /* for avoiding page load transitions */ </script>
@@ -41,7 +41,7 @@
         
       </div>
 
-      <a class="image-link" href="getting-started.html"><img src="lepus-transparent.png"></a>
+      <a class="image-link" href="../getting-started.html"><img src="../lepus-transparent.png"></a>
 
       <span class="row links"><a class="icon-link" href="https://github.com/hnaderi/lepus"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
@@ -62,11 +62,11 @@
       </div>
 
       <ul class="nav-list">
-        <li class="level1"><a href="getting-started.html">Getting started</a></li>
-        <li class="level1"><a href="standard-library.html">Standard library</a></li>
-        <li class="level1"><a href="advanced.html">Advanced</a></li>
-        <li class="level1 active"><a href="#">Features</a></li>
-        <li class="level1"><a href="examples/index.html">Examples</a></li>
+        <li class="level1"><a href="../getting-started.html">Getting started</a></li>
+        <li class="level1"><a href="../standard-library.html">Standard library</a></li>
+        <li class="level1"><a href="../advanced.html">Advanced</a></li>
+        <li class="level1"><a href="../features.html">Features</a></li>
+        <li class="level1 active"><a href="#">Examples</a></li>
       </ul>
 
       <ul class="nav-list">
@@ -85,16 +85,13 @@
     <div id="container">
 
       <nav id="page-nav">
-        <p class="header"><a href="#">Features</a></p>
+        <p class="header"><a href="#">Examples</a></p>
 
         <ul class="nav-list">
-          <li class="level1"><a href="#amqp-0-9-1-compliant">AMQP 0.9.1 compliant</a></li>
-          <li class="level1"><a href="#rabbitmq-protocol-extensions">RabbitMQ protocol extensions</a></li>
-          <li class="level1"><a href="#ergonomic-apis">Ergonomic APIs</a></li>
-          <li class="level1"><a href="#cross-platform">Cross platform</a></li>
-          <li class="level1"><a href="#streaming">Streaming</a></li>
-          <li class="level1"><a href="#out-of-the-box-utilities">Out of the box utilities</a></li>
-          <li class="level1"><a href="#extensible">Extensible</a></li>
+          <li class="level1"><a href="#environment">Environment</a></li>
+          <li class="level1"><a href="#hello-world">Hello world</a></li>
+          <li class="level1"><a href="#workpool">WorkPool</a></li>
+          <li class="level1"><a href="#pubsub">PubSub</a></li>
         </ul>
 
         <p class="footer"></p>
@@ -102,34 +99,33 @@
 
       <main class="content">
 
-        <h1 id="features" class="title">Features</h1>
+        <h1 id="examples" class="title">Examples</h1>
+        <p>All of this examples are also hosted on <a href="https://lepus.hnaderi.dev/examples">https://lepus.hnaderi.dev/examples</a></p>
         
-        <h2 id="amqp-0-9-1-compliant" class="section"><a class="anchor-link left" href="#amqp-0-9-1-compliant"><i class="icofont-laika">&#xef71;</i></a>AMQP 0.9.1 compliant</h2>
-        <p>Supports all AMQP 0.9.1 protocol, from transactions to pluggable authentication mechanism.</p>
+        <h2 id="environment" class="section"><a class="anchor-link left" href="#environment"><i class="icofont-laika">&#xef71;</i></a>Environment</h2>
+        <p>You need to have default rabbitmq up and running on localhost:5672 before running this examples;
+        You can use this command to fire up one:</p>
+        <pre class="keep-together pdf epub"><code class="sh">docker run --rm -p 5672:5672 -p 15672:15672 rabbitmq:3-management</code></pre>
         
-        <h2 id="rabbitmq-protocol-extensions" class="section"><a class="anchor-link left" href="#rabbitmq-protocol-extensions"><i class="icofont-laika">&#xef71;</i></a>RabbitMQ protocol extensions</h2>
-        <p>Supports almost all of the RabbitMQ protocol extensions
-        A couple of extensions are not implemented yet which is tracked in <a href="https://github.com/hnaderi/lepus/issues/71">this issue</a></p>
+        <h2 id="hello-world" class="section"><a class="anchor-link left" href="#hello-world"><i class="icofont-laika">&#xef71;</i></a>Hello world</h2>
+        <p>Run this example using:</p>
+        <pre class="keep-together pdf epub"><code class="sh">scala-cli https://lepus.hnaderi.dev/examples/HelloWorld.scala</code></pre>
+        <p>Or take a look at its <a href="HelloWorld.scala">source code</a></p>
         
-        <h2 id="ergonomic-apis" class="section"><a class="anchor-link left" href="#ergonomic-apis"><i class="icofont-laika">&#xef71;</i></a>Ergonomic APIs</h2>
-        <p>AMQP protocol has a broad range of operations that can be used together to do a lot of interesting messaging,
-        however not all of the aforementioned combinations are allowed or even meaningful, which is annoying when using official client.
-        This client on the other hand, tries to have helpful and friendly APIs which guides the beginner, and helps the advanced user; 
-        without any sacrificing any meaningful power.</p>
+        <h2 id="workpool" class="section"><a class="anchor-link left" href="#workpool"><i class="icofont-laika">&#xef71;</i></a>WorkPool</h2>
+        <p>This example uses <a href="/standard-library.md">stdlib</a> to implement a work pool topology.</p>
+        <p>Run the server part of this example using:</p>
+        <pre class="keep-together pdf epub"><code class="sh">scala-cli https://lepus.hnaderi.dev/examples/WorkPool.scala -- server</code></pre>
+        <p>It will read stdin and send every line as a task to the work pool.</p>
+        <p>Run any number of workers using:</p>
+        <pre class="keep-together pdf epub"><code class="sh">scala-cli https://lepus.hnaderi.dev/examples/WorkPool.scala -- worker worker1</code></pre>
+        <p>Or take a look at its <a href="WorkPool.scala">source code</a></p>
         
-        <h2 id="cross-platform" class="section"><a class="anchor-link left" href="#cross-platform"><i class="icofont-laika">&#xef71;</i></a>Cross platform</h2>
-        <p>To this date, this library is the only AMQP scala library that supports all scala platforms.</p>
-        
-        <h2 id="streaming" class="section"><a class="anchor-link left" href="#streaming"><i class="icofont-laika">&#xef71;</i></a>Streaming</h2>
-        <p>Built on top of fs2 and cats effect, this library never blocks, never uses reflection or any black magic.</p>
-        
-        <h2 id="out-of-the-box-utilities" class="section"><a class="anchor-link left" href="#out-of-the-box-utilities"><i class="icofont-laika">&#xef71;</i></a>Out of the box utilities</h2>
-        <p>Standard library and available integrations aim to provide friendly and easy to use tools which adhere to best practices
-        in messaging systems.</p>
-        
-        <h2 id="extensible" class="section"><a class="anchor-link left" href="#extensible"><i class="icofont-laika">&#xef71;</i></a>Extensible</h2>
-        <p>You can extend and/or integrate library in user land, examples include pluggable SASL mechanisms, 
-        custom codecs and even protocol frame inspector.</p>
+        <h2 id="pubsub" class="section"><a class="anchor-link left" href="#pubsub"><i class="icofont-laika">&#xef71;</i></a>PubSub</h2>
+        <p>This example uses <a href="/standard-library.md">stdlib</a> to implement a pub/sub topology.</p>
+        <p>Run this example using:</p>
+        <pre class="keep-together pdf epub"><code class="sh">scala-cli https://lepus.hnaderi.dev/examples/PubSub.scala</code></pre>
+        <p>Or take a look at its <a href="PubSub.scala">source code</a></p>
 
         <hr style="margin-top: 30px"/>
         <footer style="font-size: 90%; text-align: center">
