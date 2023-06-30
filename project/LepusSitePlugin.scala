@@ -16,17 +16,20 @@ import org.typelevel.sbt.TypelevelVersioningPlugin.autoImport.*
 import laika.sbt.LaikaPlugin.autoImport.*
 import sbt._
 import sbt.Keys._
+import org.typelevel.sbt.TypelevelCiReleasePlugin
+import org.typelevel.sbt.TypelevelSonatypeCiReleasePlugin
 
 object LepusSitePlugin extends AutoPlugin {
   override def requires: Plugins = TypelevelSitePlugin
 
+  TypelevelSonatypeCiReleasePlugin
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     tlSiteRelatedProjects := Seq(
       TypelevelProject.Cats,
       TypelevelProject.CatsEffect,
       TypelevelProject.Fs2
     ),
-    tlSiteHeliumConfig := {
+    tlSiteHelium := {
       Helium.defaults.site
         .themeColors(
           primary = Color.hex("ceeaeb"),
