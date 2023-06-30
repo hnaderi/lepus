@@ -18,19 +18,14 @@ package lepus.client
 package internal
 
 import cats.effect.IO
-import cats.effect.std.Queue
-import cats.effect.std.QueueSource
-import cats.effect.std.Random
 import cats.effect.testkit.TestControl
 import cats.implicits.*
 import lepus.codecs.BasicDataGenerator
 import lepus.codecs.DomainGenerators
 import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
-import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite
-import munit.ScalaCheckEffectSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.effect.PropF

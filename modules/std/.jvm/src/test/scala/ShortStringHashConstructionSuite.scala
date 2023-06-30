@@ -21,9 +21,8 @@ import lepus.std.*
 import munit.FunSuite
 import munit.Location
 import munit.ScalaCheckSuite
-import org.scalacheck.Prop.forAll
 import org.scalacheck.Arbitrary
-import java.util.UUID
+import org.scalacheck.Prop.forAll
 
 class ShortStringHashConstructionSuite extends FunSuite, ScalaCheckSuite {
   private def check(name: String, f: String => ShortString)(using

@@ -23,7 +23,6 @@ import fs2.Stream
 import lepus.client.*
 import lepus.client.apis.NormalMessagingChannel
 import lepus.protocol.domains.*
-import lepus.std.TopicDefinition
 
 import java.time.Instant
 

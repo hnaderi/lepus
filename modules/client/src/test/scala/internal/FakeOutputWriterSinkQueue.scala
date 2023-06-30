@@ -18,7 +18,6 @@ package lepus.client.internal
 
 import cats.effect.IO
 import cats.effect.std.Queue
-import cats.implicits.*
 import lepus.protocol.Frame
 import munit.CatsEffectAssertions.*
 import munit.Location

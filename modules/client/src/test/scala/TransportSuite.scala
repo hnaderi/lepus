@@ -17,16 +17,12 @@
 package lepus.client
 
 import cats.effect.IO
-import cats.effect.kernel.Ref
 import cats.effect.std.CountDownLatch
-import cats.implicits.*
 import fs2.Chunk
 import fs2.Stream
 import fs2.Stream.*
 import munit.CatsEffectSuite
 import scodec.bits.ByteVector
-
-import java.io.OutputStream
 
 class TransportSuite extends CatsEffectSuite {
   test("Transmission starts with sending protocol header") {

@@ -17,12 +17,10 @@
 package lepus.client.internal
 
 import cats.effect.IO
-import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
 import cats.syntax.all.*
 import lepus.protocol.Method
-import munit.CatsEffectAssertions.*
 
 import FakeRPCChannel.Interaction
 

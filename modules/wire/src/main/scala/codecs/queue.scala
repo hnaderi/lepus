@@ -18,7 +18,6 @@ package lepus.wire
 
 import lepus.protocol.QueueClass.*
 import lepus.protocol.*
-import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
 import scodec.Codec

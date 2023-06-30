@@ -18,7 +18,6 @@ package lepus.std
 
 import lepus.protocol.domains.ShortString
 
-import scala.compiletime.*
 import scala.quoted.*
 
 opaque type TopicSelector <: ShortString = ShortString

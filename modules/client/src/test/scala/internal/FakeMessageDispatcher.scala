@@ -20,13 +20,9 @@ package internal
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
-import cats.effect.std.Queue
 import cats.effect.std.QueueSource
-import cats.effect.std.UUIDGen
 import cats.implicits.*
 import lepus.protocol.domains.ConsumerTag
-import lepus.protocol.domains.ShortString
-import munit.Assertions.*
 import munit.CatsEffectAssertions.*
 import munit.Location
 
