@@ -63,7 +63,7 @@ val codeGen = Project(s"code-gen", file(s"modules/code-gen"))
     libraryDependencies ++= Seq(
       "co.fs2" %% "fs2-io" % Versions.fs2,
       "co.fs2" %% "fs2-scodec" % Versions.fs2,
-      "org.scala-lang.modules" %% "scala-xml" % "2.1.0"
+      "org.scala-lang.modules" %% "scala-xml" % "2.2.0"
     ),
     Compile / run / baseDirectory := file("."),
     description := "Lepus internal code generator based on AMQP spec"
