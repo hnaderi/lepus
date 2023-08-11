@@ -2,6 +2,7 @@ pull_request_rules:
   - name: Automatic merge for dependency updates
     conditions:
       - "head~=update/"
+      - "status-success=post build"
       - or:
         - "author=hnaderi"
         - "author=scala-steward"

@@ -232,6 +232,17 @@ jobs:
       - name: Publish
         run: sbt tlCiRelease
 
+  post-build:
+    name: post build
+    needs: [build]
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: post build
+        run: echo success!
+
   site:
     name: Generate Site
     strategy:
