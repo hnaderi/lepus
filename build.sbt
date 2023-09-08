@@ -138,7 +138,7 @@ val std = module("std") {
     .crossType(CrossType.Pure)
     .dependsOn(client)
     .settings(
-      libraryDependencies += "dev.hnaderi" %%% "named-codec" % "0.1.0"
+      libraryDependencies += "dev.hnaderi" %%% "named-codec" % "0.2.0"
     )
 }
 
@@ -160,7 +160,7 @@ val example =
     .settings(
       libraryDependencies ++= Seq(
         "io.circe" %%% "circe-generic" % "0.14.6",
-        "dev.hnaderi" %%% "named-codec-circe" % "0.1.0"
+        "dev.hnaderi" %%% "named-codec-circe" % "0.2.0"
       )
     )
     .jvmSettings(
