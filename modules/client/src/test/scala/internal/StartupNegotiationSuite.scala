@@ -23,7 +23,6 @@ import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import fs2.Stream
 import lepus.codecs.DomainGenerators
-import lepus.protocol.BasicClass
 import lepus.protocol.ConnectionClass
 import lepus.protocol.Frame
 import lepus.protocol.Method
@@ -32,9 +31,6 @@ import lepus.protocol.domains.*
 import munit.Location
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
-
-import java.util.concurrent.TimeoutException
-import scala.concurrent.duration.*
 
 class StartupNegotiationSuite extends InternalTestSuite {
   private val fakeSaslMechanism =

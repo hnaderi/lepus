@@ -19,13 +19,9 @@ package lepus.wire
 import lepus.protocol.*
 import lepus.protocol.domains.*
 import scodec.Codec
-import scodec.Decoder
-import scodec.Encoder
 import scodec.bits.*
 import scodec.codecs
 import scodec.codecs.*
-
-import java.nio.ByteBuffer
 
 object FrameCodec {
   import DomainCodecs.*

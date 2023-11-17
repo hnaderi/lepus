@@ -18,26 +18,10 @@ package lepus.client.internal
 
 import cats.effect.*
 import cats.effect.implicits.*
-import cats.effect.kernel.DeferredSource
-import cats.effect.kernel.Resource.ExitCase.Canceled
-import cats.effect.kernel.Resource.ExitCase.Errored
-import cats.effect.kernel.Resource.ExitCase.Succeeded
-import cats.effect.std.Mutex
-import cats.effect.std.Queue
-import cats.effect.std.QueueSink
-import cats.effect.std.QueueSource
 import cats.implicits.*
-import fs2.Pipe
-import fs2.Stream
-import fs2.concurrent.Signal
-import fs2.concurrent.SignallingRef
-import lepus.client.Connection.Status
-import lepus.client.apis.*
 import lepus.protocol.*
-import lepus.protocol.constants.ReplyCategory
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import scala.concurrent.duration.*
 
 private[client] type ChannelBuilder[F[_]] = Resource[F, ChannelTransmitter[F]]
 

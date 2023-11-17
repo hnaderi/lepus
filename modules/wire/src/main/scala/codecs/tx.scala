@@ -18,8 +18,6 @@ package lepus.wire
 
 import lepus.protocol.TxClass.*
 import lepus.protocol.*
-import lepus.protocol.constants.*
-import lepus.protocol.domains.*
 import lepus.wire.DomainCodecs.*
 import scodec.Codec
 import scodec.codecs.*

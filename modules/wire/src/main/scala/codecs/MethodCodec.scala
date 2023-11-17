@@ -17,7 +17,6 @@
 package lepus.wire
 
 import lepus.protocol.*
-import lepus.protocol.domains.ClassId
 import lepus.wire.DomainCodecs.classId
 import scodec.Codec
 import scala.annotation.switch

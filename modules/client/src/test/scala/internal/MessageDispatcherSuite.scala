@@ -18,16 +18,12 @@ package lepus.client
 package internal
 
 import cats.effect.IO
-import cats.implicits.*
 import lepus.codecs.BasicDataGenerator
 import lepus.codecs.DomainGenerators
 import lepus.codecs.FrameGenerators
-import lepus.protocol.domains.ConsumerTag
 import munit.CatsEffectSuite
-import munit.ScalaCheckEffectSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
-import org.scalacheck.effect.PropF.forAllF
 
 class MessageDispatcherSuite extends InternalTestSuite {
   private val consumers = DomainGenerators.consumerTag

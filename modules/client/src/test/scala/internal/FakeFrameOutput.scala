@@ -18,7 +18,6 @@ package lepus.client.internal
 
 import cats.effect.IO
 import lepus.client.internal.FakeFrameOutput.Interaction
-import lepus.client.internal.OutputWriter
 import lepus.protocol.Frame
 
 final class FakeFrameOutput(val interactions: InteractionList[Interaction])

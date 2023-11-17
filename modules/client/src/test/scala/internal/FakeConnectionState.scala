@@ -18,27 +18,13 @@ package lepus.client
 package internal
 
 import cats.effect.*
-import cats.effect.std.*
 import cats.effect.syntax.all.*
-import cats.effect.testkit.TestControl
-import cats.syntax.all.*
 import fs2.Stream
-import fs2.Stream.*
-import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.internal.FakeConnectionState.Interaction
-import lepus.codecs.ConnectionDataGenerator
-import lepus.codecs.DomainGenerators
-import lepus.codecs.FrameGenerators
-import lepus.protocol.BasicClass.Get
-import lepus.protocol.BasicClass.Publish
 import lepus.protocol.ConnectionClass.Close
 import lepus.protocol.*
-import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import org.scalacheck.Gen
-
-import scala.concurrent.duration.*
 
 import Connection.Status
 

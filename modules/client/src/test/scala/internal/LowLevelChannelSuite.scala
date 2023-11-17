@@ -291,7 +291,7 @@ class LowLevelChannelSuite extends InternalTestSuite {
       TestControl.executeEmbed(
         for {
           ctx <- LowLevelChannelContext()
-          _ <- ctx.channel.delivered.use { (ctag, data) =>
+          _ <- ctx.channel.delivered.use { (_, data) =>
             data.compile.toList
               .both(
                 ctx.channel.method(close).delayBy(1.hour)

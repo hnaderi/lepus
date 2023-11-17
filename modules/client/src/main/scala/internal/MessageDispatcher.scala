@@ -22,8 +22,6 @@ import cats.effect.kernel.Resource
 import cats.effect.std.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
-import fs2.Stream
-import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 
 private[client] trait MessageDispatcher[F[_]] {

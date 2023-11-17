@@ -18,7 +18,6 @@ package lepus.client
 
 import cats._
 import cats.effect.Resource
-import cats.syntax.all._
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
 import fs2.io.net.tls.TLSParameters

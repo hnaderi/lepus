@@ -17,17 +17,15 @@
 package lepus.client
 package internal
 
-import cats.Applicative
-import cats.Monad
 import cats.effect.Concurrent
-import cats.effect.syntax.all.*
 import cats.effect.kernel.Resource
+import cats.effect.syntax.all.*
 import cats.implicits.*
+import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
 import lepus.protocol.*
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import fs2.concurrent.Signal
-import fs2.concurrent.SignallingRef
 
 private[client] trait FrameDispatcher[F[_]] {
   def header(h: Frame.Header): F[Unit]

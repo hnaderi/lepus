@@ -17,18 +17,9 @@
 package lepus.codecs
 
 import cats.implicits.*
-import lepus.protocol.domains.*
 import munit.Location
 import scodec.Attempt
 import scodec.DecodeResult
-import scodec.bits.*
-import scodec.codecs
-import scodec.codecs.*
-
-import java.io.ByteArrayOutputStream
-import java.io.DataOutputStream
-import java.io.OutputStream
-import java.util.{Map => JMap}
 
 def assertReversed[T](
     original: T,

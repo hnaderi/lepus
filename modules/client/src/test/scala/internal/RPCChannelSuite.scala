@@ -18,20 +18,15 @@ package lepus.client
 package internal
 
 import cats.effect.IO
-import cats.effect.std.Queue
 import cats.implicits.*
 import lepus.codecs.AllClassesDataGenerator.methods
 import lepus.codecs.DomainGenerators.channelNumber
 import lepus.protocol.Frame
-import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.ChannelNumber
 import munit.CatsEffectSuite
-import munit.ScalaCheckEffectSuite
 import org.scalacheck.Gen
-import org.scalacheck.effect.PropF.forAllF
 
 import RPCChannelSuite.*
-import cats.effect.std.QueueSink
 
 class RPCChannelSuite extends InternalTestSuite {
   test("send no wait") {

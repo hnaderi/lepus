@@ -17,7 +17,6 @@
 package lepus.protocol.classes.basic
 
 import lepus.protocol.domains.*
-import lepus.protocol.constants.*
 
 final case class Properties(
     contentType: Option[ShortString] = None,

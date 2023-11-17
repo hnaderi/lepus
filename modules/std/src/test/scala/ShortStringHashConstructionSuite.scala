@@ -17,7 +17,6 @@
 package test
 
 import lepus.protocol.domains.ShortString
-import lepus.std.*
 import munit.FunSuite
 import munit.Location
 import munit.ScalaCheckSuite

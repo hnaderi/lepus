@@ -16,17 +16,12 @@
 
 package lepus.codecs
 
-import cats.implicits.*
 import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import munit.FunSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
-import org.scalacheck.Prop._
-
-import scala.annotation.meta.field
 
 object DomainGenerators {
   extension [A](g: Gen[A]) {

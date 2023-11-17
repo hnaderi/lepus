@@ -22,18 +22,14 @@ import cats.effect.kernel.Resource
 import cats.effect.kernel.Resource.ExitCase.Canceled
 import cats.effect.kernel.Resource.ExitCase.Errored
 import cats.effect.kernel.Resource.ExitCase.Succeeded
-import cats.effect.std.Queue
 import cats.implicits.*
-import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
 import lepus.client.Channel.Status
 import lepus.client.apis.*
 import lepus.client.internal.*
 import lepus.protocol.*
-import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
-import cats.effect.kernel.Ref
 
 trait Channel[F[_], M <: MessagingChannel] {
   def exchange: ExchangeAPI[F]

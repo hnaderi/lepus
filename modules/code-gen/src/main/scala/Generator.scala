@@ -17,9 +17,7 @@
 package lepus.protocol.gen
 
 import cats.effect.*
-import cats.implicits.*
 import fs2.Stream
-import fs2.text.utf8
 
 import scala.xml.*
 

@@ -18,22 +18,16 @@ package lepus.client
 package internal
 
 import cats.effect.IO
-import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.implicits.*
 import lepus.client.internal.FakeReceiver.Interaction
-import lepus.codecs.ChannelDataGenerator
 import lepus.codecs.FrameGenerators
 import lepus.protocol.*
 import lepus.protocol.classes.basic.Properties
-import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 import munit.CatsEffectSuite
-import munit.ScalaCheckSuite
 import org.scalacheck.Gen
-import org.scalacheck.effect.PropF.forAllF
 import scodec.bits.ByteVector
-import lepus.codecs.BasicDataGenerator
 
 class FrameDispatcherSuite extends InternalTestSuite {
   test("Must assign channel number") {

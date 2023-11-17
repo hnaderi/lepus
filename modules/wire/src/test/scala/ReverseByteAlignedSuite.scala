@@ -18,7 +18,6 @@ package lepus.codecs
 
 import lepus.wire.DomainCodecs
 import scodec.*
-import scodec.bits.BitVector
 import scodec.codecs.*
 
 class ReverseByteAlignedSuite extends CodecTest {

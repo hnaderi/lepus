@@ -18,22 +18,14 @@ package lepus.client
 package internal
 
 import cats.effect.*
-import cats.effect.std.*
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
-import fs2.concurrent.SignallingRef
 import lepus.client.Channel.Status
-import lepus.client.Confirmation
 import lepus.client.internal.FakeLowLevelChannel.Interaction
-import lepus.codecs.ConnectionDataGenerator
-import lepus.codecs.DomainGenerators
-import lepus.codecs.FrameGenerators
 import lepus.protocol.BasicClass.Get
 import lepus.protocol.BasicClass.Publish
 import lepus.protocol.*
-import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 
 final class FakeLowLevelChannel(

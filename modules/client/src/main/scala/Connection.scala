@@ -20,11 +20,9 @@ import cats.effect.*
 import cats.effect.implicits.*
 import cats.effect.kernel.Resource.ExitCase.*
 import cats.effect.std.Queue
-import cats.implicits.*
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
-import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*

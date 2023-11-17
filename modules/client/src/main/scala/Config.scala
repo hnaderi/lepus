@@ -17,7 +17,6 @@
 package lepus.client
 
 import lepus.protocol.domains.ShortString
-import scala.annotation.targetName
 
 final class ChannelConfig private (
     val deliveryBufSize: Int = 100,

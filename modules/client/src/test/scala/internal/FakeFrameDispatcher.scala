@@ -20,7 +20,6 @@ package internal
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
-import cats.effect.std.Queue
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import lepus.protocol.*
@@ -28,7 +27,6 @@ import lepus.protocol.domains.ChannelNumber
 import munit.CatsEffectAssertions.*
 import munit.Location
 
-import Connection.Status
 import Frame.*
 
 final class FakeFrameDispatcher(

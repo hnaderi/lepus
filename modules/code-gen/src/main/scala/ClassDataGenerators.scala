@@ -17,13 +17,9 @@
 package lepus.protocol.gen
 
 import cats.effect.IO
-import cats.implicits.*
-import fs2.Pipe
 import fs2.Stream
 import fs2.Stream.*
 import fs2.io.file.Path
-
-import scala.xml.NodeSeq
 
 import Helpers.*
 
@@ -79,7 +75,7 @@ object ClassDataGenerators {
       .mkString("\n")
 
   private def argGen(fs: Seq[Field]): String =
-    dataFields(fs).map((f, idx) => s"arg$idx").mkString(",")
+    dataFields(fs).map((_, idx) => s"arg$idx").mkString(",")
 
   private def dataGeneratorsFor(cls: Class, mth: Method): Lines = {
     val isSingleton = mth.fields.forall(_.reserved)

@@ -18,12 +18,10 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import cats.effect.kernel.Deferred
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import lepus.client.Connection.Status
-import lepus.client.NegotiatedConfig
 import lepus.protocol.ConnectionClass
 import lepus.protocol.ConnectionClass.Close
 import lepus.protocol.Frame

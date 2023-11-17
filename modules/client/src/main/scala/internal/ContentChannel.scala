@@ -18,14 +18,8 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import cats.effect.kernel.Deferred
 import cats.effect.kernel.DeferredSource
-import cats.effect.std.Queue
-import cats.effect.std.QueueSink
-import cats.effect.std.QueueSource
 import cats.implicits.*
-import fs2.Stream
-import lepus.protocol.ConnectionClass.Start
 import lepus.protocol.Frame
 import lepus.protocol.*
 import lepus.protocol.constants.ReplyCode
@@ -145,7 +139,9 @@ private[client] object ContentChannel {
         getList.checkinAnd(publisher.writeOne(Frame.Method(channelNumber, m)))
 
       private def respond(o: Option[SynchronousGetRaw]): F[Unit] =
-        getList.nextTurn(o).map(if _ then () else ReplyCode.SyntaxError)
+        getList
+          .nextTurn(o)
+          .void // .map(if _ then () else ReplyCode.SyntaxError)
 
       def syncNotify(m: ContentSyncResponse): F[Unit] = m match {
         case m: BasicClass.GetOk => state.set(State.SyncStarted(m)).widen

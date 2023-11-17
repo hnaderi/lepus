@@ -18,12 +18,9 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import cats.implicits.*
-import fs2.Stream
 import lepus.protocol.Frame
 import lepus.protocol.*
 import lepus.protocol.domains.*
-import scodec.bits.ByteVector
 
 private[client] trait ChannelPublisher[F[_]] {
   def send(method: BasicClass.Publish, msg: MessageRaw): F[Unit]

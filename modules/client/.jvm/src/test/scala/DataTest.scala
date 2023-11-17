@@ -16,27 +16,21 @@
 
 package lepus.codecs
 
-import cats.implicits.*
 import com.rabbitmq.client.impl.AMQImpl
-import lepus.wire.DomainCodecs
-import lepus.wire.ExchangeCodecs
-import lepus.wire.FrameCodec
-import lepus.wire.MethodCodec
 import lepus.protocol.*
 import lepus.protocol.domains.*
+import lepus.wire.MethodCodec
 import munit.FunSuite
 import munit.Location
+import munit.ScalaCheckSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
+import org.scalacheck.Prop
 import org.scalacheck.Prop._
 import scodec.*
-import scodec.bits.*
-import scodec.codecs.*
 
 import DomainGenerators.*
 import DataTest.*
-import org.scalacheck.Prop
-import munit.ScalaCheckSuite
 
 class DataTest extends ScalaCheckSuite {
 

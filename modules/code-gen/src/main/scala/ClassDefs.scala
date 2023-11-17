@@ -17,7 +17,6 @@
 package lepus.protocol.gen
 
 import cats.effect.IO
-import fs2.Pipe
 import fs2.Stream
 import fs2.io.file.Path
 
