@@ -23,7 +23,6 @@ import cats.effect.kernel.DeferredSource
 import cats.effect.std.Queue
 import cats.effect.std.Semaphore
 import cats.implicits.*
-import lepus.protocol.Frame
 
 private[client] trait Waitlist[F[_], T] {
   def checkinAnd(eval: F[Unit]): F[DeferredSource[F, T]]

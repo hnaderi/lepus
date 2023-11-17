@@ -16,9 +16,7 @@
 
 package lepus.protocol.domains
 
-import scala.compiletime.*
 import scala.quoted.*
-import scala.reflect.*
 
 private abstract class Literally[T, R](using FromExpr[T], ToExpr[R]) {
   private def validate(t: T)(using Quotes): Either[String, Expr[R]] =

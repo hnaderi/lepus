@@ -17,7 +17,6 @@
 package lepus.client
 package apis
 
-import cats.MonadError
 import cats.effect.Concurrent
 import cats.effect.kernel.Resource
 import cats.implicits.*
@@ -26,10 +25,7 @@ import fs2.RaiseThrowable
 import fs2.Stream
 import fs2.compat.NotGiven
 import lepus.protocol.*
-import lepus.protocol.classes.*
-import lepus.protocol.constants.*
 import lepus.protocol.domains.*
-import cats.MonadThrow
 
 sealed trait MessagingChannel
 

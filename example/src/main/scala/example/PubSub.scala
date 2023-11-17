@@ -23,7 +23,6 @@
 package example
 
 import cats.effect.*
-import cats.syntax.all.*
 import dev.hnaderi.namedcodec.*
 import fs2.Stream
 import fs2.Stream.*

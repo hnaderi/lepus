@@ -1,32 +1,39 @@
 import laika.ast.Path.Root
 import laika.ast._
-import laika.config.ConfigBuilder
 import laika.config.LaikaKeys
 import laika.helium.Helium
 import laika.helium.config._
-import laika.rewrite.link.ApiLinks
-import laika.rewrite.link.SourceLinks
-import laika.rewrite.link.LinkConfig
 import laika.theme._
 import laika.theme.config.Color
 import org.typelevel.sbt.TypelevelSitePlugin
 import mdoc.MdocPlugin.autoImport.mdocVariables
-import org.typelevel.sbt.TypelevelSitePlugin.autoImport.*
-import org.typelevel.sbt.TypelevelVersioningPlugin.autoImport.*
-import laika.sbt.LaikaPlugin.autoImport.*
+import org.typelevel.sbt.TypelevelSitePlugin.autoImport._
+import org.typelevel.sbt.TypelevelVersioningPlugin.autoImport._
+import laika.sbt.LaikaPlugin.autoImport._
 import sbt._
 import sbt.Keys._
+import laika.config.LinkConfig
+import laika.config.SourceLinks
+import laika.config.ApiLinks
+import laika.format.Markdown
+import laika.config.SyntaxHighlighting
 
 object LepusSitePlugin extends AutoPlugin {
   override def requires: Plugins = TypelevelSitePlugin
 
+  private def tl(repo: String) =
+    TextLink.external(s"https://typelevel.org/$repo/", repo)
+
+  private val relatedProjectLinks = ThemeNavigationSection(
+    "Related projects",
+    tl("cats"),
+    tl("cats-effect"),
+    TextLink.external("https://fs2.io/", "fs2"),
+    TextLink.external("https://github.com/scodec/scodec/", "scodec")
+  )
+
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
-    tlSiteRelatedProjects := Seq(
-      TypelevelProject.Cats,
-      TypelevelProject.CatsEffect,
-      TypelevelProject.Fs2
-    ),
-    tlSiteHeliumConfig := {
+    tlSiteHelium := {
       Helium.defaults.site
         .themeColors(
           primary = Color.hex("ceeaeb"),
@@ -121,6 +128,8 @@ object LepusSitePlugin extends AutoPlugin {
           )
         )
         .site
+        .mainNavigation(appendLinks = Seq(relatedProjectLinks))
+        .site
         .baseURL("https://lepus.hnaderi.dev/")
         .site
         .darkMode
@@ -128,16 +137,16 @@ object LepusSitePlugin extends AutoPlugin {
 
     },
     laikaConfig := {
-      val apiDoc = tlSiteApiUrl.value.toSeq.map(_.toString())
+      val apiDoc = tlSiteApiUrl.value.toSeq
+        .map(_.toString())
+        .map(ApiLinks(_).withPackagePrefix("lepus"))
       val repo = scmInfo.value.toSeq
         .map(_.browseUrl.toString())
         .map(url => s"$url/tree/main/example/src/main/scala/")
+        .map(SourceLinks(_, "scala"))
 
       LaikaConfig.defaults.withConfigValue(
-        LinkConfig(
-          apiLinks = apiDoc.map(ApiLinks(_, "lepus")),
-          sourceLinks = repo.map(SourceLinks(_, "scala"))
-        )
+        LinkConfig.empty.addApiLinks(apiDoc: _*).addSourceLinks(repo: _*)
       )
     },
     laikaIncludeAPI := true,
@@ -145,6 +154,7 @@ object LepusSitePlugin extends AutoPlugin {
       _.delegate
         .addDirectory("example/src/main/scala/example", Root / "examples")
         .addDirectory("example/.jvm/src/main/scala/example", Root / "examples")
-    }
+    },
+    laikaExtensions := Seq(Markdown.GitHubFlavor, SyntaxHighlighting)
   )
 }

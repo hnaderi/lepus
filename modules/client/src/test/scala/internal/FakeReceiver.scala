@@ -20,16 +20,8 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.implicits.*
 import lepus.client.internal.FakeReceiver.Interaction
-import lepus.codecs.FrameGenerators
 import lepus.protocol.*
-import lepus.protocol.classes.basic.Properties
-import lepus.protocol.constants.ReplyCode
-import lepus.protocol.domains.*
-import munit.CatsEffectSuite
-import munit.ScalaCheckSuite
 import munit.CatsEffectAssertions.*
-import org.scalacheck.effect.PropF.forAllF
-import scodec.bits.ByteVector
 
 final class FakeReceiver(
     interactionList: Ref[IO, List[FakeReceiver.Interaction]],

@@ -18,7 +18,6 @@ package lepus.client.internal
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
-import cats.syntax.all.*
 import munit.CatsEffectAssertions.*
 import munit.Location
 

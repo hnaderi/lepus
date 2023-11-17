@@ -18,7 +18,6 @@ package lepus.client
 
 import cats.MonadError
 import lepus.protocol.*
-import lepus.protocol.classes.*
 import lepus.protocol.domains.*
 
 import internal.ChannelTransmitter

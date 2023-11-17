@@ -17,8 +17,6 @@
 package lepus.protocol.gen
 
 import cats.effect.IO
-import cats.implicits.*
-import fs2.Pipe
 import fs2.Stream
 import fs2.io.file.Path
 
@@ -60,9 +58,9 @@ object MethodCodecs {
         s"""}).xmap(_._2, a => (a._methodId, a)).withContext("${cls.name} methods")"""
       )
 
-  private def tpeName(m: Method): String =
-    if (m.fields.filterNot(_.reserved).isEmpty) then idName(m.name) + ".type"
-    else idName(m.name)
+  // private def tpeName(m: Method): String =
+  //   if (m.fields.filterNot(_.reserved).isEmpty) then idName(m.name) + ".type"
+  //   else idName(m.name)
 
   private def codecFor(method: Method): String =
     val tpe = idName(method.name)
@@ -81,10 +79,10 @@ object MethodCodecs {
            $codec
              .withContext("$name method")\n"""
 
-  private final case class FoldState(
-      code: String = "",
-      aligning: Boolean = false
-  )
+  // private final case class FoldState(
+  //     code: String = "",
+  //     aligning: Boolean = false
+  // )
 
   private val bitTypes =
     List("bit", "no-wait", "no-local", "no-ack", "redelivered")
@@ -98,7 +96,7 @@ object MethodCodecs {
       val otherFields = fields.dropWhile(isBit)
       val op = if bitFields.size == 1 then "::" else ":+"
       val bitsSection = bitFields.map(codecFor).mkString(" :: ")
-      val padSize = 8 - bitFields.size % 8
+      // val padSize = 8 - bitFields.size % 8
       val aligned = s"reverseByteAligned($bitsSection)"
       if otherFields.isEmpty then s"($aligned)"
       else s"($aligned $op ${codecsFor(otherFields)})"
@@ -112,9 +110,9 @@ object MethodCodecs {
       else s"(($section) ++ ${codecsFor(otherFields)})"
   }
 
-  private def bitCodecsFor(bitFields: Seq[Field]): String =
-    val codec = bitFields.map(codecFor).mkString(" :: ")
-    s"byteAligned($codec)"
+  // private def bitCodecsFor(bitFields: Seq[Field]): String =
+  //   val codec = bitFields.map(codecFor).mkString(" :: ")
+  //   s"byteAligned($codec)"
 
   private def codecFor(field: Field): String =
     field.dataType match {

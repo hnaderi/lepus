@@ -19,7 +19,6 @@ package internal
 
 import cats.effect.Concurrent
 import cats.effect.kernel.Resource
-import cats.effect.std.QueueSink
 import cats.effect.std.Semaphore
 import cats.implicits.*
 

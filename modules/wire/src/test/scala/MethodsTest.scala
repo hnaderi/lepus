@@ -16,11 +16,8 @@
 
 package lepus.codecs
 
-import lepus.protocol.domains.*
 import lepus.wire.MethodCodec
 import org.scalacheck.Prop.*
-
-import DomainGenerators.*
 
 class MethodsTest extends CodecTest {
 

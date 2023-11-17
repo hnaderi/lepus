@@ -20,6 +20,7 @@ inThisBuild(
     tlSonatypeUseLegacyHost := false,
     tlCiReleaseBranches := Seq("main"),
     tlSitePublishBranch := Some("main"),
+    tlSiteJavaVersion := LTSJava,
     githubWorkflowJavaVersions := Seq(PrimaryJava, LTSJava),
     githubWorkflowBuildMatrixFailFast := Some(false),
     // This job is used as a sign that all build jobs have been successful and is used by mergify
@@ -177,6 +178,7 @@ val example =
 val docs = project
   .in(file("site"))
   .enablePlugins(LepusSitePlugin)
+  .disablePlugins(TypelevelSettingsPlugin)
   .dependsOn(example.jvm)
 
 lazy val unidocs = project

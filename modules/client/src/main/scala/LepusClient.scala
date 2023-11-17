@@ -16,7 +16,6 @@
 
 package lepus.client
 
-import cats.Functor
 import cats.effect.Temporal
 import cats.effect.kernel.Resource
 import cats.effect.std.Console

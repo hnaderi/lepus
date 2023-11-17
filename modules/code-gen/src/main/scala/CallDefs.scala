@@ -17,7 +17,6 @@
 package lepus.protocol.gen
 
 import cats.effect.IO
-import fs2.Pipe
 import fs2.Stream
 import fs2.io.file.Path
 
@@ -57,17 +56,17 @@ private[client] sealed trait RPCCallDef[F[_], M <: Method, O] {
       )
 
   private def methodCodeGen(cls: Class, method: Method): String =
-    val caseName = valName(method.name)
-    val className = s"${idName(cls.name)}Class"
-    val methodName = idName(method.name)
+    // val caseName = valName(method.name)
+    // val className = s"${idName(cls.name)}Class"
+    // val methodName = idName(method.name)
 
-    val fields = method.args
-    val fieldsStr =
-      if fields.isEmpty then ""
-      else "(" + fields.map(fieldCodeGen).mkString(",\n") + ")"
-    val valuesStr =
-      if fields.isEmpty then ""
-      else "(" + fields.map(fieldName).mkString(", ") + ")"
+    // val fields = method.args
+    // val fieldsStr =
+    //   if fields.isEmpty then ""
+    //   else "(" + fields.map(fieldCodeGen).mkString(",\n") + ")"
+    // val valuesStr =
+    //   if fields.isEmpty then ""
+    //   else "(" + fields.map(fieldName).mkString(", ") + ")"
 
     val respTypes = method.responses.map(t => cls.methods.find(_.name == t).get)
     val noWait = method.fields.exists(_.dataType == "no-wait")
@@ -80,7 +79,7 @@ private[client] sealed trait RPCCallDef[F[_], M <: Method, O] {
     val fullTypeName = method.fullTypeName(cls)
     val givenName = fullTypeName.replace(".", "_")
 
-    val msg = s"$className.$methodName$valuesStr"
+    // val msg = s"$className.$methodName$valuesStr"
 
     val waitBody =
       if !respTypes.isEmpty then
@@ -105,25 +104,25 @@ private[client] sealed trait RPCCallDef[F[_], M <: Method, O] {
 }
 """
 
-  private def fieldName(field: Field) = field.name match {
-    case "type" => "`type`"
-    case other  => valName(other)
-  }
-  private def fieldCodeGen(field: Field): String =
-    s"""${fieldName(field)}: ${typeFor(field.dataType)}"""
+  // private def fieldName(field: Field) = field.name match {
+  //   case "type" => "`type`"
+  //   case other  => valName(other)
+  // }
+  // private def fieldCodeGen(field: Field): String =
+  //   s"""${fieldName(field)}: ${typeFor(field.dataType)}"""
 
-  private def typeFor(str: String): String = str match {
-    case "bit"       => "Boolean"
-    case "octet"     => "Byte"
-    case "short"     => "Short"
-    case "long"      => "Int"
-    case "longlong"  => "Long"
-    case "shortstr"  => "ShortString"
-    case "longstr"   => "LongString"
-    case "timestamp" => "Timestamp"
-    case "table"     => "FieldTable"
-    case other       => idName(other)
-  }
+  // private def typeFor(str: String): String = str match {
+  //   case "bit"       => "Boolean"
+  //   case "octet"     => "Byte"
+  //   case "short"     => "Short"
+  //   case "long"      => "Int"
+  //   case "longlong"  => "Long"
+  //   case "shortstr"  => "ShortString"
+  //   case "longstr"   => "LongString"
+  //   case "timestamp" => "Timestamp"
+  //   case "table"     => "FieldTable"
+  //   case other       => idName(other)
+  // }
 
   def generate(clss: Seq[Class]): Stream[IO, Nothing] =
     (header ++ genBody(clss))

@@ -18,8 +18,6 @@ package lepus.client
 
 import cats.effect.Concurrent
 import cats.effect.kernel.Deferred
-import cats.effect.kernel.Ref
-import cats.effect.std.QueueSink
 import cats.syntax.all.*
 import fs2.Pipe
 import fs2.Pull
@@ -30,7 +28,6 @@ import lepus.protocol.ConnectionClass.Secure
 import lepus.protocol.ConnectionClass.Start
 import lepus.protocol.ConnectionClass.Tune
 import lepus.protocol.Frame
-import lepus.protocol.Method
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
 

@@ -16,16 +16,8 @@
 
 package lepus.codecs
 
-import cats.kernel.Eq
-import lepus.protocol.Frame
-import lepus.protocol.domains.*
 import lepus.wire.FrameCodec
-import org.scalacheck.Arbitrary
-import org.scalacheck.Gen
 import org.scalacheck.Prop.*
-import scodec.bits.ByteVector
-
-import DomainGenerators.*
 
 class FramesTest extends CodecTest {
 

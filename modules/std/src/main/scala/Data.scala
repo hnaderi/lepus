@@ -16,7 +16,6 @@
 
 package lepus.std
 
-import lepus.client.MessageCodec
 import lepus.protocol.domains.*
 
 /** Pub/Sub topology definition */

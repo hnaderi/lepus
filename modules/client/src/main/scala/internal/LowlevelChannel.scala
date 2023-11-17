@@ -18,10 +18,7 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import cats.effect.kernel.Deferred
 import cats.effect.kernel.Resource
-import cats.effect.std.Queue
-import cats.effect.std.QueueSink
 import cats.implicits.*
 import fs2.Stream
 import fs2.concurrent.Signal
@@ -29,7 +26,6 @@ import fs2.concurrent.SignallingRef
 import lepus.client.Channel.Status
 import lepus.protocol.ChannelClass.Close
 import lepus.protocol.*
-import lepus.protocol.domains.ChannelNumber
 import lepus.protocol.domains.ConsumerTag
 
 private[client] type ContentMethod = BasicClass.Deliver | BasicClass.Return

@@ -17,11 +17,8 @@
 package lepus.codecs
 
 import lepus.protocol.*
-import lepus.protocol.constants.*
-import lepus.protocol.domains.*
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
-import ArbitraryDomains.given
 
 object TxDataGenerator {
   val selectGen: Gen[TxClass.Select.type] =

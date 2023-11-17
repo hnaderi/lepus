@@ -17,17 +17,17 @@
 package lepus.client
 package internal
 
-import cats.effect.IO
-import cats.effect.implicits.*
-import cats.effect.std.Queue
-import cats.effect.std.QueueSource
-import cats.implicits.*
-import lepus.codecs.FrameGenerators
-import lepus.protocol.Frame
-import org.scalacheck.Gen
+// import cats.effect.IO
+// import cats.effect.implicits.*
+// import cats.effect.std.Queue
+// import cats.effect.std.QueueSource
+// import cats.implicits.*
+// import lepus.codecs.FrameGenerators
+// import lepus.protocol.Frame
+// import org.scalacheck.Gen
 
-import java.util.concurrent.TimeoutException
-import scala.concurrent.duration.*
+// import java.util.concurrent.TimeoutException
+// import scala.concurrent.duration.*
 
 //TODO https://github.com/hnaderi/lepus/issues/64
 class ChannelOutputSuite extends InternalTestSuite {

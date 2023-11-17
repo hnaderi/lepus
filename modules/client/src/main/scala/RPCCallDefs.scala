@@ -20,8 +20,6 @@ package internal
 import cats.MonadError
 import cats.implicits.*
 import lepus.protocol.*
-import lepus.protocol.classes.*
-import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 
 import scala.annotation.implicitNotFound

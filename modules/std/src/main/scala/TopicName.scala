@@ -16,12 +16,8 @@
 
 package lepus.std
 
-import cats.syntax.all.*
 import lepus.protocol.domains.ShortString
 
-import scala.annotation.targetName
-import scala.compiletime.*
-import scala.deriving.Mirror
 import scala.quoted.*
 
 opaque type TopicName <: ShortString = ShortString
