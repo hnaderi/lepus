@@ -1,107 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+  
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>Getting started</title>
-    
-      <meta name="author" content="Hossein Naderi"/>
-    
-    
-      <meta name="description" content="docs"/>
-    
-    
-      <link rel="icon" sizes="32x32" type="image/png" href="/lepus-transparent.png"/>
-    
-    
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
-    
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tonsky/FiraCode@1.207/distr/fira_code.css">
-    
-    <link rel="stylesheet" type="text/css" href="helium/icofont.min.css" />
-    <link rel="stylesheet" type="text/css" href="helium/laika-helium.css" />
-    <link rel="stylesheet" type="text/css" href="styles/overrides.css" />
-    <link rel="stylesheet" type="text/css" href="site/styles.css" />
-    <script src="helium/laika-helium.js"></script>
-    
-    
-    <script> /* for avoiding page load transitions */ </script>
-  </head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Typelevel Laika + Helium Theme" />
+  <title>Getting started</title>
+  
+  <meta name="author" content="Hossein Naderi"/>
+  
+  
+  <meta name="description" content="docs"/>
+  
+  
+  
+  <link rel="icon" sizes="32x32" type="image/png" href="lepus-transparent.png"/>
+  
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
+  
+  <link rel="stylesheet" type="text/css" href="helium/site/icofont.min.css" />
+    <link rel="stylesheet" type="text/css" href="helium/site/laika-helium.css" />
+  <script src="helium/site/laika-helium.js"></script>
+  
+  
+  <script> /* for avoiding page load transitions */ </script>
+</head>
 
   <body>
 
-    <header id="top-bar">
+    <header id="top-bar" class="light-default dark-default">
 
-      <div class="row">
-        <a id="nav-icon">
-          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
-        </a>
-        
-      </div>
+  <div class="row">
+    <a id="nav-icon">
+      <i class="icofont-laika navigationMenu" title="Navigation">&#xefa2;</i>
+    </a>
+    
+    
+  </div>
 
-      <a class="image-link" href="#"><img src="lepus-transparent.png"></a>
+  <a class="image-link" href="#"><img src="lepus-transparent.png"></a>
 
-      <span class="row links"><a class="icon-link" href="https://github.com/hnaderi/lepus"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-  <g class="svg-shape">
-    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
-  </g>
-</svg></span></a></span>
-
-    </header>
-
-    <nav id="sidebar">
-
-      <div class="row">
-        <a class="icon-link" href="https://github.com/hnaderi/lepus"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <div class="row links">
+    
+    <a class="icon-link svg-link" href="https://github.com/hnaderi/lepus"><span class="github" title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
     <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
   </g>
 </svg></span></a>
-      </div>
+    
+  </div>  
 
-      <ul class="nav-list">
-        <li class="level1 active"><a href="#">Getting started</a></li>
-        <li class="level1"><a href="standard-library.html">Standard library</a></li>
-        <li class="level1"><a href="advanced.html">Advanced</a></li>
-        <li class="level1"><a href="features.html">Features</a></li>
-        <li class="level1"><a href="examples/index.html">Examples</a></li>
-      </ul>
+</header>
+    
+    <nav id="sidebar">
 
-      <ul class="nav-list">
-        <li class="level1 nav-header">Related Projects</li>
-        
-          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
-        
-          <li class="level2"><a href="https://typelevel.org/cats-effect/">cats-effect</a></li>
-        
-          <li class="level2"><a href="https://fs2.io/">fs2</a></li>
-        
-      </ul>
+  <div class="row">
+    
+    <a class="icon-link svg-link" href="https://github.com/hnaderi/lepus"><span class="github" title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a>
+    
+  </div>
 
-    </nav>
+  <ul class="nav-list">
+    <li class="level1 active nav-leaf"><a href="#">Getting started</a></li>
+    <li class="level1 nav-leaf"><a href="standard-library.html">Standard library</a></li>
+    <li class="level1 nav-leaf"><a href="advanced.html">Advanced</a></li>
+    <li class="level1 nav-leaf"><a href="features.html">Features</a></li>
+    <li class="level1 nav-leaf"><a href="examples/">Examples</a></li>
+    <li class="level1 nav-header">Related projects</li>
+    <li class="level2 nav-leaf"><a href="https://typelevel.org/cats/">cats</a></li>
+    <li class="level2 nav-leaf"><a href="https://typelevel.org/cats-effect/">cats-effect</a></li>
+    <li class="level2 nav-leaf"><a href="https://fs2.io/">fs2</a></li>
+    <li class="level2 nav-leaf"><a href="https://github.com/scodec/scodec/">scodec</a></li>
+  </ul>
+
+</nav>
 
     <div id="container">
 
-      <nav id="page-nav">
-        <p class="header"><a href="#">Getting started</a></p>
+      
+<nav id="page-nav">
+  <p class="header"><a href="#">Getting started</a></p>
 
-        <ul class="nav-list">
-          <li class="level1"><a href="#imports">Imports</a></li>
-          <li class="level1"><a href="#opening-a-connection">Opening a connection</a></li>
-          <li class="level1"><a href="#opening-a-channel">Opening a channel</a></li>
-          <li class="level2"><a href="#commands">Commands</a></li>
-          <li class="level2"><a href="#publish">Publish</a></li>
-          <li class="level2"><a href="#consumer">Consumer</a></li>
-          <li class="level1"><a href="#more-advanced-channels">More advanced channels</a></li>
-          <li class="level2"><a href="#transactional-channels">transactional channels</a></li>
-          <li class="level2"><a href="#confirming-channels">confirming channels</a></li>
-          <li class="level1"><a href="#more-advanced-publishing">More advanced publishing</a></li>
-        </ul>
+  <ul class="nav-list">
+    <li class="level1 nav-leaf"><a href="#imports">Imports</a></li>
+    <li class="level1 nav-leaf"><a href="#opening-a-connection">Opening a connection</a></li>
+    <li class="level1 nav-node"><a href="#opening-a-channel">Opening a channel</a></li>
+    <li class="level2 nav-leaf"><a href="#commands">Commands</a></li>
+    <li class="level2 nav-leaf"><a href="#publish">Publish</a></li>
+    <li class="level2 nav-leaf"><a href="#consumer">Consumer</a></li>
+    <li class="level1 nav-node"><a href="#more-advanced-channels">More advanced channels</a></li>
+    <li class="level2 nav-leaf"><a href="#transactional-channels">transactional channels</a></li>
+    <li class="level2 nav-leaf"><a href="#confirming-channels">confirming channels</a></li>
+    <li class="level1 nav-leaf"><a href="#more-advanced-publishing">More advanced publishing</a></li>
+  </ul>
 
-        <p class="footer"></p>
-      </nav>
+  <p class="footer"></p>
+</nav>
+
 
       <main class="content">
 
@@ -112,7 +115,7 @@
         <p>Then you are ready to use Lepus!<br>
         If you are a beginner in AMQP (RabbitMQ) or messaging in general please take a look at <a href="https://www.rabbitmq.com/getstarted.html">here</a> before continuing.</p>
         
-        <h2 id="imports" class="section"><a class="anchor-link left" href="#imports"><i class="icofont-laika">&#xef71;</i></a>Imports</h2>
+        <h2 id="imports" class="section"><a class="anchor-link left" href="#imports"><i class="icofont-laika link">&#xef71;</i></a>Imports</h2>
         <p>You need to import these:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="type-name">IO</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">com</span><span>.</span><span class="identifier">comcast</span><span>.</span><span class="identifier">ip4s</span><span>.* </span><span class="comment">// 1
@@ -125,14 +128,14 @@
           <li>import AMQP data models</li>
         </ol>
         
-        <h2 id="opening-a-connection" class="section"><a class="anchor-link left" href="#opening-a-connection"><i class="icofont-laika">&#xef71;</i></a>Opening a connection</h2>
+        <h2 id="opening-a-connection" class="section"><a class="anchor-link left" href="#opening-a-connection"><i class="icofont-laika link">&#xef71;</i></a>Opening a connection</h2>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">connection</span><span> = </span><span class="type-name">LepusClient</span><span>[</span><span class="type-name">IO</span><span>]( </span><span class="comment">// 1
 </span><span>   </span><span class="identifier">host</span><span> = </span><span class="string-literal">host&quot;localhost&quot;</span><span>,
    </span><span class="identifier">port</span><span> = </span><span class="string-literal">port&quot;5672&quot;</span><span>,
    </span><span class="identifier">username</span><span> = </span><span class="string-literal">&quot;guest&quot;</span><span>,
    </span><span class="identifier">password</span><span> = </span><span class="string-literal">&quot;guest&quot;</span><span>,
    </span><span class="identifier">vhost</span><span> = </span><span class="type-name">Path</span><span>(</span><span class="string-literal">&quot;/&quot;</span><span>), </span><span class="comment">// 2
-</span><span>   </span><span class="identifier">config</span><span> = </span><span class="type-name">ConnectionConfig</span><span>.</span><span class="identifier">default</span><span>,
+</span><span>   </span><span class="identifier">config</span><span> = </span><span class="type-name">ConnectionConfig</span><span>.</span><span class="keyword">default</span><span>,
    </span><span class="identifier">debug</span><span> = </span><span class="boolean-literal">false</span><span>
 )</span></code></pre>
         <ol class="arabic">
@@ -141,7 +144,7 @@
         </ol>
         <p>This gives us a <code>Resource</code> that opens a connection.</p>
         
-        <h2 id="opening-a-channel" class="section"><a class="anchor-link left" href="#opening-a-channel"><i class="icofont-laika">&#xef71;</i></a>Opening a channel</h2>
+        <h2 id="opening-a-channel" class="section"><a class="anchor-link left" href="#opening-a-channel"><i class="icofont-laika link">&#xef71;</i></a>Opening a channel</h2>
         <p>Having opened a connection, we can open channels on it:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">channel</span><span> = </span><span class="keyword">for</span><span> {
   </span><span class="identifier">con</span><span> &lt;- </span><span class="identifier">connection</span><span>
@@ -149,7 +152,7 @@
 } </span><span class="keyword">yield</span><span> </span><span class="identifier">ch</span></code></pre>
         <p>which gives us a resource that opens a new channel on <code>connection</code></p>
         
-        <h3 id="commands" class="section"><a class="anchor-link left" href="#commands"><i class="icofont-laika">&#xef71;</i></a>Commands</h3>
+        <h3 id="commands" class="section"><a class="anchor-link left" href="#commands"><i class="icofont-laika link">&#xef71;</i></a>Commands</h3>
         <p>Having a channel in hand, we can call AMQP methods</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">app1</span><span> = </span><span class="identifier">channel</span><span>.</span><span class="identifier">use</span><span>(</span><span class="identifier">ch</span><span>=&gt;
   </span><span class="identifier">ch</span><span>.</span><span class="identifier">exchange</span><span>.</span><span class="identifier">declare</span><span>(</span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;events&quot;</span><span>), </span><span class="type-name">ExchangeType</span><span>.</span><span class="type-name">Topic</span><span>) &gt;&gt;
@@ -157,7 +160,7 @@
   </span><span class="identifier">ch</span><span>.</span><span class="identifier">queue</span><span>.</span><span class="identifier">bind</span><span>(</span><span class="type-name">QueueName</span><span>(</span><span class="string-literal">&quot;handler-inbox&quot;</span><span>), </span><span class="type-name">ExchangeName</span><span>(</span><span class="string-literal">&quot;events&quot;</span><span>), </span><span class="type-name">ShortString</span><span>(</span><span class="string-literal">&quot;#&quot;</span><span>))
 )</span></code></pre>
         
-        <h3 id="publish" class="section"><a class="anchor-link left" href="#publish"><i class="icofont-laika">&#xef71;</i></a>Publish</h3>
+        <h3 id="publish" class="section"><a class="anchor-link left" href="#publish"><i class="icofont-laika link">&#xef71;</i></a>Publish</h3>
         <p>We can also publish messages:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">publisher1</span><span> = </span><span class="identifier">channel</span><span>.</span><span class="identifier">use</span><span>(</span><span class="identifier">ch</span><span>=&gt;
   </span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">publish</span><span>(
@@ -182,10 +185,10 @@
   </span><span class="identifier">toPublish</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">ch</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">publisher</span><span>) </span><span class="comment">// 1
 </span><span>)</span></code></pre>
         <ol class="arabic">
-          <li><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.4.1/lepus/client/apis/NormalMessagingChannel/publisher.html">publisher</a> is a pipe that publishes envelopes, and outputs returned messages if any.</li>
+          <li><a class="api" href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.4.1/lepus/client/apis/NormalMessagingChannel/publisher.html">publisher</a> is a pipe that publishes envelopes, and outputs returned messages if any.</li>
         </ol>
         
-        <h3 id="consumer" class="section"><a class="anchor-link left" href="#consumer"><i class="icofont-laika">&#xef71;</i></a>Consumer</h3>
+        <h3 id="consumer" class="section"><a class="anchor-link left" href="#consumer"><i class="icofont-laika link">&#xef71;</i></a>Consumer</h3>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">consumer1</span><span> = </span><span class="type-name">Stream</span><span>
   .</span><span class="identifier">resource</span><span>(</span><span class="identifier">channel</span><span>)
   .</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">messaging</span><span>.</span><span class="identifier">consume</span><span>[</span><span class="type-name">String</span><span>](
@@ -194,14 +197,14 @@
 </span><span>     )
    )</span></code></pre>
         <ol class="arabic">
-          <li><a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.4.1/lepus/client/ConsumeMode.html">ConsumeMode</a> determines how a decoding consumer behaves, <code>ConsumeMode.RaiseOnError</code> raises error when decoding is failed, <code>ConsumeMode.NackOnError</code> sends a nack for the failed message. <code>RaiseOnError(false)</code> consumes in auto ack mode, the other two requires you to acknowledge each message</li>
+          <li><a class="api" href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.4.1/lepus/client/ConsumeMode.html">ConsumeMode</a> determines how a decoding consumer behaves, <code>ConsumeMode.RaiseOnError</code> raises error when decoding is failed, <code>ConsumeMode.NackOnError</code> sends a nack for the failed message. <code>RaiseOnError(false)</code> consumes in auto ack mode, the other two requires you to acknowledge each message</li>
         </ol>
         
-        <h2 id="more-advanced-channels" class="section"><a class="anchor-link left" href="#more-advanced-channels"><i class="icofont-laika">&#xef71;</i></a>More advanced channels</h2>
-        <p>so far we&#39;ve been using <a href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.4.1/lepus/client/apis/NormalMessagingChannel.html">NormalMessagingChannel</a>, which does not support transactions, or publisher confirmation.<br></p>
+        <h2 id="more-advanced-channels" class="section"><a class="anchor-link left" href="#more-advanced-channels"><i class="icofont-laika link">&#xef71;</i></a>More advanced channels</h2>
+        <p>so far we&#39;ve been using <a class="api" href="https://www.javadoc.io/doc/dev.hnaderi/lepus-docs_3/0.4.1/lepus/client/apis/NormalMessagingChannel.html">NormalMessagingChannel</a>, which does not support transactions, or publisher confirmation.<br></p>
         <p>Let&#39;s see how we can use those features:</p>
         
-        <h3 id="transactional-channels" class="section"><a class="anchor-link left" href="#transactional-channels"><i class="icofont-laika">&#xef71;</i></a>transactional channels</h3>
+        <h3 id="transactional-channels" class="section"><a class="anchor-link left" href="#transactional-channels"><i class="icofont-laika link">&#xef71;</i></a>transactional channels</h3>
         <p>We can open a transactional channel like this:</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="type-name">Resource</span><span>
 
@@ -217,7 +220,7 @@
   </span><span class="identifier">_</span><span> &lt;- </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">trx</span><span>.</span><span class="identifier">rollback</span><span>) </span><span class="comment">// or commit
 </span><span>} </span><span class="keyword">yield</span><span> ()</span></code></pre>
         
-        <h3 id="confirming-channels" class="section"><a class="anchor-link left" href="#confirming-channels"><i class="icofont-laika">&#xef71;</i></a>confirming channels</h3>
+        <h3 id="confirming-channels" class="section"><a class="anchor-link left" href="#confirming-channels"><i class="icofont-laika link">&#xef71;</i></a>confirming channels</h3>
         <p>For using publisher confirms, we need to open a channel like this:</p>
         <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">confirming1</span><span> = </span><span class="keyword">for</span><span> {
   </span><span class="identifier">con</span><span> &lt;- </span><span class="type-name">Stream</span><span>.</span><span class="identifier">resource</span><span>(</span><span class="identifier">connection</span><span>)
@@ -234,18 +237,21 @@
 </span><span>  </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">dTags</span><span>.</span><span class="identifier">mergeHaltBoth</span><span>(</span><span class="identifier">confirmations</span><span>).</span><span class="identifier">foreach</span><span>(???)
 } </span><span class="keyword">yield</span><span> ()</span></code></pre>
         
-        <h2 id="more-advanced-publishing" class="section"><a class="anchor-link left" href="#more-advanced-publishing"><i class="icofont-laika">&#xef71;</i></a>More advanced publishing</h2>
+        <h2 id="more-advanced-publishing" class="section"><a class="anchor-link left" href="#more-advanced-publishing"><i class="icofont-laika link">&#xef71;</i></a>More advanced publishing</h2>
         <p>There are some other more advanced publishing methods, like publishing mandatory messages in publisher confirming mode, which are out of the scope of getting started :)<br>
         However you can take a look at api docs and always feel free to read codes or open issues and PRs.</p>
 
-        <hr style="margin-top: 30px"/>
-        <footer style="font-size: 90%; text-align: center">
-          Lepus is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://www.apache.org/licenses/LICENSE-2.0.txt">Apache-2.0</a> license.
-        </footer>
+        
+<hr class="footer-rule"/>
+<footer>
+  Site generated by <a href="https://typelevel.org/Laika/">Laika</a> with the Helium theme.
+</footer>
+
 
       </main>
 
     </div>
 
   </body>
+
 </html>
