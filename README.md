@@ -39,7 +39,7 @@ Visit [here](https://lepus.hnaderi.dev/examples) or check [example directory](ex
 Lepus[^1] (/ˈliːpəs/, colloquially /ˈlɛpəs/) is a constellation lying just south of the celestial equator. Its name is Latin for hare. It is located below—immediately south—of Orion (the hunter), and is sometimes represented as a hare being chased by Orion or by Orion's hunting dogs. 
 
 ## Disclaimer
-This is a work in progress in beta release mode, and might not be ready for production use yet, manage your risks carefully!
+This software is a perpetual beta release, while it might be totally okay to use it in production for most cases, it's worthy to mention that you need to manage your risks carefully!
 
 [^1]: https://en.wikipedia.org/wiki/Lepus_(constellation)
 
