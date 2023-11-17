@@ -45,6 +45,8 @@ object LepusSitePlugin extends AutoPlugin {
           bgGradient = Color.hex("0420bf") -> Color.hex("3113f2")
         )
         .site
+        .internalCSS(Root / "styles")
+        .site
         .metadata(
           title = Some("Lepus"),
           authors = Seq("Hossein Naderi"),
