@@ -70,6 +70,10 @@ val protocol = module("protocol") {
     .crossType(CrossType.Pure)
     .settings(
       libraryDependencies += "org.scodec" %%% "scodec-bits" % "1.1.38"
+    ).jsSettings(
+      libraryDependencies += ("org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0").cross(CrossVersion.for3Use2_13)
+    ).nativeSettings(
+      libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % "0.0.4"
     )
 }
 

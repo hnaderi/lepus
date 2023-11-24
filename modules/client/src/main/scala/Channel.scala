@@ -83,10 +83,11 @@ object Channel {
         noLocal: NoLocal = false,
         noAck: NoAck = true,
         exclusive: Boolean = false,
-        arguments: FieldTable = FieldTable.empty
+        arguments: FieldTable = FieldTable.empty,
+        ctag: ConsumerTag
     ): Stream[F, DeliveredMessageRaw] =
       import Stream.*
-      resource(channel.delivered).flatMap { case (ctag, data) =>
+      resource(channel.delivered(ctag)).flatMap { case (ctag, data) =>
         val recv = eval(
           channel.call(
             BasicClass.Consume(
