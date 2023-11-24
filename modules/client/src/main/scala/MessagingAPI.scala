@@ -43,7 +43,8 @@ trait Consuming[F[_]] {
       noLocal: NoLocal = false,
       noAck: NoAck = true,
       exclusive: Boolean = false,
-      arguments: FieldTable = FieldTable.empty
+      arguments: FieldTable = FieldTable.empty,
+      consumerTag: ConsumerTag = ConsumerTag.random
   ): Stream[F, DeliveredMessageRaw]
 
   /** Consumes and decodes messages
@@ -61,6 +62,8 @@ trait Consuming[F[_]] {
     *   request exclusive consumer right
     * @param arguments
     *   extra params
+    * @param consumerTag
+    *   add consumer tag, default tag is UUID
     *
     * @returns
     *   successfully decoded messages
@@ -70,7 +73,8 @@ trait Consuming[F[_]] {
       mode: ConsumeMode = ConsumeMode.RaiseOnError(false),
       noLocal: NoLocal = false,
       exclusive: Boolean = false,
-      arguments: FieldTable = FieldTable.empty
+      arguments: FieldTable = FieldTable.empty,
+      consumerTag: ConsumerTag = ConsumerTag.random
   )(using
       dec: MessageDecoder[T],
       F: RaiseThrowable[F]
@@ -94,7 +98,7 @@ trait Consuming[F[_]] {
               )
       }
 
-    consumeRaw(queue, noLocal, noAck, exclusive, arguments).flatMap(run)
+    consumeRaw(queue, noLocal, noAck, exclusive, arguments, consumerTag).flatMap(run)
   }
 
   def get(

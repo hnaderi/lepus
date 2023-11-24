@@ -102,6 +102,7 @@ object ConsumerTag extends TaggedOpaqueComp[ShortString, ConsumerTag] {
   inline def of(inline t: String): ConsumerTag = ShortString(t)
   def empty: ConsumerTag = ShortString.empty
   def from(t: String): Either[String, ConsumerTag] = ShortString.from(t)
+  def random: ConsumerTag = ShortString.from(UUID.randomUUID)
 }
 
 /** The server-assigned and channel-specific delivery tag

@@ -53,13 +53,11 @@ class MessageDispatcherSuite extends InternalTestSuite {
     forAllF(deliveries) { someMsg =>
       for {
         d <- MessageDispatcher[IO]()
-        _ <- d.deliveryQ.use { (ctag, q) =>
-          val msg = someMsg.copy(consumerTag = ctag)
-
+        _ <- d.deliveryQ(someMsg.consumerTag).use { (ctag, q) =>
           q.size.assertEquals(0) >>
-            d.deliver(msg) >>
+            d.deliver(someMsg) >>
             q.size.assertEquals(1) >>
-            q.take.assertEquals(Some(msg))
+            q.take.assertEquals(Some(someMsg))
         }
       } yield ()
     }
@@ -83,10 +81,8 @@ class MessageDispatcherSuite extends InternalTestSuite {
     forAllF(deliveries) { someMsg =>
       for {
         d <- MessageDispatcher[IO]()
-        out <- d.deliveryQ.use { (ctag, q) =>
-          val msg = someMsg.copy(consumerTag = ctag)
-
-          IO(msg, q)
+        out <- d.deliveryQ(someMsg.consumerTag).use { (ctag, q) =>
+          IO(someMsg, q)
         }
         (msg, q) = out
         _ <- q.size.assertEquals(0)
