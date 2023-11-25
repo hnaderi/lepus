@@ -51,9 +51,9 @@ private[client] trait ChannelTransmitter[F[_]] {
 
   def get(m: BasicClass.Get): F[Option[SynchronousGetRaw]]
 
-  def delivered(ctag: ConsumerTag): Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])]
+  def delivered(ctag: Option[ConsumerTag]): Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])]
   final def delivered: Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])] =
-    delivered(ConsumerTag.random)
+    delivered(None)
 
   def returned: Stream[F, ReturnedMessageRaw]
   def confirmed: Stream[F, Confirmation]
@@ -154,7 +154,7 @@ private[client] object LowlevelChannel {
     def get(m: BasicClass.Get): F[Option[SynchronousGetRaw]] =
       content.get(m).flatMap(_.get)
 
-    def delivered(ctag: ConsumerTag): Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])] =
+    def delivered(ctag: Option[ConsumerTag]): Resource[F, (ConsumerTag, Stream[F, DeliveredMessageRaw])] =
       disp.deliveryQ(ctag).map { case (ctag, q) =>
         (ctag, Stream.fromQueueNoneTerminated(q).interruptWhen(isClosed))
       }

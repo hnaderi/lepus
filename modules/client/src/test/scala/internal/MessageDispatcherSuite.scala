@@ -53,7 +53,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
     forAllF(deliveries) { someMsg =>
       for {
         d <- MessageDispatcher[IO]()
-        _ <- d.deliveryQ(someMsg.consumerTag).use { (ctag, q) =>
+        _ <- d.deliveryQ(Some(someMsg.consumerTag)).use { (ctag, q) =>
           q.size.assertEquals(0) >>
             d.deliver(someMsg) >>
             q.size.assertEquals(1) >>
@@ -81,7 +81,7 @@ class MessageDispatcherSuite extends InternalTestSuite {
     forAllF(deliveries) { someMsg =>
       for {
         d <- MessageDispatcher[IO]()
-        out <- d.deliveryQ(someMsg.consumerTag).use { (ctag, q) =>
+        out <- d.deliveryQ(Some(someMsg.consumerTag)).use { (ctag, q) =>
           IO(someMsg, q)
         }
         (msg, q) = out

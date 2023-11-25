@@ -44,7 +44,7 @@ trait Consuming[F[_]] {
       noAck: NoAck = true,
       exclusive: Boolean = false,
       arguments: FieldTable = FieldTable.empty,
-      consumerTag: ConsumerTag = ConsumerTag.random
+      consumerTag: Option[ConsumerTag] = None
   ): Stream[F, DeliveredMessageRaw]
 
   /** Consumes and decodes messages
@@ -74,7 +74,7 @@ trait Consuming[F[_]] {
       noLocal: NoLocal = false,
       exclusive: Boolean = false,
       arguments: FieldTable = FieldTable.empty,
-      consumerTag: ConsumerTag = ConsumerTag.random
+      consumerTag: Option[ConsumerTag] = None
   )(using
       dec: MessageDecoder[T],
       F: RaiseThrowable[F]

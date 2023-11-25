@@ -20,6 +20,7 @@ package internal
 import cats.effect.Concurrent
 import cats.effect.kernel.Resource
 import cats.effect.std.*
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import lepus.protocol.domains.*
 
@@ -29,11 +30,10 @@ private[client] trait MessageDispatcher[F[_]] {
   def confirm(msg: ConfirmationResponse): F[Unit]
   def cancel(ctag: ConsumerTag): F[Unit]
 
-  def deliveryQ(ctag: ConsumerTag)
+  def deliveryQ(ctag: Option[ConsumerTag])
       : Resource[F, (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])]
-
   final def deliveryQ: Resource[F, (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])] =
-    deliveryQ(ConsumerTag.random)
+    deliveryQ(None)
 
   def returnQ: QueueSource[F, ReturnedMessageRaw]
   def confirmationQ: QueueSource[F, ConfirmationResponse]
@@ -48,6 +48,7 @@ private[client] object MessageDispatcher {
     dqs <- F.ref(Map.empty[ConsumerTag, Queue[F, Option[DeliveredMessageRaw]]])
     rq <- Queue.bounded[F, ReturnedMessageRaw](returnedBufSize)
     cq <- Queue.bounded[F, ConfirmationResponse](confirmBufSize)
+    counter <- F.ref(0)
   } yield new {
 
     override def cancel(ctag: ConsumerTag): F[Unit] =
@@ -55,6 +56,11 @@ private[client] object MessageDispatcher {
         case Some(q) => q.offer(None)
         case None    => F.unit
       }
+
+    private def newCtag = counter
+      .getAndUpdate(_ + 1)
+      .map(i => ConsumerTag.from(s"consumer-$i").getOrElse(???))
+      .toResource
 
     override def deliver(msg: DeliveredMessageRaw): F[Unit] =
       dqs.get.map(_.get(msg.consumerTag)).flatMap {
@@ -64,10 +70,14 @@ private[client] object MessageDispatcher {
 
     override def `return`(msg: ReturnedMessageRaw): F[Unit] = rq.offer(msg)
 
-    override def deliveryQ(ctag: ConsumerTag): Resource[
+    override def deliveryQ(ctag: Option[ConsumerTag]): Resource[
       F,
       (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])
-    ] = addQ(ctag).map((ctag, _))
+    ] =
+      for {
+        ctag <- ctag.fold(newCtag)(Resource.pure)
+        q <- addQ(ctag)
+      } yield (ctag, q)
 
     private def addQ(
         ctag: ConsumerTag

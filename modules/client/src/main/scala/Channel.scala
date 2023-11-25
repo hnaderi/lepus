@@ -84,7 +84,7 @@ object Channel {
         noAck: NoAck = true,
         exclusive: Boolean = false,
         arguments: FieldTable = FieldTable.empty,
-        ctag: ConsumerTag
+        ctag: Option[ConsumerTag]
     ): Stream[F, DeliveredMessageRaw] =
       import Stream.*
       resource(channel.delivered(ctag)).flatMap { case (ctag, data) =>
