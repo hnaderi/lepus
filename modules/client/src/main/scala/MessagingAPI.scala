@@ -98,7 +98,8 @@ trait Consuming[F[_]] {
               )
       }
 
-    consumeRaw(queue, noLocal, noAck, exclusive, arguments, consumerTag).flatMap(run)
+    consumeRaw(queue, noLocal, noAck, exclusive, arguments, consumerTag)
+      .flatMap(run)
   }
 
   def get(
