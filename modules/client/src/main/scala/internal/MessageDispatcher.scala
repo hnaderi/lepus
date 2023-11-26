@@ -30,9 +30,13 @@ private[client] trait MessageDispatcher[F[_]] {
   def confirm(msg: ConfirmationResponse): F[Unit]
   def cancel(ctag: ConsumerTag): F[Unit]
 
-  def deliveryQ(ctag: Option[ConsumerTag])
-      : Resource[F, (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])]
-  final def deliveryQ: Resource[F, (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])] =
+  def deliveryQ(
+      ctag: Option[ConsumerTag]
+  ): Resource[F, (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])]
+  final def deliveryQ: Resource[
+    F,
+    (ConsumerTag, QueueSource[F, Option[DeliveredMessageRaw]])
+  ] =
     deliveryQ(None)
 
   def returnQ: QueueSource[F, ReturnedMessageRaw]

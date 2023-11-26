@@ -54,8 +54,9 @@ final class FakeLowLevelChannel(
 
   }
 
-  override def delivered(ctag: Option[ConsumerTag])
-      : Resource[IO, (ConsumerTag, Stream[IO, DeliveredMessageRaw])] =
+  override def delivered(
+      ctag: Option[ConsumerTag]
+  ): Resource[IO, (ConsumerTag, Stream[IO, DeliveredMessageRaw])] =
     Resource.eval(channel.get).flatMap(_.delivered(ctag))
 
   override def header(h: Frame.Header): IO[Unit] = call(_.header(h))
