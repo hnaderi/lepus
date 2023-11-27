@@ -155,8 +155,8 @@ object StartupNegotiation {
         ShortString("consumer_cancel_notify") -> true,
         ShortString("basic.nack") -> true,
         ShortString("connection.blocked") -> true
-      ).updated(ShortString("connection_name"), connectionName)
-    )
+      )
+    ).updated(ShortString("connection_name"), connectionName)
 }
 
 final case class NegotiatedConfig(
