@@ -8,10 +8,10 @@ Supports almost all of the RabbitMQ protocol extensions
 A couple of extensions are not implemented yet which is tracked in [this issue](https://github.com/hnaderi/lepus/issues/71)
 
 ## Ergonomic APIs
-AMQP protocol has a broad range of operations that can be used together to do a lot of interesting messaging,
-however not all of the aforementioned combinations are allowed or even meaningful, which is annoying when using official client.
-This client on the other hand, tries to have helpful and friendly APIs which guides the beginner, and helps the advanced user; 
-without any sacrificing any meaningful power.
+AMQP protocol has a broad range of operations that can be used together to do a lot of interesting messaging.
+However, not all combinations of those operations are allowed or even meaningful, which is annoying when using the official client.
+This client on the other hand, tries to have helpful and friendly APIs which guide the beginner while also helping the advanced user yet
+without sacrificing any meaningful power.
 
 ## Cross platform
 To this date, this library is the only AMQP scala library that supports all scala platforms.
