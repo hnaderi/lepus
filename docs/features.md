@@ -4,8 +4,7 @@
 Supports all AMQP 0.9.1 protocol, from transactions to pluggable authentication mechanism.
 
 ## RabbitMQ protocol extensions
-Supports almost all of the RabbitMQ protocol extensions
-A couple of extensions are not implemented yet which is tracked in [this issue](https://github.com/hnaderi/lepus/issues/71)
+Supports all of the RabbitMQ protocol extensions.
 
 ## Ergonomic APIs
 AMQP protocol has a broad range of operations that can be used together to do a lot of interesting messaging.
