@@ -4,7 +4,7 @@ import sbt.ThisBuild
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-lazy val scala3 = "3.3.3"
+lazy val scala3 = "3.4.1"
 val PrimaryJava = JavaSpec.temurin("8")
 val LTSJava = JavaSpec.temurin("17")
 
