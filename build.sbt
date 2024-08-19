@@ -69,7 +69,7 @@ val protocol = module("protocol") {
   crossProject(JVMPlatform, JSPlatform, NativePlatform)
     .crossType(CrossType.Pure)
     .settings(
-      libraryDependencies += "org.scodec" %%% "scodec-bits" % "1.1.38"
+      libraryDependencies += "org.scodec" %%% "scodec-bits" % Versions.scodecBit
     )
 }
 
@@ -78,7 +78,7 @@ val codeGen = Project(s"code-gen", file(s"modules/code-gen"))
     libraryDependencies ++= Seq(
       "co.fs2" %% "fs2-io" % Versions.fs2,
       "co.fs2" %% "fs2-scodec" % Versions.fs2,
-      "org.scala-lang.modules" %% "scala-xml" % "2.3.0"
+      "org.scala-lang.modules" %% "scala-xml" % Versions.xml
     ),
     Compile / run / baseDirectory := file("."),
     description := "Lepus internal code generator based on AMQP spec"
@@ -139,7 +139,7 @@ val std = module("std") {
     .crossType(CrossType.Pure)
     .dependsOn(client)
     .settings(
-      libraryDependencies += "dev.hnaderi" %%% "named-codec" % "0.2.1"
+      libraryDependencies += "dev.hnaderi" %%% "named-codec" % Versions.NamedCodec
     )
 }
 
@@ -148,7 +148,7 @@ val circe = module("circe") {
     .crossType(CrossType.Pure)
     .dependsOn(client)
     .settings(
-      libraryDependencies += "io.circe" %%% "circe-parser" % "0.14.8"
+      libraryDependencies += "io.circe" %%% "circe-parser" % Versions.circe
     )
 }
 
@@ -160,8 +160,8 @@ val example =
     .enablePlugins(NoPublishPlugin)
     .settings(
       libraryDependencies ++= Seq(
-        "io.circe" %%% "circe-generic" % "0.14.8",
-        "dev.hnaderi" %%% "named-codec-circe" % "0.2.1"
+        "io.circe" %%% "circe-generic" % Versions.circe,
+        "dev.hnaderi" %%% "named-codec-circe" % Versions.NamedCodec
       )
     )
     .jvmSettings(
