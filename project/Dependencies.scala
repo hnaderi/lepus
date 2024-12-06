@@ -11,7 +11,7 @@ object Dependencies {
     val scodecStream = "3.0.1"
     val scodecBit = "1.1.38"
     val circe = "0.14.8"
-    val rabbit = "5.13.0"
+    val rabbit = "5.13.1"
     val MUnit = "1.0.0-M11"
     val CatsEffectMunit = "2.0.0"
     val scalacheckEffectVersion = "2.0.0-M2"
