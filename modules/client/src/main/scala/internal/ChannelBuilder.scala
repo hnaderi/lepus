@@ -42,21 +42,21 @@ private[client] object ChannelBuilder {
 
   import lepus.client.Channel.call
   private def openChannel[F[_]: Concurrent](ch: LowlevelChannel[F]) =
-    Resource.make(ch.call(ChannelClass.Open).void)(_ =>
-      // ch.status.get
-      //   .map(_ == Channel.Status.Closed)
-      //   .ifM(
-      //     Concurrent[F].unit,
-      ch.call(
-        ChannelClass.Close(
-          ReplyCode.ReplySuccess,
-          ShortString(""),
-          ClassId(0),
-          MethodId(0)
-        )
-      ).void
-    )
-    // )
+  Resource.make(ch.call(ChannelClass.Open).void)(_ =>
+    // ch.status.get
+    //   .map(_ == Channel.Status.Closed)
+    //   .ifM(
+    //     Concurrent[F].unit,
+    ch.call(
+      ChannelClass.Close(
+        ReplyCode.ReplySuccess,
+        ShortString(""),
+        ClassId(0),
+        MethodId(0)
+      )
+    ).void
+  )
+  // )
 }
 
 private[client] type ChannelFactory[F[_]] =
