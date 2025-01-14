@@ -385,7 +385,9 @@ private[client] object RPCCallDef {
       rpc.sendNoWait(msg)
   }
 
-  given BasicClass_Get[F[_]](using F: MonadError[F, Throwable]): RPCCallDef[
+  given BasicClass_Get[F[_]](using
+      F: MonadError[F, Throwable]
+  ): RPCCallDef[
     F,
     BasicClass.Get,
     BasicClass.GetOk | BasicClass.GetEmpty.type
