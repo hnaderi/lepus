@@ -17,7 +17,6 @@
 package lepus.client.internal
 
 import cats.effect.IO
-import cats.syntax.all.*
 import lepus.protocol.domains.DeliveryTag
 
 class SequentialTaggerSuite extends InternalTestSuite {
