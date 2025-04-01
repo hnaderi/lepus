@@ -13,7 +13,7 @@ object Dependencies {
     val circe = "0.14.8"
     val rabbit = "5.25.0"
     val MUnit = "1.0.0-M11"
-    val CatsEffectMunit = "2.0.0"
+    val CatsEffectMunit = "2.1.0"
     val scalacheckEffectVersion = "2.0.0-M2"
     val NamedCodec = "0.2.1"
     val xml = "2.3.0"
