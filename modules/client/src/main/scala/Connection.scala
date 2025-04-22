@@ -23,7 +23,6 @@ import cats.effect.std.Queue
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
-import lepus.client.Connection.Status
 import lepus.client.apis.*
 import lepus.protocol.*
 import lepus.protocol.domains.ChannelNumber

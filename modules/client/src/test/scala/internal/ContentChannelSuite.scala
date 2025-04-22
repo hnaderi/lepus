@@ -32,7 +32,6 @@ import org.scalacheck.effect.PropF
 import org.scalacheck.effect.PropF.*
 import scodec.bits.ByteVector
 
-import ContentChannel.*
 import ContentChannelSuite.*
 
 class ContentChannelSuite extends InternalTestSuite {

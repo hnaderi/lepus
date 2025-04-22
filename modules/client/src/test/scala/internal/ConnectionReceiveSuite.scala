@@ -19,7 +19,6 @@ package internal
 
 import cats.effect.*
 import fs2.Stream
-import fs2.Stream.*
 import lepus.codecs.ConnectionDataGenerator
 import lepus.codecs.FrameGenerators
 import lepus.protocol.*

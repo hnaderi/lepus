@@ -19,7 +19,6 @@ package internal
 
 import cats.effect.Concurrent
 import cats.implicits.*
-import lepus.protocol.Frame
 import lepus.protocol.*
 import lepus.protocol.constants.ReplyCode
 import lepus.protocol.domains.*
