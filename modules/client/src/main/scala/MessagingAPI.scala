@@ -19,7 +19,6 @@ package apis
 
 import cats.effect.Concurrent
 import cats.effect.kernel.Resource
-import cats.implicits.*
 import fs2.Pipe
 import fs2.RaiseThrowable
 import fs2.Stream

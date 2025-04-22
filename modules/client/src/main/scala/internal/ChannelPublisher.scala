@@ -18,7 +18,6 @@ package lepus.client
 package internal
 
 import cats.effect.Concurrent
-import lepus.protocol.Frame
 import lepus.protocol.*
 import lepus.protocol.domains.*
 

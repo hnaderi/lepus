@@ -16,7 +16,6 @@
 
 package lepus.protocol
 
-import lepus.protocol.*
 import lepus.protocol.constants.*
 import lepus.protocol.domains.*
 
