@@ -74,7 +74,7 @@ object RPCChannel {
           ch.messaging.publishRaw(
             ExchangeName.default,
             routingKey = req.sender,
-            msg
+            msg.withCorrelationId(req.id)
           ) >> ch.messaging.ack(req.tag, false)
       }
 
