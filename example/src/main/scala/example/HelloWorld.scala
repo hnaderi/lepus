@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//> using scala 3.2
+//> using scala 3.3
 //> using dep "io.circe::circe-generic:0.14.5"
 //> using dep "dev.hnaderi::named-codec-circe:0.1.0"
 //> using dep "dev.hnaderi::lepus-std:0.5.4"

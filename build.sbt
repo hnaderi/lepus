@@ -157,6 +157,7 @@ val example =
     .in(file("example"))
     .dependsOn(std, circe)
     .enablePlugins(NoPublishPlugin)
+    .disablePlugins(HeaderPlugin)
     .settings(
       libraryDependencies ++= Seq(
         "io.circe" %%% "circe-generic" % Versions.circe,
