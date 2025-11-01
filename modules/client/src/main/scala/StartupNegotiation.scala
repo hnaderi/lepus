@@ -96,7 +96,7 @@ object StartupNegotiation {
           .fold(Capabilities.none)(Capabilities.from(_))
 
         auth.get(proposedMechanisms: _*) match {
-          case None => NoSupportedSASLMechanism.raiseError
+          case None            => NoSupportedSASLMechanism.raiseError
           case Some(mechanism) =>
             caps.complete(Right(serverCaps)) >>
               mechanism.first.map(response =>

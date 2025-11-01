@@ -81,7 +81,7 @@ private[client] object FrameDispatcher {
     )(f: ChannelReceiver[F] => F[Unit]): F[Unit] =
       state.get.map(_.channels.get(ch)).flatMap {
         case Some(r) => f(r)
-        case None =>
+        case None    =>
           AMQPError(
             ReplyCode.NotFound,
             ShortString("No such channel found!"),

@@ -100,8 +100,8 @@ object Connection {
       state: ConnectionState[F],
       dispatcher: FrameDispatcher[F]
   ): Pipe[F, Frame, Nothing] = _.foreach {
-    case b: Frame.Body   => dispatcher.body(b)
-    case h: Frame.Header => dispatcher.header(h)
+    case b: Frame.Body          => dispatcher.body(b)
+    case h: Frame.Header        => dispatcher.header(h)
     case Frame.Method(0, value) =>
       value match {
         case m @ ConnectionClass.OpenOk   => state.onOpened
