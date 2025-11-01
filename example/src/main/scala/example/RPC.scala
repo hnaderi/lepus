@@ -54,7 +54,7 @@ object RPC extends IOApp {
     (args.map(_.toLowerCase) match {
       case "server" :: _ => server
       case "client" :: _ => client
-      case _ => Stream.exec(IO.println(s"""Usage: rpc command
+      case _             => Stream.exec(IO.println(s"""Usage: rpc command
 Commands:
   - server
   - client

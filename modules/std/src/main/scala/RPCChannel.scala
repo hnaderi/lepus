@@ -70,7 +70,7 @@ object RPCChannel {
     override def respond(req: RequestMethod[I], o: O): F[Unit] =
       endpoint.serverCodec.encode(o) match {
         case Left(error) => error.raiseError
-        case Right(msg) =>
+        case Right(msg)  =>
           ch.messaging.publishRaw(
             ExchangeName.default,
             routingKey = req.sender,
@@ -150,7 +150,7 @@ object RPCChannel {
       .consumeRaw(q, noAck = false)
       .flatMap(env =>
         endpoint.serverCodec.decode(env.message) match
-          case Left(error) => Stream.exec(reject(env.deliveryTag))
+          case Left(error)  => Stream.exec(reject(env.deliveryTag))
           case Right(value) =>
             value.properties.correlationId
               .fold(Stream.exec(reject(env.deliveryTag)))(responseTo =>

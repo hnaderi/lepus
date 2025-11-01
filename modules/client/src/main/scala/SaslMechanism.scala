@@ -54,7 +54,7 @@ final class AuthenticationConfig[F[_]](
   /** First supported mechanism based on preferrence */
   def get(supported: String*): Option[SaslMechanism[F]] =
     mechanisms.foldLeft(Option.empty[SaslMechanism[F]]) {
-      case (last @ Some(_), _) => last
+      case (last @ Some(_), _)                                     => last
       case (None, mechanism) if supported.contains(mechanism.name) =>
         Some(mechanism)
       case _ => None

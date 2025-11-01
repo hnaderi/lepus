@@ -36,7 +36,7 @@ private[client] object OutputWriter {
           override def write(t: T): F[Unit] =
             closed.tryGet.flatMap {
               case Some(_) => ConnectionIsClosed.raiseError
-              case None =>
+              case None    =>
                 Concurrent[F].race(closed.get, out(t)).flatMap(_.liftTo)
             }
 

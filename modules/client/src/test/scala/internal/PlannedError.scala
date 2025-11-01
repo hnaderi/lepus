@@ -22,7 +22,7 @@ import cats.syntax.all.*
 
 final class PlannedError(value: Ref[IO, PlannedErrorKind]) extends AnyVal {
   def run = value.get.flatMap {
-    case PlannedErrorKind.Always(e) => IO.raiseError(e)
+    case PlannedErrorKind.Always(e)            => IO.raiseError(e)
     case PlannedErrorKind.Times(n, e) if n > 0 =>
       value.set(PlannedErrorKind.Times(n - 1, e)) >> IO.raiseError(e)
     case _ => IO.unit

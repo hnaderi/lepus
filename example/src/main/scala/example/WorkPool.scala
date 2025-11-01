@@ -48,7 +48,7 @@ object WorkPool extends IOApp {
     (args.map(_.toLowerCase) match {
       case "server" :: _         => server
       case "worker" :: name :: _ => worker(name)
-      case _ => Stream.exec(IO.println(s"""Usage: workpool command
+      case _                     => Stream.exec(IO.println(s"""Usage: workpool command
 Commands:
   - server
   - worker <name>

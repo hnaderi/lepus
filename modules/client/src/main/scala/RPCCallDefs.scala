@@ -62,7 +62,7 @@ private[client] object RPCCallDef {
         msg: ConnectionClass.Open
     ): F[ConnectionClass.OpenOk.type] = rpc.sendWait(msg).flatMap {
       case m: ConnectionClass.OpenOk.type => m.pure
-      case other =>
+      case other                          =>
         F.raiseError(UnexpectedResponse(other, ClassId(10), MethodId(40)))
     }
   }
@@ -74,7 +74,7 @@ private[client] object RPCCallDef {
         msg: ConnectionClass.Close
     ): F[ConnectionClass.CloseOk.type] = rpc.sendWait(msg).flatMap {
       case m: ConnectionClass.CloseOk.type => m.pure
-      case other =>
+      case other                           =>
         F.raiseError(UnexpectedResponse(other, ClassId(10), MethodId(50)))
     }
   }
@@ -118,7 +118,7 @@ private[client] object RPCCallDef {
         msg: ChannelClass.Open.type
     ): F[ChannelClass.OpenOk.type] = rpc.sendWait(msg).flatMap {
       case m: ChannelClass.OpenOk.type => m.pure
-      case other =>
+      case other                       =>
         F.raiseError(UnexpectedResponse(other, ClassId(20), MethodId(10)))
     }
   }
@@ -130,7 +130,7 @@ private[client] object RPCCallDef {
         msg: ChannelClass.Flow
     ): F[ChannelClass.FlowOk] = rpc.sendWait(msg).flatMap {
       case m: ChannelClass.FlowOk => m.pure
-      case other =>
+      case other                  =>
         F.raiseError(UnexpectedResponse(other, ClassId(20), MethodId(20)))
     }
   }
@@ -149,7 +149,7 @@ private[client] object RPCCallDef {
         msg: ChannelClass.Close
     ): F[ChannelClass.CloseOk.type] = rpc.sendWait(msg).flatMap {
       case m: ChannelClass.CloseOk.type => m.pure
-      case other =>
+      case other                        =>
         F.raiseError(UnexpectedResponse(other, ClassId(20), MethodId(40)))
     }
   }
@@ -176,7 +176,7 @@ private[client] object RPCCallDef {
         .sendWait(msg)
         .flatMap {
           case m: ExchangeClass.DeclareOk.type => m.pure
-          case other =>
+          case other                           =>
             F.raiseError(UnexpectedResponse(other, ClassId(40), MethodId(10)))
         }
         .map(_.some)
@@ -195,7 +195,7 @@ private[client] object RPCCallDef {
           .sendWait(msg)
           .flatMap {
             case m: ExchangeClass.DeleteOk.type => m.pure
-            case other =>
+            case other                          =>
               F.raiseError(UnexpectedResponse(other, ClassId(40), MethodId(20)))
           }
           .map(_.some)
@@ -214,7 +214,7 @@ private[client] object RPCCallDef {
           .sendWait(msg)
           .flatMap {
             case m: ExchangeClass.BindOk.type => m.pure
-            case other =>
+            case other                        =>
               F.raiseError(UnexpectedResponse(other, ClassId(40), MethodId(30)))
           }
           .map(_.some)
@@ -233,7 +233,7 @@ private[client] object RPCCallDef {
           .sendWait(msg)
           .flatMap {
             case m: ExchangeClass.UnbindOk.type => m.pure
-            case other =>
+            case other                          =>
               F.raiseError(UnexpectedResponse(other, ClassId(40), MethodId(40)))
           }
           .map(_.some)
@@ -251,7 +251,7 @@ private[client] object RPCCallDef {
         .sendWait(msg)
         .flatMap {
           case m: QueueClass.DeclareOk => m.pure
-          case other =>
+          case other                   =>
             F.raiseError(UnexpectedResponse(other, ClassId(50), MethodId(10)))
         }
         .map(_.some)
@@ -269,7 +269,7 @@ private[client] object RPCCallDef {
         .sendWait(msg)
         .flatMap {
           case m: QueueClass.BindOk.type => m.pure
-          case other =>
+          case other                     =>
             F.raiseError(UnexpectedResponse(other, ClassId(50), MethodId(20)))
         }
         .map(_.some)
@@ -282,7 +282,7 @@ private[client] object RPCCallDef {
         msg: QueueClass.Unbind
     ): F[QueueClass.UnbindOk.type] = rpc.sendWait(msg).flatMap {
       case m: QueueClass.UnbindOk.type => m.pure
-      case other =>
+      case other                       =>
         F.raiseError(UnexpectedResponse(other, ClassId(50), MethodId(50)))
     }
   }
@@ -299,7 +299,7 @@ private[client] object RPCCallDef {
         .sendWait(msg)
         .flatMap {
           case m: QueueClass.PurgeOk => m.pure
-          case other =>
+          case other                 =>
             F.raiseError(UnexpectedResponse(other, ClassId(50), MethodId(30)))
         }
         .map(_.some)
@@ -317,7 +317,7 @@ private[client] object RPCCallDef {
         .sendWait(msg)
         .flatMap {
           case m: QueueClass.DeleteOk => m.pure
-          case other =>
+          case other                  =>
             F.raiseError(UnexpectedResponse(other, ClassId(50), MethodId(40)))
         }
         .map(_.some)
@@ -330,7 +330,7 @@ private[client] object RPCCallDef {
         msg: BasicClass.Qos
     ): F[BasicClass.QosOk.type] = rpc.sendWait(msg).flatMap {
       case m: BasicClass.QosOk.type => m.pure
-      case other =>
+      case other                    =>
         F.raiseError(UnexpectedResponse(other, ClassId(60), MethodId(10)))
     }
   }
@@ -347,7 +347,7 @@ private[client] object RPCCallDef {
         .sendWait(msg)
         .flatMap {
           case m: BasicClass.ConsumeOk => m.pure
-          case other =>
+          case other                   =>
             F.raiseError(UnexpectedResponse(other, ClassId(60), MethodId(20)))
         }
         .map(_.some)
@@ -365,7 +365,7 @@ private[client] object RPCCallDef {
         .sendWait(msg)
         .flatMap {
           case m: BasicClass.CancelOk => m.pure
-          case other =>
+          case other                  =>
             F.raiseError(UnexpectedResponse(other, ClassId(60), MethodId(30)))
         }
         .map(_.some)
@@ -398,7 +398,7 @@ private[client] object RPCCallDef {
       rpc.sendWait(msg).flatMap {
         case m: BasicClass.GetOk         => m.pure
         case m: BasicClass.GetEmpty.type => m.pure
-        case other =>
+        case other                       =>
           F.raiseError(UnexpectedResponse(other, ClassId(60), MethodId(70)))
       }
   }
@@ -446,7 +446,7 @@ private[client] object RPCCallDef {
         msg: TxClass.Select.type
     ): F[TxClass.SelectOk.type] = rpc.sendWait(msg).flatMap {
       case m: TxClass.SelectOk.type => m.pure
-      case other =>
+      case other                    =>
         F.raiseError(UnexpectedResponse(other, ClassId(90), MethodId(10)))
     }
   }
@@ -458,7 +458,7 @@ private[client] object RPCCallDef {
         msg: TxClass.Commit.type
     ): F[TxClass.CommitOk.type] = rpc.sendWait(msg).flatMap {
       case m: TxClass.CommitOk.type => m.pure
-      case other =>
+      case other                    =>
         F.raiseError(UnexpectedResponse(other, ClassId(90), MethodId(20)))
     }
   }
@@ -470,7 +470,7 @@ private[client] object RPCCallDef {
         msg: TxClass.Rollback.type
     ): F[TxClass.RollbackOk.type] = rpc.sendWait(msg).flatMap {
       case m: TxClass.RollbackOk.type => m.pure
-      case other =>
+      case other                      =>
         F.raiseError(UnexpectedResponse(other, ClassId(90), MethodId(30)))
     }
   }
@@ -488,7 +488,7 @@ private[client] object RPCCallDef {
           .sendWait(msg)
           .flatMap {
             case m: ConfirmClass.SelectOk.type => m.pure
-            case other =>
+            case other                         =>
               F.raiseError(UnexpectedResponse(other, ClassId(85), MethodId(10)))
           }
           .map(_.some)

@@ -66,7 +66,7 @@ object EventChannel {
       topic.codec
         .encode(t)
         .product(topic.topic.get(t).leftMap(InvalidTopicName(_))) match {
-        case Left(error) => error.raiseError
+        case Left(error)             => error.raiseError
         case Right((msg, topicName)) =>
           currentTime.flatMap(now =>
             ch.messaging.publishRaw(
@@ -107,7 +107,7 @@ object EventChannel {
       .consumeRaw(q, noAck = false)
       .flatMap(env =>
         topic.codec.decode(env.message) match {
-          case Left(error) => Stream.exec(reject(env.deliveryTag))
+          case Left(error)  => Stream.exec(reject(env.deliveryTag))
           case Right(value) =>
             val evt = for {
               id <- value.properties.messageId
