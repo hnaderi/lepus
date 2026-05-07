@@ -98,6 +98,6 @@ object Transport {
       address: SocketAddress[Host],
       options: List[SocketOption] = List.empty
   ): Transport[F] = in =>
-    resource(Network[F].client(address, options))
+    resource(Network[F].connect(address, options))
       .flatMap(fromSocket(_).apply(in))
 }

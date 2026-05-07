@@ -21,7 +21,8 @@ import cats.effect.Resource
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
 
-import java.nio.file.Path
+import java.nio.file.Path as NioPath
+import fs2.io.file.Path
 import java.security.KeyStore
 import javax.net.ssl.SSLContext
 
@@ -51,6 +52,13 @@ private[client] transparent trait SSLCompanionPlatform { this: SSL.type =>
             .fromKeyStoreFile(file, storePassword, keyPassword)
         )
     }
+
+  /** Creates a `SSL` from the specified key store file. */
+  def fromKeyStoreFile(
+      file: NioPath,
+      storePassword: Array[Char],
+      keyPassword: Array[Char]
+  ): SSL = fromKeyStoreFile(Path.fromNioPath(file), storePassword, keyPassword)
 
   /** Creates a `SSL` from the specified class path resource. */
   def fromKeyStoreResource(
