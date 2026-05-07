@@ -59,7 +59,7 @@ object LepusClient {
       socketOptions: List[SocketOption] = Nil
   ): Resource[F, Connection[F]] = {
 
-    val connect = Network[F].client(SocketAddress(host, port), socketOptions)
+    val connect = Network[F].connect(SocketAddress(host, port), socketOptions)
 
     val socket =
       if ssl == SSL.None

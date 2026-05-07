@@ -10,7 +10,7 @@ val LTSJava = JavaSpec.temurin("17")
 
 inThisBuild(
   List(
-    tlBaseVersion := "0.5",
+    tlBaseVersion := "0.6",
     scalaVersion := scala3,
     fork := true,
     Test / fork := false,
@@ -44,7 +44,8 @@ inThisBuild(
         email = "mail@hnaderi.dev",
         url = url("https://hnaderi.dev")
       )
-    )
+    ),
+    libraryDependencySchemes += "org.scala-native" % "test-interface_native0.5_3" % VersionScheme.Always
   )
 )
 
@@ -170,9 +171,6 @@ val example =
     .jsSettings(
       scalaJSUseMainModuleInitializer := true,
       scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
-    )
-    .nativeSettings(
-      libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.7"
     )
 
 val docs = project
