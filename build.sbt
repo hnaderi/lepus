@@ -10,7 +10,7 @@ val LTSJava = JavaSpec.temurin("17")
 
 inThisBuild(
   List(
-    tlBaseVersion := "0.5",
+    tlBaseVersion := "0.6",
     scalaVersion := scala3,
     fork := true,
     Test / fork := false,
