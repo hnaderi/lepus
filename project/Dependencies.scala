@@ -9,7 +9,7 @@ object Dependencies {
     val fs2 = "3.13.0"
     val scodec = "2.3.3"
     val scodecStream = "3.0.1"
-    val scodecBit = "1.2.4"
+    val scodecBit = "1.2.5"
     val circe = "0.14.15"
     val rabbit = "5.30.0"
     val MUnit = "1.3.0"
