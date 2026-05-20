@@ -173,6 +173,22 @@ val example =
       scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
     )
 
+lazy val integration = project
+  .in(file("modules/integration"))
+  .dependsOn(client.jvm)
+  .enablePlugins(NoPublishPlugin)
+  .settings(
+    name := "lepus-integration-tests",
+    Test / fork := true,
+    libraryDependencies ++= Seq(
+      "org.scalameta" %% "munit" % Versions.MUnit % Test,
+      "org.typelevel" %% "munit-cats-effect" % Versions.CatsEffectMunit % Test,
+      "org.testcontainers" % "testcontainers" % Versions.testcontainers % Test,
+      "org.testcontainers" % "rabbitmq" % Versions.testcontainers % Test,
+      "ch.qos.logback" % "logback-classic" % Versions.logback % Test
+    )
+  )
+
 val docs = project
   .in(file("site"))
   .enablePlugins(LepusSitePlugin)
@@ -205,7 +221,8 @@ val root = tlCrossRootProject
     circe,
     docs,
     unidocs,
-    example
+    example,
+    integration
   )
 
 def addAlias(name: String)(tasks: String*) =

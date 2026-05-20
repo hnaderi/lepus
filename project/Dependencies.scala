@@ -17,5 +17,7 @@ object Dependencies {
     val scalacheckEffectVersion = "2.1.0"
     val NamedCodec = "0.3.1"
     val xml = "2.4.0"
+    val testcontainers = "1.21.4"
+    val logback = "1.5.18"
   }
 }

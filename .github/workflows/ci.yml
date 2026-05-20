@@ -259,7 +259,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: code-gen_3 example_sjs1_3 lepus_3 docs_3 lepus_3 lepus_3 example_native0.5_3 example_3
+          modules-ignore: lepus-integration-tests_3 code-gen_3 example_sjs1_3 lepus_3 docs_3 lepus_3 lepus_3 example_native0.5_3 example_3
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   post-build:
