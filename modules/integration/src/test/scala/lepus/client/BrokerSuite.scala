@@ -26,11 +26,11 @@ trait BrokerSuite extends CatsEffectSuite {
 
   val rabbit = ResourceSuiteLocalFixture(
     "rabbitmq",
-    Resource.make(IO {
+    Resource.make(IO.blocking {
       val c = new RabbitMQContainer("rabbitmq:3")
       c.start()
       c
-    })(c => IO(c.stop()))
+    })(c => IO.blocking(c.stop()))
   )
 
   override def munitFixtures = List(rabbit)
