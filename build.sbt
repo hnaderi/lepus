@@ -5,7 +5,7 @@ import sbt.ThisBuild
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 lazy val scala3 = "3.3.6"
-val PrimaryJava = JavaSpec.temurin("11")
+val PrimaryJava = JavaSpec.temurin("8")
 val LTSJava = JavaSpec.temurin("17")
 
 inThisBuild(
@@ -184,8 +184,7 @@ lazy val integration = project
       "org.scalameta" %% "munit" % Versions.MUnit % Test,
       "org.typelevel" %% "munit-cats-effect" % Versions.CatsEffectMunit % Test,
       "org.testcontainers" % "testcontainers" % Versions.testcontainers % Test,
-      "org.testcontainers" % "rabbitmq" % Versions.testcontainers % Test,
-      "ch.qos.logback" % "logback-classic" % Versions.logback % Test
+      "org.testcontainers" % "rabbitmq" % Versions.testcontainers % Test
     )
   )
 
