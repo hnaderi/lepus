@@ -20,7 +20,7 @@ import cats.effect.IO
 import cats.effect.Resource
 import com.comcast.ip4s.*
 import munit.CatsEffectSuite
-import org.testcontainers.containers.RabbitMQContainer
+import org.testcontainers.rabbitmq.RabbitMQContainer
 
 trait BrokerSuite extends CatsEffectSuite {
 

@@ -184,7 +184,7 @@ lazy val integration = project
       "org.scalameta" %% "munit" % Versions.MUnit % Test,
       "org.typelevel" %% "munit-cats-effect" % Versions.CatsEffectMunit % Test,
       "org.testcontainers" % "testcontainers" % Versions.testcontainers % Test,
-      "org.testcontainers" % "rabbitmq" % Versions.testcontainers % Test
+      "org.testcontainers" % "testcontainers-rabbitmq" % Versions.testcontainers % Test
     )
   )
 
