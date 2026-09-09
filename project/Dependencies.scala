@@ -16,7 +16,7 @@ object Dependencies {
     val CatsEffectMunit = "2.2.0"
     val scalacheckEffectVersion = "2.1.0"
     val NamedCodec = "0.3.2"
-    val xml = "2.4.0"
+    val xml = "2.5.0"
     val testcontainers = "2.0.5"
   }
 }
