@@ -17,7 +17,7 @@
           imports = [ typelevel-nix.typelevelShell ];
           name = "lepus-shell";
           typelevelShell = {
-            jdk.package = pkgs.jdk17;
+            jdk.package = pkgs.temurin-bin-17;
             nodejs.enable = true;
             native.enable = true;
           };
